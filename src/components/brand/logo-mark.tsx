@@ -5,10 +5,11 @@ import { clsx } from "@/lib/clsx";
 import mark from "../../../public/rsskyler-mark.png";
 
 /**
- * The RS monogram from the logo kit (`brand-assets/logo_design.pdf`), cropped
- * above the "LIMOUSINE" line so it pairs with the wordmark without saying the
- * name twice. The full mark, with its own lettering, stays in brand-assets for
- * print and physical applications.
+ * The RS monogram from the logo kit (`brand-assets/logo_design.pdf`) with the
+ * "LIMOUSINE" line removed so it pairs with the wordmark without saying the
+ * name twice. That line is painted out rather than cropped off: it sits beside
+ * the S's bottom flourish, not below it, so a horizontal crop clips the S. The
+ * full mark, with its own lettering, stays in brand-assets for print.
  *
  * Gold on midnight is the mark's home ground. On light grounds it is still a
  * graphic element, which is the one use Chapter 2 permits gold on white.
