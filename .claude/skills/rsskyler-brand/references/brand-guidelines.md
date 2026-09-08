@@ -8,9 +8,13 @@ behind a decision already established. A gold-edged **enhancement** note marks a
 recommendation *added* in Edition 02 — a proposal for review, not approved rule. Enhancements
 are labelled as such below.
 
-**Logo system status:** deliberately removed pending a finished mark. Vehicle livery specs and
-app-icon/favicon specs were held back with it. Every other chapter stands on its own. A
-`RSSkyler_Wordmark_Lockups.pdf` exists and *is* current — the wordmark is settled, the mark is not.
+**Logo system status:** the Brand Guidelines deliberately omit a logo chapter — the mark was
+still being finalised when Edition 02 was written, and vehicle livery and app-icon specs were
+held back with it. Two companion files fill part of that gap and *are* current:
+`RSSkyler_Wordmark_Lockups.pdf` (the settled wordmark) and `logo_design.pdf` (the RS monogram
+kit, with gold, reversed and mono variants — it also independently names Fraunces and Public
+Sans, confirming the type system). What remains genuinely unspecified is vehicle livery
+placement and minimum size.
 
 ---
 

@@ -29,3 +29,7 @@ The three rules broken most often:
 `/styleguide` renders every component with its contrast table — check changes
 there. Fonts are loaded once in `src/app/layout.tsx`; colour tokens live in the
 `@theme` block in `src/app/globals.css`.
+
+The logo lockup is `src/components/brand/logo.tsx` (RS monogram + wordmark).
+Favicon and app icon are `src/app/icon.png` / `src/app/apple-icon.png` — Next
+emits the `<link>` tags from those filenames, so don't hand-write icon metadata.

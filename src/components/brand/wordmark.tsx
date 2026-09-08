@@ -18,8 +18,11 @@ const sizes = {
 
 /**
  * The wordmark, per RSSkyler_Wordmark_Lockups.pdf: one word, two weights,
- * a single baseline, 4.8% tracking. Live text, never an image — there is no
- * approved logo mark yet, and the full name is what carries recognition.
+ * a single baseline, 4.8% tracking. Live text, never an image — it scales
+ * cleanly and stays selectable and searchable.
+ *
+ * Pair it with the RS monogram via `Logo`; use it alone where the mark would
+ * crowd, such as inside a compact footer column.
  */
 export function Wordmark({
   tone = "light",
