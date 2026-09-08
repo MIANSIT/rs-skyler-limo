@@ -1,0 +1,752 @@
+<title>RSSkyler Limo — Website Build &amp; Deployment Plan</title>
+<style>
+  :root {
+    color-scheme: light dark;
+
+    --midnight: #0b2142;
+    --gold: #d4a017;
+
+    --ground: #f6f7f9;
+    --panel: #ffffff;
+    --panel-alt: #eef1f5;
+    --ink: #16202f;
+    --ink-soft: #5a6675;
+    --ink-faint: #8a94a1;
+    --line: #dfe4ea;
+    --line-strong: #c3ccd6;
+    --accent: #a97c0d;
+    --accent-ground: #fdf6e6;
+    --head: var(--midnight);
+    --flag: #9c3626;
+    --flag-ground: #fdf0ed;
+    --ok: #2f6b46;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0a1220;
+      --panel: #101b2c;
+      --panel-alt: #16233a;
+      --ink: #e4e9f0;
+      --ink-soft: #9aa7b8;
+      --ink-faint: #6b7889;
+      --line: #24334b;
+      --line-strong: #35486a;
+      --accent: #e0af3c;
+      --accent-ground: #1d1d16;
+      --head: #ffffff;
+      --flag: #e08573;
+      --flag-ground: #23161a;
+      --ok: #6fb98c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0a1220;
+    --panel: #101b2c;
+    --panel-alt: #16233a;
+    --ink: #e4e9f0;
+    --ink-soft: #9aa7b8;
+    --ink-faint: #6b7889;
+    --line: #24334b;
+    --line-strong: #35486a;
+    --accent: #e0af3c;
+    --accent-ground: #1d1d16;
+    --head: #ffffff;
+    --flag: #e08573;
+    --flag-ground: #23161a;
+    --ok: #6fb98c;
+  }
+
+  :root[data-theme="light"] {
+    --ground: #f6f7f9;
+    --panel: #ffffff;
+    --panel-alt: #eef1f5;
+    --ink: #16202f;
+    --ink-soft: #5a6675;
+    --ink-faint: #8a94a1;
+    --line: #dfe4ea;
+    --line-strong: #c3ccd6;
+    --accent: #a97c0d;
+    --accent-ground: #fdf6e6;
+    --head: var(--midnight);
+    --flag: #9c3626;
+    --flag-ground: #fdf0ed;
+    --ok: #2f6b46;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  /* ---- masthead ---- */
+
+  .masthead {
+    background: var(--midnight);
+    color: #fff;
+    margin: 0 -1.5rem;
+    padding: 3.5rem 1.5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .masthead .eyebrow { color: var(--gold); }
+
+  .masthead h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    line-height: 1.1;
+    font-weight: 600;
+    color: #fff;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+
+  .masthead p {
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 58ch;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin-top: 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .meta b { color: #fff; font-weight: 600; }
+
+  /* ---- type ---- */
+
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--head);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 650;
+    color: var(--head);
+    letter-spacing: -0.005em;
+  }
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  section > .eyebrow + h2 { margin-top: -0.9rem; }
+
+  p, li { max-width: 68ch; }
+
+  p { color: var(--ink-soft); }
+
+  strong { color: var(--ink); font-weight: 650; }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+
+  .lede { font-size: 1.0625rem; color: var(--ink); }
+
+  ul { display: flex; flex-direction: column; gap: 0.4rem; padding-left: 1.1rem; }
+  li { color: var(--ink-soft); }
+  li::marker { color: var(--accent); }
+
+  /* ---- tables ---- */
+
+  .scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+    min-width: 34rem;
+  }
+
+  caption {
+    text-align: left;
+    font-size: 0.8125rem;
+    color: var(--ink-faint);
+    padding-bottom: 0.6rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.65rem 1rem 0.65rem 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom-color: var(--line-strong);
+    white-space: nowrap;
+  }
+
+  tbody th { font-weight: 600; color: var(--ink); }
+  td { color: var(--ink-soft); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 0; }
+  tfoot td, tfoot th {
+    border-bottom: none;
+    border-top: 2px solid var(--line-strong);
+    color: var(--ink);
+    font-weight: 650;
+  }
+
+  /* ---- chips ---- */
+
+  .chip {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .chip-client { color: var(--accent); }
+  .chip-dev { color: var(--ink-faint); }
+  .chip-done { color: var(--ok); }
+
+  /* ---- panels ---- */
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .flag {
+    background: var(--flag-ground);
+    border-left: 3px solid var(--flag);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .flag .eyebrow { color: var(--flag); }
+  .flag p { color: var(--ink); }
+
+  .note {
+    background: var(--accent-ground);
+    border-left: 3px solid var(--gold);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .note .eyebrow { color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+  }
+
+  /* ---- stack diagram ---- */
+
+  .stack { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .layer {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 0.9rem 1.15rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.9rem;
+  }
+
+  .layer b { font-size: 0.9375rem; color: var(--head); }
+  .layer span { font-size: 0.8125rem; color: var(--ink-soft); }
+  .layer.edge { border-left: 3px solid var(--gold); }
+  .layer.app { border-left: 3px solid var(--midnight); background: var(--panel-alt); }
+  .layer.data { border-left: 3px solid var(--line-strong); }
+
+  /* ---- checklist ---- */
+
+  .checks { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .checks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    max-width: 68ch;
+  }
+
+  .checks li::before {
+    content: "";
+    flex: none;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-top: 0.35rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+  }
+
+  hr { border: 0; border-top: 1px solid var(--line); }
+
+  footer {
+    color: var(--ink-faint);
+    font-size: 0.8125rem;
+    border-top: 1px solid var(--line);
+    padding-top: 1.5rem;
+  }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .masthead { background: #fff; color: #000; padding-top: 0; border-bottom: 2px solid #000; }
+    .masthead h1, .masthead p, .meta, .meta b { color: #000; }
+    .masthead .eyebrow { color: #000; }
+    section { break-inside: avoid; }
+    .wrap { gap: 2rem; padding-bottom: 0; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Project plan &middot; Prepared for the client</p>
+    <h1>RSSkyler Limo Website</h1>
+    <p>Everything required to build, launch and run the site — what we need from you, what has to be purchased, and how it gets deployed.</p>
+    <div class="meta">
+      <span><b>Prepared</b> 9 September 2026</span>
+      <span><b>Domain</b> rsskylerlimo.com</span>
+      <span><b>Stack</b> Next.js &middot; Express &middot; MySQL</span>
+    </div>
+  </header>
+
+  <section>
+    <p class="eyebrow">Overview</p>
+    <h2>What is being built</h2>
+    <p class="lede">A marketing and booking website for an NYC chauffeur service — built to generate calls, quote requests and online bookings, not just to look good.</p>
+    <p>The site is roughly eighteen public pages, an online booking and quote system, an admin dashboard for managing incoming requests, and the email pipeline that connects them. It runs on a single server that we manage.</p>
+
+    <p>Three things are needed to finish it. The first is the one that holds everything else up.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <h3>Information from you</h3>
+        <p>Real business details, confirmation of which services you genuinely offer, your coverage area, and the fixed airport rate card. Pages cannot be written against placeholders.</p>
+      </div>
+      <div class="panel">
+        <h3>Photography</h3>
+        <p>Photographs of your actual vehicles and chauffeurs. The longest lead time on the project — worth arranging this week.</p>
+      </div>
+      <div class="panel">
+        <h3>Accounts and hosting</h3>
+        <p>A server, a mailbox and a handful of free service accounts, listed with costs further down. All registered in your name.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Action required</p>
+    <h2>What we need from you</h2>
+    <p>Nothing below is optional. The site cannot legitimately launch with placeholder details, and several items have long lead times — <strong>photography especially</strong>. Please treat this as the critical path.</p>
+
+    <div class="flag">
+      <p class="eyebrow">Blocking &middot; needed first</p>
+      <p><strong>The phone number currently on the site is a placeholder.</strong> Every page, the header, the footer and the tracking page use a fake number. We need the real dispatch line before anything goes live, and it must match your Google Business Profile character for character.</p>
+    </div>
+
+    <h3>Business details</h3>
+    <ul class="checks">
+      <li>Dispatch phone number, exactly as it should be displayed</li>
+      <li>Whether that number receives and is monitored for <strong>text messages</strong> — we only add a "Text Us" button if someone actually replies</li>
+      <li>Email addresses to publish, and where booking notifications should land</li>
+      <li>Business address, or confirmation that you operate as a service-area business with no public address</li>
+      <li>Actual operating hours — we can only claim 24/7 if dispatch is genuinely reachable at 3 a.m.</li>
+      <li>Registered legal entity name, for the Terms and Privacy Policy</li>
+      <li>TLC, DOT or insurance credentials you want displayed, with numbers</li>
+    </ul>
+
+    <h3>Services — confirm what you actually provide</h3>
+    <p>We will remove anything you do not confirm. Advertising a service you do not offer creates complaints and chargebacks.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Question to confirm</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Flight tracking</th><td>Do you actively monitor flights and adjust pickups automatically, or does the client call you?</td></tr>
+          <tr><th>Meet &amp; greet</th><td>Does the chauffeur come inside to arrivals with a name board, or wait curbside?</td></tr>
+          <tr><th>Child seats</th><td>Available on request? Which types, and is there a fee?</td></tr>
+          <tr><th>Luggage assistance</th><td>Standard on every trip?</td></tr>
+          <tr><th>Corporate accounts</th><td>Do you offer monthly invoicing and written service levels today?</td></tr>
+          <tr><th>Hourly charters</th><td>Minimum booking length?</td></tr>
+          <tr><th>Cruise terminals</th><td>Do you serve Brooklyn and Manhattan cruise terminals?</td></tr>
+          <tr><th>Group / roadshow</th><td>Offered, or out of scope?</td></tr>
+          <tr><th>Wedding coordinator</th><td>Is an on-site coordinator genuinely included in the higher packages?</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Coverage</h3>
+    <ul class="checks">
+      <li>Confirm airports served: JFK, LaGuardia, Newark, Westchester (HPN), Teterboro</li>
+      <li>Confirm areas served beyond the five boroughs — New Jersey, Connecticut, Westchester</li>
+      <li>Neighbourhood-level areas you genuinely cover, for the Service Areas page</li>
+    </ul>
+
+    <h3>Pricing</h3>
+    <ul class="checks">
+      <li><strong>Fixed airport rate card</strong> — a price for each airport, for each vehicle class</li>
+      <li>Confirm what those fixed prices include: tolls, gratuity, waiting time, parking</li>
+      <li>Hourly rates and minimums</li>
+      <li>Cancellation, deposit and waiting-time policies, for the Terms page</li>
+    </ul>
+
+    <h3>Fleet</h3>
+    <ul class="checks">
+      <li>Actual vehicles: make, model and year for each class</li>
+      <li>True passenger and luggage capacity per vehicle</li>
+      <li>Features worth listing — leather, climate zones, bottled water, phone chargers, privacy partition</li>
+    </ul>
+
+    <h3>Photography</h3>
+    <div class="note">
+      <p class="eyebrow">Longest lead time — start this now</p>
+      <p>The fleet page and homepage need photographs of <strong>your actual vehicles</strong>, not stock images. A vehicle photo that does not represent the car that arrives is a direct trust problem, and the brand guidelines rule it out explicitly.</p>
+    </div>
+    <ul class="checks">
+      <li>Exterior shots of each vehicle class, on recognisable New York streets</li>
+      <li>Interior shots where possible</li>
+      <li>A chauffeur at work — opening a door, loading luggage — with that person's written permission to use their image</li>
+      <li>Shoot at golden hour or blue hour; budget roughly half a day with a professional</li>
+    </ul>
+
+    <h3>Accounts &amp; access</h3>
+    <ul class="checks">
+      <li>Google Business Profile — ownership confirmed and access granted to us</li>
+      <li>Genuine Google reviews we may display, and the profile link for "Leave a Review"</li>
+      <li>Social media accounts that actually belong to the business</li>
+      <li>Any existing analytics, ad accounts or booking software currently in use</li>
+      <li>Namecheap account access, or confirmation you will make the purchases yourself</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="eyebrow">Procurement</p>
+    <h2>Accounts and services to purchase</h2>
+    <p>Prices are approximate and should be verified at checkout — Namecheap's promotional first-year pricing differs from renewal pricing. Everything marked free stays free at this site's expected traffic.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Year one, all providers</caption>
+        <thead>
+          <tr><th>Item</th><th>Provider</th><th>Purpose</th><th>Owner</th><th class="num">Year 1</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Domain</th><td>Namecheap</td><td>rsskylerlimo.com — already owned</td>
+            <td><span class="chip chip-done">Have</span></td><td class="num">$15</td>
+          </tr>
+          <tr>
+            <th>VPS — 4 vCPU / 6 GB</th><td>Namecheap</td><td>Runs the site, the API and the database</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$290</td>
+          </tr>
+          <tr>
+            <th>Mailbox</th><td>Namecheap Private Email</td><td>Human inbox for reservations@</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$15</td>
+          </tr>
+          <tr>
+            <th>Off-server backups</th><td>Namecheap add-on or Cloudflare R2</td><td>Nightly database and file backups</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$0&ndash;60</td>
+          </tr>
+          <tr>
+            <th>DNS, CDN, firewall, SSL</th><td>Cloudflare</td><td>Speed, HTTPS, DDoS and bot protection</td>
+            <td><span class="chip chip-dev">Dev</span></td><td class="num">$0</td>
+          </tr>
+          <tr>
+            <th>Transactional email</th><td>Resend</td><td>Booking and quote confirmations</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$0</td>
+          </tr>
+          <tr>
+            <th>Maps &amp; addresses</th><td>Google Maps Platform</td><td>Address autocomplete, distance for quotes</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$0&ndash;300</td>
+          </tr>
+          <tr>
+            <th>Analytics</th><td>Google Analytics 4 &amp; Search Console</td><td>Traffic and conversion tracking</td>
+            <td><span class="chip chip-dev">Dev</span></td><td class="num">$0</td>
+          </tr>
+          <tr>
+            <th>Spam protection</th><td>Cloudflare Turnstile</td><td>Stops bot form submissions</td>
+            <td><span class="chip chip-dev">Dev</span></td><td class="num">$0</td>
+          </tr>
+          <tr>
+            <th>Monitoring</th><td>Sentry &amp; UptimeRobot</td><td>Error and downtime alerts</td>
+            <td><span class="chip chip-dev">Dev</span></td><td class="num">$0</td>
+          </tr>
+          <tr>
+            <th>Vehicle photography</th><td>Local photographer</td><td>Fleet and lifestyle images</td>
+            <td><span class="chip chip-client">Client</span></td><td class="num">$500&ndash;1,500</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr><th colspan="4">Estimated year one, excluding photography</th><td class="num">$320&ndash;680</td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="note">
+      <p class="eyebrow">Do not buy</p>
+      <p><strong>Shared hosting or EasyWP</strong> — cannot run this application. <strong>A paid SSL certificate</strong> — Cloudflare and Let's Encrypt provide free, auto-renewing certificates. <strong>PremiumDNS</strong> — Cloudflare's free DNS is better. <strong>A cPanel licence</strong> — see the note below; it is the single most expensive unnecessary add-on.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Architecture</p>
+    <h2>How it is put together</h2>
+    <p>One server runs everything. Cloudflare sits in front of it, absorbing traffic spikes and serving cached pages close to the visitor.</p>
+
+    <div class="stack">
+      <div class="layer edge">
+        <b>Cloudflare</b>
+        <span>DNS &middot; CDN &middot; HTTPS &middot; firewall &middot; bot protection &mdash; free plan</span>
+      </div>
+      <div class="layer edge">
+        <b>Nginx</b>
+        <span>Routes requests, terminates TLS, serves images and static files</span>
+      </div>
+      <div class="layer app">
+        <b>Next.js &mdash; port 3000</b>
+        <span>The public website: every page a customer sees</span>
+      </div>
+      <div class="layer app">
+        <b>Express API &mdash; port 4000</b>
+        <span>Booking and quote submissions, email dispatch, admin dashboard</span>
+      </div>
+      <div class="layer data">
+        <b>MySQL &mdash; local only</b>
+        <span>Bookings, quote requests, customers &mdash; not reachable from the internet</span>
+      </div>
+    </div>
+
+    <div class="flag">
+      <p class="eyebrow">Correction &middot; cPanel is not included</p>
+      <p>A Namecheap VPS ships as a bare Linux server. <strong>cPanel is a separate paid licence</strong>, roughly $15&ndash;45 per month depending on tier, and it is not needed here. MySQL installs directly on the server in about ten minutes and costs nothing. If you want a visual way to browse the database, we will set up a free admin tool over a secure connection instead.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Deliverables</p>
+    <h2>Pages the site will include</h2>
+    <p>The right-hand column is what each page is waiting on from you. Where it is blank, we have what we need.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>URL</th><th>Purpose</th><th>Waiting on you for</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>/</th><td>Hero, booking widget, services, airports, fleet, trust, areas, reviews, FAQ, final call to action</td><td>Phone number, photos, reviews</td></tr>
+          <tr><th>/services</th><td>All services in one place, each linking to detail</td><td>Confirmed service list</td></tr>
+          <tr><th>/airport-transportation</th><td>Airport hub — process, fixed pricing, what is included</td><td>Fixed rate card</td></tr>
+          <tr><th>/jfk-airport-car-service</th><td>JFK — terminals, pickup process, rates, FAQ</td><td>Pickup and meeting process</td></tr>
+          <tr><th>/laguardia-airport-car-service</th><td>LaGuardia — written separately, never duplicated</td><td>Pickup and meeting process</td></tr>
+          <tr><th>/newark-airport-car-service</th><td>Newark — including New Jersey tolls and timing</td><td>Pickup process, toll policy</td></tr>
+          <tr><th>/westchester-airport-car-service</th><td>Westchester County (HPN)</td><td>Confirm you serve it</td></tr>
+          <tr><th>/teterboro-airport-car-service</th><td>Teterboro — private aviation</td><td>Confirm you serve it</td></tr>
+          <tr><th>/fleet</th><td>Every vehicle class with real photographs and capacities</td><td>Vehicle list and photography</td></tr>
+          <tr><th>/corporate-transportation</th><td>Accounts, invoicing, service levels, corporate quote form</td><td>Invoicing and service level terms</td></tr>
+          <tr><th>/wedding-transportation</th><td>Packages, event transport, event quote form</td><td>What each package includes</td></tr>
+          <tr><th>/service-areas</th><td>Boroughs and neighbourhoods actually covered</td><td>Areas you genuinely serve</td></tr>
+          <tr><th>/about</th><td>Who the company is, in plain language</td><td>Company background</td></tr>
+          <tr><th>/reviews</th><td>Genuine Google reviews, with a link to leave one</td><td>Google Business Profile access</td></tr>
+          <tr><th>/faq</th><td>Real answers to the questions customers actually ask</td><td>Answers to the listed questions</td></tr>
+          <tr><th>/contact</th><td>Phone, email, hours, service area, map, contact form</td><td>Contact details and hours</td></tr>
+          <tr><th>/book</th><td>Full booking form</td><td>&mdash;</td></tr>
+          <tr><th>/quote</th><td>Quote request form</td><td>&mdash;</td></tr>
+          <tr><th>/thank-you</th><td>Confirmation after a request, with a call option</td><td>&mdash;</td></tr>
+          <tr><th>/track</th><td>Ride tracking</td><td>&mdash;</td></tr>
+          <tr><th>/privacy &amp; /terms</th><td>Legal pages matching how the site actually operates</td><td>Cancellation and data policies</td></tr>
+          <tr><th>/admin</th><td>Private dashboard for bookings and quotes</td><td>Who needs access</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Core feature</p>
+    <h2>Booking and quote system</h2>
+    <p>This is the part of the site that earns its keep. A request submitted by a customer travels straight to your inbox and into the dashboard.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <h3>What the customer fills in</h3>
+        <p>Pickup and drop-off with address autocomplete, date, time, passengers, bags, vehicle class, service type, name, phone, email, and special instructions. Airport bookings add airline, flight number, and arrival or departure.</p>
+      </div>
+      <div class="panel">
+        <h3>What happens next</h3>
+        <p>The customer sees a confirmation page and receives a confirmation email. You receive an immediate notification with every detail. The request appears in the dashboard marked <em>New</em>.</p>
+      </div>
+      <div class="panel">
+        <h3>Managing requests</h3>
+        <p>The dashboard lists bookings and quotes with pickup, destination, date, vehicle and customer contact details. Each moves through New, Confirmed, Completed, Cancelled or Pending.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <p class="eyebrow">On email delivery</p>
+      <p>Booking confirmations are sent through a dedicated delivery service rather than the mailbox, so they reliably reach the inbox instead of the spam folder. A missed confirmation is a lost booking. Your mailbox stays for human correspondence.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Findability</p>
+    <h2>Search and local presence</h2>
+    <ul>
+      <li>A unique page title and description for every page — no duplicated titles</li>
+      <li>Clean URLs such as <code>/jfk-airport-car-service</code>, with one clear heading per page</li>
+      <li>Structured data describing the business, its service area and its services, validated before launch</li>
+      <li>XML sitemap and robots file, submitted to Google Search Console</li>
+      <li>Website details kept identical to the Google Business Profile — name, phone, hours, services</li>
+      <li>Genuine local content about the areas you actually serve, written naturally rather than stuffed with keywords</li>
+    </ul>
+    <p>No agency can guarantee a number one ranking, and we will not claim one. What we can guarantee is a fast, correctly structured, genuinely useful site — which is what local ranking is built on.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Operations</p>
+    <h2>Deployment and running the site</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Approach</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Code</th><td>Private Git repository; every change reviewed before it reaches the live site</td></tr>
+          <tr><th>Environments</th><td>A staging site for review, and the live site — changes are approved on staging first</td></tr>
+          <tr><th>Releases</th><td>Automated: approved changes build and deploy without downtime</td></tr>
+          <tr><th>Security</th><td>HTTPS everywhere, firewall, no password logins to the server, automatic security updates</td></tr>
+          <tr><th>Backups</th><td>Nightly database and file backups stored off the server, with restores tested</td></tr>
+          <tr><th>Monitoring</th><td>Alerts if the site goes down or an error affects a customer</td></tr>
+          <tr><th>Data protection</th><td>Only information needed to fulfil a booking is collected; access is restricted</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Before launch</p>
+    <h2>Pre-launch checklist</h2>
+    <div class="grid">
+      <div class="panel">
+        <h3>Works everywhere</h3>
+        <ul class="checks">
+          <li>iPhone, Android, tablet, desktop</li>
+          <li>Booking and quote forms submit correctly</li>
+          <li>Call and text buttons dial and message</li>
+          <li>Navigation and every link works</li>
+          <li>Fleet photos and maps load</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Correct and honest</h3>
+        <ul class="checks">
+          <li>No placeholder or fake information anywhere</li>
+          <li>Only genuine reviews displayed</li>
+          <li>Every advertised service is actually offered</li>
+          <li>Prices accurate and clearly explained</li>
+          <li>Proofread — no spelling errors</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Found and measured</h3>
+        <ul class="checks">
+          <li>Page titles and descriptions unique</li>
+          <li>Images have descriptive alt text</li>
+          <li>Sitemap and robots file correct</li>
+          <li>Search Console and Analytics connected</li>
+          <li>Call, booking and quote conversions tracked</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Safe and fast</h3>
+        <ul class="checks">
+          <li>HTTPS across the whole site</li>
+          <li>Forms protected against spam</li>
+          <li>Loads quickly on mobile data</li>
+          <li>Readable text and keyboard-friendly navigation</li>
+          <li>Privacy Policy and Terms published</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Ongoing</p>
+    <h2>After launch</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Frequency</th><th class="num">Annual</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Server, domain, mailbox</th><td>Recurring</td><td class="num">$320&ndash;680</td></tr>
+          <tr><th>Security updates and backup checks</th><td>Monthly</td><td class="num">By agreement</td></tr>
+          <tr><th>Content updates — rates, fleet, areas</th><td>As needed</td><td class="num">By agreement</td></tr>
+          <tr><th>Search performance review</th><td>Quarterly</td><td class="num">By agreement</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Maps and email costs scale with traffic. At the volume expected for a business of this size, both should remain within their free allowances; we will monitor and flag it well before that changes.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Scope</p>
+    <h2>Assumptions and exclusions</h2>
+    <ul>
+      <li><strong>No online payment.</strong> Customers request a booking; you confirm and collect payment as you do today. Card payment can be added later as a separate piece of work.</li>
+      <li><strong>No live GPS vehicle tracking.</strong> The tracking page shows booking status. Real-time vehicle positions require hardware or a dispatch system integration.</li>
+      <li><strong>No dispatch software integration</strong> unless you tell us which system you use.</li>
+      <li><strong>Copy is drafted by us and approved by you.</strong> Facts about the business must come from you.</li>
+      <li><strong>Photography is commissioned by you.</strong> We will provide a shot list and direction.</li>
+      <li><strong>Accounts are owned by you.</strong> Domain, server, Google and email accounts stay in your name, so you retain control of the business's assets.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Estimates are indicative and should be confirmed against current provider pricing at the time of purchase. Please return the items under &ldquo;What we need from you&rdquo; so the remaining pages can be built against real information.</p>
+  </footer>
+
+</div>
