@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/brand/logo-mark";
 import { ButtonLink } from "@/components/ui/button";
 import { Rule } from "@/components/ui/section";
 import type { VehicleClass } from "@/lib/content";
@@ -5,8 +6,8 @@ import type { VehicleClass } from "@/lib/content";
 /**
  * A vehicle photograph belongs at the top of this card — RSSkyler's own fleet
  * on a real New York street, cool grade, midnight in the shadows, shot at
- * golden or blue hour. Until that photography exists, the slot stays a plain
- * midnight field rather than a stock stand-in the guide explicitly rules out.
+ * golden or blue hour. Until that photography exists, the slot holds the mark
+ * at low opacity rather than a stock stand-in the guide explicitly rules out.
  */
 export function FleetCard({ vehicle }: { vehicle: VehicleClass }) {
   return (
@@ -14,8 +15,9 @@ export function FleetCard({ vehicle }: { vehicle: VehicleClass }) {
       id={vehicle.slug}
       className="flex scroll-mt-24 flex-col border border-midnight/10 bg-white"
     >
-      <div className="flex aspect-[16/10] items-end bg-midnight p-6">
-        <p className="font-sans text-[13px] tracking-[0.12em] text-white/40 uppercase">
+      <div className="relative flex aspect-[16/10] items-end overflow-hidden bg-midnight p-6">
+        <LogoMark className="absolute top-1/2 left-1/2 h-28 -translate-x-1/2 -translate-y-[60%] opacity-30" />
+        <p className="relative font-sans text-[13px] tracking-[0.12em] text-white/40 uppercase">
           {vehicle.name}
         </p>
       </div>

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
+import { Logo } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -166,7 +169,7 @@ export default function StyleguidePage() {
       </Section>
 
       <Section tone="light">
-        <SectionHeading eyebrow="05.1" title="Wordmark" />
+        <SectionHeading eyebrow="05.1" title="Mark, wordmark & lockup" />
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           <div className="flex h-40 items-center justify-center border border-midnight/10 bg-white">
             <Wordmark tone="light" size="lg" />
@@ -174,10 +177,41 @@ export default function StyleguidePage() {
           <div className="flex h-40 items-center justify-center bg-midnight">
             <Wordmark tone="dark" size="lg" />
           </div>
+          <div className="flex h-40 items-center justify-center border border-midnight/10 bg-white">
+            <Logo tone="light" />
+          </div>
+          <div className="flex h-40 items-center justify-center bg-midnight">
+            <Logo tone="dark" />
+          </div>
+          <div className="flex h-40 items-center justify-center gap-8 bg-grey">
+            <LogoMark className="h-20" />
+            <LogoMark className="h-10" />
+            <LogoMark className="h-6" />
+          </div>
+          <div className="flex h-40 items-center justify-center gap-6 bg-midnight">
+            <Image
+              src="/icon.png"
+              alt="Favicon, 32px"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
+            <Image
+              src="/apple-icon.png"
+              alt="App icon, 64px"
+              width={64}
+              height={64}
+              className="h-16 w-16 rounded-xl"
+            />
+          </div>
         </div>
-        <p className="mt-5 text-[15px] leading-[1.7] text-charcoal">
-          One word, two weights, a single baseline, 4.8% tracking. Live text —
-          there is no approved logo mark yet.
+        <p className="mt-5 max-w-2xl text-[15px] leading-[1.7] text-charcoal">
+          The wordmark is live text: one word, two weights, a single baseline,
+          4.8% tracking. The RS monogram comes from the logo kit, cropped above
+          its own &ldquo;LIMOUSINE&rdquo; line so the lockup does not say the
+          name twice. The favicon is the same crop on a midnight ground — a
+          deliberately simplified cut, since fine detail does not survive to
+          32px.
         </p>
       </Section>
 

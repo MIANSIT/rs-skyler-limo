@@ -77,18 +77,35 @@ Two additional rules:
   name display. Fraunces' fine serif detail softens under headlights and phone glare; the
   15px screen minimum in the scale above is for comfortable indoor reading only.
 
-## The wordmark
+## The wordmark, the mark, and the lockup
 
-`RSSKYLER` in Fraunces Semibold + `LIMO` in Fraunces Regular, one word, single baseline,
-**4.8% letter-spacing**, all caps. The weight shift lets the eye read two parts of a
+**Wordmark** — `RSSKYLER` in Fraunces Semibold + `LIMO` in Fraunces Regular, one word, single
+baseline, **4.8% letter-spacing**, all caps. The weight shift lets the eye read two parts of a
 twelve-letter name without inserting a space the brand does not have.
 
 - On light grounds: entire wordmark in midnight.
 - On midnight or charcoal: `RSSKYLER` white, `LIMO` gold.
 
-Set it as live text, not an image. There is no approved logo mark yet — the logo system was
-deliberately held back from the guide pending a finished mark, so do not invent one, and do
-not substitute a monogram where the full name is what carries recognition.
+Set it as live text, not an image (`src/components/brand/wordmark.tsx`).
+
+**Mark** — the gold RS monogram with the wheel set into the S, from `brand-assets/logo_design.pdf`.
+The kit carries gold, reversed-white-on-dark, and solid-mono variants; the working file is
+`brand-assets/rsskylerlimo-transparent-logo.png`. Note that the 2026 Brand Guidelines
+deliberately *omit* a logo chapter — the mark was still being finalised when that document was
+written — so the guide's typography, palette and voice rules govern, and the kit supplies the
+mark itself. Vehicle livery placement and minimum sizes are still genuinely unspecified.
+
+The full mark includes its own small "LIMOUSINE" line. `public/rsskyler-mark.png` is that mark
+cropped above the line, so the lockup does not say the name twice.
+
+**Lockup** — mark, hairline divider, wordmark (`src/components/brand/logo.tsx`). Use it in the
+header and footer. Use the mark alone only where the name already appears nearby, or as a
+low-opacity watermark on a midnight field.
+
+**Icons** — `src/app/icon.png` (512, favicon) and `src/app/apple-icon.png` (180) are the cropped
+mark on a midnight ground with generous padding. Next.js emits the `<link>` tags from those
+filenames; do not hand-write icon metadata. Regenerate with the same crop rather than shrinking
+the full mark — the "LIMOUSINE" line and the wheel spokes do not survive to 32px.
 
 ## Component specs
 

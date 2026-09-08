@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { Wordmark } from "@/components/brand/wordmark";
+import { Logo } from "@/components/brand/logo";
 import { ButtonLinkOnDark } from "@/components/ui/button";
 import { clsx } from "@/lib/clsx";
 import { nav } from "@/lib/content";
@@ -21,7 +21,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 bg-midnight">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
         <Link href="/" aria-label="RSSkyler Limo — home">
-          <Wordmark tone="dark" />
+          <Logo tone="dark" priority />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

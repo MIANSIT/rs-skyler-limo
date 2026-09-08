@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
 import { fleet, services } from "@/lib/content";
 
@@ -17,7 +18,10 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-6xl px-6 py-16 lg:px-8">
         <div className="grid gap-12 md:grid-cols-4">
           <div className="md:col-span-1">
-            <Wordmark tone="dark" size="md" />
+            <LogoMark className="h-14" />
+            <div className="mt-5">
+              <Wordmark tone="dark" size="md" />
+            </div>
             <p className="font-display mt-4 text-[17px] text-white/70 italic">
               Arrive in Style
             </p>
