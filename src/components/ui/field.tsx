@@ -26,18 +26,27 @@ export function Field({
   label,
   id,
   hint,
+  error,
   children,
 }: {
   label: string;
   id: string;
   hint?: string;
+  /** A validation message from the server. Replaces the hint while present. */
+  error?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
-      {hint ? <p className="text-[13px] text-charcoal/70">{hint}</p> : null}
+      {error ? (
+        <p id={`${id}-error`} className="text-[13px] text-red-800">
+          {error}
+        </p>
+      ) : hint ? (
+        <p className="text-[13px] text-charcoal/70">{hint}</p>
+      ) : null}
     </div>
   );
 }

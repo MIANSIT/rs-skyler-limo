@@ -7,14 +7,26 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "plan:pdf": "node scripts/build-plan-pdf.mjs"
+    "typecheck": "tsc --noEmit",
+    "plan:pdf": "node scripts/build-plan-pdf.mjs",
+
+    "api:install": "npm --prefix api install",
+    "api:dev": "npm --prefix api run dev",
+    "api:build": "npm --prefix api run build",
+    "api:migrate": "npm --prefix api run migrate",
+    "api:seed": "npm --prefix api run seed",
+    "api:create-admin": "npm --prefix api run create-admin",
+
+    "setup": "npm run api:install && npm run api:migrate && npm run api:seed",
+    "check": "npm run lint && npm run typecheck && npm --prefix api run typecheck"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "gsap": "^3.15.0",
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

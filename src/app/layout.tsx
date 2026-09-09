@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Public_Sans } from "next/font/google";
 
-import { SiteFooter } from "@/components/site/site-footer";
-import { SiteHeader } from "@/components/site/site-header";
-
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -37,16 +34,20 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Document shell only: fonts, tokens and default metadata.
+ *
+ * The marketing chrome lives in `(site)/layout.tsx` and the dashboard chrome in
+ * `admin/(shell)/layout.tsx`. Putting the header and footer here would render
+ * the public navigation over the operator's dashboard, and nest one `<main>`
+ * inside another.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${publicSans.variable}`}>
-      <body className="flex min-h-screen flex-col">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-      </body>
+      <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import { airports, fleet } from "@/lib/content";
+import { submitBooking, type BookingFormState } from "@/lib/public/actions";
 
 type TripType = "airport" | "point-to-point" | "hourly";
 
@@ -30,23 +32,88 @@ const tripMultiplier: Record<TripType, number> = {
 };
 
 /**
- * A placeholder quote so the fare is visible before booking rather than after —
- * the "upfront, fixed pricing" move from Chapter 7. Swap the calculation for a
- * real pricing call; keep the presentation, including the tabular figures.
+ * An indicative fare so the number is visible before booking rather than after —
+ * the "upfront, fixed pricing" move from Chapter 7. It is sent with the request
+ * as `quotedTotalCents` so the operator sees what the customer was shown.
+ * Replace the arithmetic with a real pricing call; keep the presentation.
  */
 function quote(vehicle: string, trip: TripType) {
-  const total = Math.round(baseFare[vehicle] * tripMultiplier[trip]);
-  return { total, tolls: 0, gratuity: 0 };
+  const base = baseFare[vehicle] ?? 0;
+  return { total: Math.round(base * tripMultiplier[trip]) };
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      type="submit"
+      variant="cta"
+      size="lg"
+      disabled={pending}
+      className="sm:w-auto"
+    >
+      {pending ? "Sending…" : "Confirm pickup"}
+    </Button>
+  );
 }
 
 export function BookingForm() {
   const [trip, setTrip] = useState<TripType>("airport");
   const [vehicle, setVehicle] = useState(fleet[0].slug);
-  const [submitted, setSubmitted] = useState(false);
+
+  const [state, formAction] = useActionState<BookingFormState, FormData>(
+    submitBooking,
+    { status: "idle" },
+  );
 
   const fare = useMemo(() => quote(vehicle, trip), [vehicle, trip]);
   const vehicleName =
     fleet.find((item) => item.slug === vehicle)?.name ?? fleet[0].name;
+
+  const fieldError = (name: string) =>
+    state.status === "error" ? state.fields?.[name] : undefined;
+
+  /**
+   * React blanks a form's uncontrolled fields once its action resolves, so a
+   * rejected submission would empty the whole booking. These put the
+   * customer's own words back. `key` forces the remount that makes a changed
+   * `defaultValue` take effect.
+   */
+  const prior = (name: string) =>
+    state.status === "error" ? (state.values[name] ?? "") : "";
+
+  const restore = (name: string) => ({
+    defaultValue: prior(name),
+    key: `${name}:${prior(name)}`,
+  });
+
+  if (state.status === "success") {
+    return (
+      <div className="bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
+        <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+          Request received
+        </p>
+        <p className="font-display mt-2 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+          {state.reference}
+        </p>
+        <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+          Keep this reference. A reservations agent confirms every booking by
+          reply, and you can follow it at any time on the tracking page.
+        </p>
+        <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+          Something to change? Call{" "}
+          <a
+            href="tel:+12125550147"
+            className="text-midnight underline-offset-4 tabular-nums hover:underline"
+          >
+            +1 (212) 555-0147
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
@@ -77,20 +144,28 @@ export function BookingForm() {
         })}
       </div>
 
-      <form
-        className="mt-6 flex flex-col gap-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setSubmitted(true);
-        }}
-      >
+      <form action={formAction} className="mt-6 flex flex-col gap-5">
+        {/* The tab is a button, not an input, so its value travels here. */}
+        <input type="hidden" name="tripType" value={trip} />
+        <input
+          type="hidden"
+          name="quotedTotalCents"
+          value={fare.total * 100}
+        />
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label={trip === "airport" ? "Airport" : "Pickup"}
             id="pickup"
+            error={fieldError("pickup")}
           >
             {trip === "airport" ? (
-              <Select id="pickup" name="pickup" defaultValue={airports[0]}>
+              <Select
+                id="pickup"
+                name="pickup"
+                defaultValue={prior("pickup") || airports[0]}
+                key={`pickup:${prior("pickup")}`}
+              >
                 {airports.map((airport) => (
                   <option key={airport}>{airport}</option>
                 ))}
@@ -101,6 +176,7 @@ export function BookingForm() {
                 name="pickup"
                 placeholder="Address or landmark"
                 required
+                {...restore("pickup")}
               />
             )}
           </Field>
@@ -108,21 +184,23 @@ export function BookingForm() {
           <Field
             label={trip === "hourly" ? "Starting from" : "Destination"}
             id="destination"
+            error={fieldError("destination")}
           >
             <Input
               id="destination"
               name="destination"
               placeholder="Address or landmark"
               required
+              {...restore("destination")}
             />
           </Field>
 
-          <Field label="Date" id="date">
-            <Input id="date" name="date" type="date" required />
+          <Field label="Date" id="date" error={fieldError("pickupAt")}>
+            <Input id="date" name="date" type="date" required {...restore("date")} />
           </Field>
 
           <Field label="Time" id="time">
-            <Input id="time" name="time" type="time" required />
+            <Input id="time" name="time" type="time" required {...restore("time")} />
           </Field>
 
           <Field label="Vehicle class" id="vehicle">
@@ -155,8 +233,88 @@ export function BookingForm() {
               placeholder="Optional"
               disabled={trip !== "airport"}
               className={trip !== "airport" ? "opacity-50" : undefined}
+              {...restore("flight")}
             />
           </Field>
+
+          <Field label="Passengers" id="passengers">
+            <Input
+              id="passengers"
+              name="passengers"
+              type="number"
+              min={1}
+              max={14}
+              className="tabular-nums"
+              defaultValue={prior("passengers") || 1}
+              key={`passengers:${prior("passengers")}`}
+            />
+          </Field>
+
+          <Field label="Bags" id="bags">
+            <Input
+              id="bags"
+              name="bags"
+              type="number"
+              min={0}
+              max={20}
+              className="tabular-nums"
+              defaultValue={prior("bags") || 0}
+              key={`bags:${prior("bags")}`}
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-5 border-t border-midnight/10 pt-5 sm:grid-cols-2">
+          <Field label="Name" id="name" error={fieldError("customerName")}>
+            <Input
+              id="name"
+              name="name"
+              autoComplete="name"
+              required
+              maxLength={160}
+              {...restore("name")}
+            />
+          </Field>
+
+          <Field label="Phone" id="phone" error={fieldError("customerPhone")}>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              className="tabular-nums"
+              {...restore("phone")}
+            />
+          </Field>
+
+          <div className="sm:col-span-2">
+            <Field label="Email" id="email" error={fieldError("customerEmail")}>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                {...restore("email")}
+              />
+            </Field>
+          </div>
+
+          <div className="sm:col-span-2">
+            <Field
+              label="Anything we should know"
+              id="notes"
+              hint="Child seat, extra stop, a door to use. Optional."
+            >
+              <Textarea
+                id="notes"
+                name="notes"
+                maxLength={5000}
+                {...restore("notes")}
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 border-t border-midnight/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -172,18 +330,15 @@ export function BookingForm() {
             </p>
           </div>
 
-          <Button type="submit" variant="cta" size="lg" className="sm:w-auto">
-            Confirm pickup
-          </Button>
+          <SubmitButton />
         </div>
 
-        {submitted ? (
+        {state.status === "error" ? (
           <p
-            role="status"
-            className="border-l-2 border-green-700 bg-green-700/5 px-4 py-3 text-[15px] text-green-800"
+            role="alert"
+            className="border-l-2 border-red-700 bg-red-700/5 px-4 py-3 text-[15px] text-red-800"
           >
-            Request received. A reservations agent confirms every booking by
-            reply within five minutes.
+            {state.message}
           </p>
         ) : null}
       </form>

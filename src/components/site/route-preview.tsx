@@ -54,7 +54,14 @@ export function RoutePreview() {
             .to(
               "[data-route-car]",
               {
-                motionPath: { path: ROUTE, align: ROUTE, alignOrigin: [0.5, 0.5] },
+                motionPath: {
+                  path: ROUTE,
+                  // `path` takes raw path data, but `align` takes an element:
+                  // handing it the same `d` string makes GSAP run it through
+                  // querySelectorAll and throw on every tick.
+                  align: "[data-route-line]",
+                  alignOrigin: [0.5, 0.5],
+                },
                 duration: 3.2,
                 ease: "power1.inOut",
               },

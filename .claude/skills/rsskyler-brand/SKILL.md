@@ -96,7 +96,9 @@ written — so the guide's typography, palette and voice rules govern, and the k
 mark itself. Vehicle livery placement and minimum sizes are still genuinely unspecified.
 
 The full mark includes its own small "LIMOUSINE" line. `public/rsskyler-mark.png` is that mark
-cropped above the line, so the lockup does not say the name twice.
+with the line painted out, so the lockup does not say the name twice. Paint it out — do not crop
+it off: the line sits *beside* the S's bottom flourish, not below it, so a horizontal crop takes
+the bottom of the S with it.
 
 **Lockup** — mark, hairline divider, wordmark (`src/components/brand/logo.tsx`). Use it in the
 header and footer. Use the mark alone only where the name already appears nearby, or as a

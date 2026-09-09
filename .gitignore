@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+# The API is a separate npm project with its own tree.
+/api/node_modules
+/api/dist
 /.pnp
 .pnp.*
 .yarn/*
@@ -32,6 +35,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …but the templates are how a new machine gets set up, so they stay tracked.
+!.env.example
 
 # vercel
 .vercel

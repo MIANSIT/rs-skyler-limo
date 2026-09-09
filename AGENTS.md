@@ -10,8 +10,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # RSSkyler Limo
 
-Marketing site for a New York City chauffeur service. Next.js App Router,
-TypeScript, Tailwind v4, GSAP.
+Marketing site, booking system and reservations dashboard for a New York City
+chauffeur service. Two apps, deployed separately onto one server:
+
+- **`src/`** — Next.js App Router, TypeScript, Tailwind v4, GSAP. Port 3000.
+  Public pages under `src/app/(site)/`, the dashboard under `src/app/admin/`.
+- **`api/`** — Express 5, MySQL, Zod. Port 4000, its own `package.json`. Run it
+  with `npm run api:dev` from the repo root.
+
+Three things that are easy to get wrong here:
+
+- **Auth is checked in the DAL** (`src/lib/admin/dal.ts`), not in a layout. A
+  layout does not re-render on navigation and does not stop its children
+  rendering. `src/proxy.ts` (Middleware, renamed in Next 16) only does an
+  optimistic cookie-presence check.
+- **Chrome lives in route-group layouts.** The root layout is the document
+  shell only. Putting a header there renders it over the dashboard too.
+- **Timestamps are UTC in the database**, converted to `America/New_York` at
+  the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
+  anything with a date in it. Money is integer cents.
+
+`npm run check` lints and typechecks both apps. See the README for setup.
 
 **Before writing any UI, load the `rsskyler-brand` skill.** It encodes the Brand
 Guidelines (Edition 02, 2026) — five colours, two typefaces, contrast-verified
