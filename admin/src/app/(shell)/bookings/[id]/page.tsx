@@ -45,7 +45,7 @@ export default async function BookingDetailPage({
     <div className="flex flex-col gap-8">
       <div>
         <Link
-          href="/admin/bookings"
+          href="/bookings"
           className="font-sans text-[14px] text-charcoal/60 underline-offset-4 hover:text-midnight hover:underline"
         >
           ← All bookings

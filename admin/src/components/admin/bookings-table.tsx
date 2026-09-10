@@ -66,7 +66,7 @@ export function BookingsTable({
             >
               <td className="px-4 py-4">
                 <Link
-                  href={`/admin/bookings/${booking.id}`}
+                  href={`/bookings/${booking.id}`}
                   className="font-sans text-[14px] font-semibold text-midnight tabular-nums underline-offset-4 hover:underline"
                 >
                   {booking.reference}

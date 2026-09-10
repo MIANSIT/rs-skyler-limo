@@ -39,7 +39,7 @@ export default async function QuoteDetailPage({
     <div className="flex flex-col gap-8">
       <div>
         <Link
-          href="/admin/quotes"
+          href="/quotes"
           className="font-sans text-[14px] text-charcoal/60 underline-offset-4 hover:text-midnight hover:underline"
         >
           ← All quotes

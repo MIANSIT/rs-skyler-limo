@@ -2,9 +2,12 @@
 
 # dependencies
 /node_modules
-# The API is a separate npm project with its own tree.
+# The API and the admin dashboard are separate npm projects with their own trees.
 /api/node_modules
 /api/dist
+/admin/node_modules
+/admin/.next
+/admin/next-env.d.ts
 /.pnp
 .pnp.*
 .yarn/*

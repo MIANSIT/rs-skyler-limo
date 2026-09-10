@@ -30,8 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  // `admin` and `api` are separate apps with their own tsconfig, deps and
-  // `@/*` roots. Compiling them from here resolves their aliases against this
-  // app's `src` and fails.
-  "exclude": ["node_modules", "admin", "api"]
+  "exclude": ["node_modules"]
 }

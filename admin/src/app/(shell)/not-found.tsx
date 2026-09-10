@@ -11,7 +11,7 @@ export default function AdminNotFound() {
       </p>
 
       <Link
-        href="/admin/bookings"
+        href="/bookings"
         className="mt-8 inline-block rounded-sm border border-midnight bg-white px-6 py-3 font-sans text-[15px] font-semibold text-midnight transition-colors hover:bg-grey"
       >
         Back to bookings

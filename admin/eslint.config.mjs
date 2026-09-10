@@ -12,9 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Sibling apps lint themselves — `npm run check` runs all three.
-    "admin/**",
-    "api/**",
   ]),
 ]);
 

@@ -49,7 +49,7 @@ export default async function QuotesPage({
       </div>
 
       <FilterBar
-        basePath="/admin/quotes"
+        basePath="/quotes"
         statuses={quoteStatuses}
         activeStatus={status}
         query={query}
@@ -67,7 +67,7 @@ export default async function QuotesPage({
           {quotes.map((quote) => (
             <li key={quote.id} className="bg-white">
               <Link
-                href={`/admin/quotes/${quote.id}`}
+                href={`/quotes/${quote.id}`}
                 className="block px-6 py-5 transition-colors hover:bg-grey"
               >
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -104,7 +104,7 @@ export default async function QuotesPage({
       )}
 
       <Pagination
-        basePath="/admin/quotes"
+        basePath="/quotes"
         params={params}
         page={safePage}
         perPage={perPage}

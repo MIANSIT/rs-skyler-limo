@@ -57,7 +57,7 @@ export async function signIn(
 
   // Outside the try: `redirect` works by throwing, and catching it here would
   // swallow the navigation.
-  redirect("/admin");
+  redirect("/");
 }
 
 export async function signOut() {
@@ -72,7 +72,7 @@ export async function signOut() {
   }
 
   await clearSessionCookie();
-  redirect("/admin/login");
+  redirect("/login");
 }
 
 export async function updateBookingStatus(
@@ -98,9 +98,9 @@ export async function updateBookingStatus(
     throw error;
   }
 
-  revalidatePath(`/admin/bookings/${id}`);
-  revalidatePath("/admin/bookings");
-  revalidatePath("/admin");
+  revalidatePath(`/bookings/${id}`);
+  revalidatePath("/bookings");
+  revalidatePath("/");
 
   return undefined;
 }
@@ -128,7 +128,7 @@ export async function addBookingNote(
     throw error;
   }
 
-  revalidatePath(`/admin/bookings/${id}`);
+  revalidatePath(`/bookings/${id}`);
   return undefined;
 }
 
@@ -155,9 +155,9 @@ export async function updateQuoteStatus(
     throw error;
   }
 
-  revalidatePath(`/admin/quotes/${id}`);
-  revalidatePath("/admin/quotes");
-  revalidatePath("/admin");
+  revalidatePath(`/quotes/${id}`);
+  revalidatePath("/quotes");
+  revalidatePath("/");
 
   return undefined;
 }

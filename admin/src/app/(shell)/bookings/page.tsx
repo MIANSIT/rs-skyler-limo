@@ -43,7 +43,7 @@ export default async function BookingsPage({
       </div>
 
       <FilterBar
-        basePath="/admin/bookings"
+        basePath="/bookings"
         statuses={bookingStatuses}
         activeStatus={status}
         query={query}
@@ -60,7 +60,7 @@ export default async function BookingsPage({
       />
 
       <Pagination
-        basePath="/admin/bookings"
+        basePath="/bookings"
         params={params}
         page={Number.isInteger(page) && page > 0 ? page : 1}
         perPage={perPage}

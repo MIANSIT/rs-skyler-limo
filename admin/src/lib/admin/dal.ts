@@ -29,7 +29,7 @@ export const verifySession = cache(async (): Promise<{
   user: AdminUser;
 }> => {
   const token = await getSessionToken();
-  if (!token) redirect("/admin/login");
+  if (!token) redirect("/login");
 
   try {
     const { user } = await apiFetch<{ user: AdminUser }>("/api/auth/me", {
@@ -40,7 +40,7 @@ export const verifySession = cache(async (): Promise<{
     if (error instanceof ApiRequestError && error.failure.status === 401) {
       // Expired or revoked. Send them back to sign in rather than showing a
       // dashboard-shaped error page.
-      redirect("/admin/login?expired=1");
+      redirect("/login?expired=1");
     }
     throw error;
   }

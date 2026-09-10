@@ -51,7 +51,7 @@ export default async function DashboardPage() {
             Waiting on you
           </h2>
           <Link
-            href="/admin/bookings"
+            href="/bookings"
             className="font-sans text-[14px] font-medium text-midnight underline-offset-4 hover:underline"
           >
             All bookings
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
             New quote requests
           </h2>
           <Link
-            href="/admin/quotes"
+            href="/quotes"
             className="font-sans text-[14px] font-medium text-midnight underline-offset-4 hover:underline"
           >
             All quotes
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
             {quotes.quotes.slice(0, 5).map((quote) => (
               <li key={quote.id} className="bg-white">
                 <Link
-                  href={`/admin/quotes/${quote.id}`}
+                  href={`/quotes/${quote.id}`}
                   className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-grey"
                 >
                   <StatusBadge status={quote.status} />

@@ -17,8 +17,14 @@
     "api:seed": "npm --prefix api run seed",
     "api:create-admin": "npm --prefix api run create-admin",
 
-    "setup": "npm run api:install && npm run api:migrate && npm run api:seed",
-    "check": "npm run lint && npm run typecheck && npm --prefix api run typecheck"
+    "admin:install": "npm --prefix admin install",
+    "admin:dev": "npm --prefix admin run dev",
+    "admin:build": "npm --prefix admin run build",
+    "admin:start": "npm --prefix admin run start",
+
+    "setup": "npm run api:install && npm run admin:install && npm run api:migrate && npm run api:seed",
+    "check": "npm run lint && npm run typecheck && npm --prefix admin run lint && npm --prefix admin run typecheck && npm --prefix api run typecheck",
+    "build:all": "npm run build && npm run admin:build && npm run api:build"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

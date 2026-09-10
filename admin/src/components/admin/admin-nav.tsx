@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { clsx } from "@/lib/clsx";
 
 const links = [
-  { href: "/admin", label: "Today" },
-  { href: "/admin/bookings", label: "Bookings" },
-  { href: "/admin/quotes", label: "Quotes" },
+  { href: "/", label: "Today" },
+  { href: "/bookings", label: "Bookings" },
+  { href: "/quotes", label: "Quotes" },
 ] as const;
 
 /**
@@ -22,9 +22,10 @@ export function AdminNav() {
   return (
     <nav aria-label="Dashboard" className="flex gap-1">
       {links.map((link) => {
+        // "Today" is the root, so it would prefix-match every other route.
         const active =
-          link.href === "/admin"
-            ? pathname === "/admin"
+          link.href === "/"
+            ? pathname === "/"
             : pathname.startsWith(link.href);
 
         return (
