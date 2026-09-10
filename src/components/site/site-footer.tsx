@@ -62,10 +62,18 @@ export function SiteFooter() {
           <p className="text-[13px] tracking-[0.08em] text-white/55 uppercase">
             {boroughs.join(" · ")}
           </p>
-          <p className="mt-4 text-[13px] text-white/55">
-            © <span className="tabular-nums">2026</span> RSSkyler Limo. New York
-            City.
-          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <p className="text-[13px] text-white/55">
+              © <span className="tabular-nums">2026</span> RSSkyler Limo. New
+              York City.
+            </p>
+            <Link
+              href="/terms"
+              className="text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Terms &amp; Conditions
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

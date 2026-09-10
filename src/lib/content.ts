@@ -192,3 +192,28 @@ export const corporateFeatures = [
 ];
 
 export const airports = ["JFK", "LaGuardia (LGA)", "Newark (EWR)"] as const;
+
+/**
+ * Published rates. These appear in the terms and on invoices, so a customer can
+ * check one against the other — keep them here rather than typed into a page.
+ */
+
+/** Waiting past the complimentary window, in whole dollars per hour. */
+export const hourlyWaitingRate = 70;
+
+/** Per child seat, up to `maxChildSeats` per vehicle. */
+export const childSeatFee = 35;
+export const maxChildSeats = 2;
+
+/**
+ * Every airport the booking form offers, including the two private-aviation
+ * fields the marketing pages do not lead with. A flight number is required for
+ * all of them.
+ */
+export const bookingAirports = [
+  "JFK",
+  "LaGuardia (LGA)",
+  "Newark (EWR)",
+  "Teterboro (TEB)",
+  "Westchester County (HPN)",
+] as const;

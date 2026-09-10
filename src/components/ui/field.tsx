@@ -70,6 +70,53 @@ export function Select({
   );
 }
 
+/**
+ * Consent controls sit on their own: label to the right, error below the pair.
+ * The box takes midnight rather than gold — the view's one gold action is the
+ * submit button, and a gold tick would compete with it.
+ */
+export function Checkbox({
+  id,
+  label,
+  error,
+  className,
+  ...props
+}: {
+  id: string;
+  label: ReactNode;
+  error?: string;
+} & Omit<ComponentPropsWithoutRef<"input">, "type" | "id">) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start gap-3">
+        <input
+          id={id}
+          type="checkbox"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={clsx(
+            "mt-0.5 h-4.5 w-4.5 shrink-0 cursor-pointer rounded-xs border border-midnight/30 accent-midnight",
+            error && "border-red-700",
+            className,
+          )}
+          {...props}
+        />
+        <label
+          htmlFor={id}
+          className="cursor-pointer text-[15px] leading-[1.6] text-charcoal"
+        >
+          {label}
+        </label>
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="text-[13px] text-red-800">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function Textarea({
   className,
   ...props

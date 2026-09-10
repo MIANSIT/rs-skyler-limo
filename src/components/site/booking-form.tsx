@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import { airports, fleet } from "@/lib/content";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
@@ -315,6 +316,31 @@ export function BookingForm() {
               />
             </Field>
           </div>
+        </div>
+
+        <div className="border-t border-midnight/10 pt-5">
+          <Checkbox
+            id="terms"
+            name="terms"
+            required
+            error={fieldError("terms")}
+            defaultChecked={prior("terms") === "on"}
+            key={`terms:${prior("terms")}`}
+            label={
+              <>
+                I accept the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="font-medium text-midnight underline underline-offset-4"
+                >
+                  terms and conditions
+                </Link>
+                , including the cancellation window and how the final fare is
+                calculated.
+              </>
+            }
+          />
         </div>
 
         <div className="flex flex-col gap-4 border-t border-midnight/10 pt-5 sm:flex-row sm:items-center sm:justify-between">

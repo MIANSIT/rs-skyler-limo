@@ -56,6 +56,20 @@ export async function submitBooking(
       "notes",
     ].map((key) => [key, text(key)]),
   );
+  values.terms = formData.get("terms") === "on" ? "on" : "";
+
+  // Checked here, not only by the `required` attribute on the box. A Server
+  // Action is a public endpoint: anything the browser enforces, the server has
+  // to enforce again. Consent to the terms is the last thing that should rest
+  // on an attribute a caller can simply omit.
+  if (formData.get("terms") !== "on") {
+    return {
+      status: "error",
+      message: "Accept the terms to continue.",
+      fields: { terms: "Please accept the terms and conditions." },
+      values,
+    };
+  }
 
   const pickupAt = newYorkToIso(text("date"), text("time"));
   if (!pickupAt) {
