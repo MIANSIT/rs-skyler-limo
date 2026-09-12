@@ -9,22 +9,20 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "plan:pdf": "node scripts/build-plan-pdf.mjs",
-
     "api:install": "npm --prefix api install",
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
     "api:migrate": "npm --prefix api run migrate",
     "api:seed": "npm --prefix api run seed",
     "api:create-admin": "npm --prefix api run create-admin",
-
     "admin:install": "npm --prefix admin install",
     "admin:dev": "npm --prefix admin run dev",
     "admin:build": "npm --prefix admin run build",
     "admin:start": "npm --prefix admin run start",
-
     "setup": "npm run api:install && npm run admin:install && npm run api:migrate && npm run api:seed",
     "check": "npm run lint && npm run typecheck && npm --prefix admin run lint && npm --prefix admin run typecheck && npm --prefix api run typecheck",
-    "build:all": "npm run build && npm run admin:build && npm run api:build"
+    "build:all": "npm run build && npm run admin:build && npm run api:build",
+    "api:seed-fleet": "npm --prefix api run seed-fleet"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

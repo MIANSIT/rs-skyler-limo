@@ -10,7 +10,8 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
     "create-admin": "tsx src/scripts/create-admin.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed-fleet": "tsx src/scripts/seed-fleet.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

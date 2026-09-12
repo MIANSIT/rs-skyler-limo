@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { AMENITY_KEYS, VEHICLE_CATEGORIES } from "./vehicles/amenities.js";
+
 /**
  * The contract between the public site, the admin panel and the database.
  * Anything not declared here is dropped before it reaches SQL.
@@ -50,6 +52,8 @@ export const createBookingSchema = z.object({
   pickupAt: z.iso.datetime({ offset: true }),
   passengers: z.coerce.number().int().min(1).max(60).default(1),
   bags: z.coerce.number().int().min(0).max(60).default(0),
+  /** Capped against the chosen vehicle's `maxChildSeats` by the booking form. */
+  childSeats: z.coerce.number().int().min(0).max(4).default(0),
   vehicleClass: trimmed(60),
   airline: z.string().trim().max(120).optional().nullable(),
   flightNumber: z.string().trim().max(20).optional().nullable(),
@@ -116,4 +120,77 @@ export const listQuotesSchema = z.object({
 export const loginSchema = z.object({
   email: z.email().max(255),
   password: z.string().min(1).max(200),
+});
+
+/* -------------------------------------------------------------------------- */
+/* Fleet                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Lowercase, hyphenated, no leading or trailing hyphen. Slugs end up in URLs
+ * and are stored on every booking, so they are validated rather than generated
+ * silently from the name — a rename must not quietly orphan past bookings.
+ */
+const slug = z
+  .string()
+  .trim()
+  .min(2)
+  .max(60)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Use lowercase letters, numbers and single hyphens.",
+  );
+
+export const vehicleInputSchema = z.object({
+  slug,
+  name: trimmed(120),
+  category: z.enum(VEHICLE_CATEGORIES),
+  model: z.string().trim().max(160).optional().nullable(),
+  passengerCapacity: z.coerce.number().int().min(1).max(60),
+  luggageCapacity: z.coerce.number().int().min(0).max(60),
+  maxChildSeats: z.coerce.number().int().min(0).max(4).default(0),
+  baseFareCents: z.coerce.number().int().min(0).max(100_000_00),
+  bestFor: trimmed(500),
+  detail: trimmed(5000),
+  amenities: z.array(z.enum(AMENITY_KEYS)).max(AMENITY_KEYS.length).default([]),
+  isActive: z.coerce.boolean().default(true),
+  displayOrder: z.coerce.number().int().min(0).max(9999).default(0),
+});
+
+export type VehicleInput = z.infer<typeof vehicleInputSchema>;
+
+/** Every field optional, but at least one present. */
+export const vehicleUpdateSchema = vehicleInputSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    error: "Nothing to update.",
+  });
+
+export const listVehiclesSchema = z.object({
+  /** Admin only; the public endpoint always filters to active. */
+  includeInactive: z.coerce.boolean().default(false),
+  q: z.string().trim().max(120).optional(),
+});
+
+export const photoMetaSchema = z.object({
+  kind: z.enum(["exterior", "interior"]).default("exterior"),
+  /** §38 wants alt text on every image, so it is required at the door. */
+  altText: trimmed(255),
+  isPrimary: z.coerce.boolean().default(false),
+});
+
+export const photoUpdateSchema = z
+  .object({
+    kind: z.enum(["exterior", "interior"]).optional(),
+    altText: trimmed(255).optional(),
+    isPrimary: z.coerce.boolean().optional(),
+    displayOrder: z.coerce.number().int().min(0).max(9999).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    error: "Nothing to update.",
+  });
+
+export const reorderSchema = z.object({
+  /** Vehicle ids in the order they should appear. */
+  ids: z.array(z.coerce.number().int().positive()).min(1).max(200),
 });

@@ -7,7 +7,8 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
-import { airports, fleet } from "@/lib/content";
+import type { FleetVehicle } from "@/lib/api/types";
+import { airports, childSeatFee } from "@/lib/content";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
 
 type TripType = "airport" | "point-to-point" | "hourly";
@@ -18,14 +19,6 @@ const tripTypes: { value: TripType; label: string }[] = [
   { value: "hourly", label: "Hourly" },
 ];
 
-/** Base fares in whole dollars, matching the "from" prices shown on /fleet. */
-const baseFare: Record<string, number> = {
-  "luxury-sedan": 95,
-  "luxury-suv": 135,
-  "premium-suv": 185,
-  "sprinter-van": 240,
-};
-
 const tripMultiplier: Record<TripType, number> = {
   airport: 1,
   "point-to-point": 0.85,
@@ -34,13 +27,21 @@ const tripMultiplier: Record<TripType, number> = {
 
 /**
  * An indicative fare so the number is visible before booking rather than after —
- * the "upfront, fixed pricing" move from Chapter 7. It is sent with the request
- * as `quotedTotalCents` so the operator sees what the customer was shown.
+ * the "upfront, fixed pricing" move from Chapter 7. The base now comes from the
+ * vehicle record the operator maintains, so a fare change in the dashboard
+ * reaches this widget. It is sent as `quotedTotalCents` so the operator sees
+ * what the customer was shown.
+ *
  * Replace the arithmetic with a real pricing call; keep the presentation.
  */
-function quote(vehicle: string, trip: TripType) {
-  const base = baseFare[vehicle] ?? 0;
-  return { total: Math.round(base * tripMultiplier[trip]) };
+function quote(
+  vehicle: FleetVehicle | undefined,
+  trip: TripType,
+  childSeats: number,
+) {
+  const base = Math.round((vehicle?.baseFareCents ?? 0) / 100);
+  const seats = childSeats * childSeatFee;
+  return { total: Math.round(base * tripMultiplier[trip]) + seats, seats };
 }
 
 function SubmitButton() {
@@ -59,18 +60,33 @@ function SubmitButton() {
   );
 }
 
-export function BookingForm() {
+export function BookingForm({ fleet }: { fleet: FleetVehicle[] }) {
   const [trip, setTrip] = useState<TripType>("airport");
-  const [vehicle, setVehicle] = useState(fleet[0].slug);
+  const [vehicle, setVehicle] = useState(fleet[0]?.slug ?? "");
+  const [childSeats, setChildSeats] = useState(0);
 
   const [state, formAction] = useActionState<BookingFormState, FormData>(
     submitBooking,
     { status: "idle" },
   );
 
-  const fare = useMemo(() => quote(vehicle, trip), [vehicle, trip]);
-  const vehicleName =
-    fleet.find((item) => item.slug === vehicle)?.name ?? fleet[0].name;
+  const selected = useMemo(
+    () => fleet.find((item) => item.slug === vehicle) ?? fleet[0],
+    [fleet, vehicle],
+  );
+
+  const fare = useMemo(
+    () => quote(selected, trip, childSeats),
+    [selected, trip, childSeats],
+  );
+
+  const vehicleName = selected?.name ?? "";
+  const maxChildSeats = selected?.maxChildSeats ?? 0;
+
+  // Switching to a class that takes fewer seats must not leave a stale count
+  // priced into the fare.
+  const seatsInRange = Math.min(childSeats, maxChildSeats);
+  if (seatsInRange !== childSeats) setChildSeats(seatsInRange);
 
   const fieldError = (name: string) =>
     state.status === "error" ? state.fields?.[name] : undefined;
@@ -78,16 +94,23 @@ export function BookingForm() {
   /**
    * React blanks a form's uncontrolled fields once its action resolves, so a
    * rejected submission would empty the whole booking. These put the
-   * customer's own words back. `key` forces the remount that makes a changed
-   * `defaultValue` take effect.
+   * customer's own words back.
    */
   const prior = (name: string) =>
     state.status === "error" ? (state.values[name] ?? "") : "";
 
-  const restore = (name: string) => ({
-    defaultValue: prior(name),
-    key: `${name}:${prior(name)}`,
-  });
+  const restore = (name: string) => ({ defaultValue: prior(name) });
+
+  /**
+   * Remounts the whole form after a rejected submission.
+   *
+   * A changed `defaultValue` does not move an input that is already mounted, so
+   * the restored values need a remount to land. One key here rather than a
+   * `key` per field: React forbids spreading `key` through a props object, and
+   * nine of them was nine warnings. The tab, vehicle and child-seat selections
+   * live in state above this form, so they survive the remount.
+   */
+  const formKey = state.status === "error" ? state.attempt : 0;
 
   if (state.status === "success") {
     return (
@@ -145,7 +168,11 @@ export function BookingForm() {
         })}
       </div>
 
-      <form action={formAction} className="mt-6 flex flex-col gap-5">
+      <form
+        key={formKey}
+        action={formAction}
+        className="mt-6 flex flex-col gap-5"
+      >
         {/* The tab is a button, not an input, so its value travels here. */}
         <input type="hidden" name="tripType" value={trip} />
         <input
@@ -165,7 +192,6 @@ export function BookingForm() {
                 id="pickup"
                 name="pickup"
                 defaultValue={prior("pickup") || airports[0]}
-                key={`pickup:${prior("pickup")}`}
               >
                 {airports.map((airport) => (
                   <option key={airport}>{airport}</option>
@@ -213,7 +239,7 @@ export function BookingForm() {
             >
               {fleet.map((item) => (
                 <option key={item.slug} value={item.slug}>
-                  {item.name} · up to {item.passengers.replace("Up to ", "")}
+                  {item.name} · up to {item.passengerCapacity}
                 </option>
               ))}
             </Select>
@@ -247,9 +273,29 @@ export function BookingForm() {
               max={14}
               className="tabular-nums"
               defaultValue={prior("passengers") || 1}
-              key={`passengers:${prior("passengers")}`}
             />
           </Field>
+
+          {maxChildSeats > 0 ? (
+            <Field
+              label="Child seats"
+              id="childSeats"
+              hint={`$${childSeatFee} each, up to ${maxChildSeats} in a ${vehicleName}. Fitted before we set off.`}
+            >
+              <Select
+                id="childSeats"
+                name="childSeats"
+                value={String(seatsInRange)}
+                onChange={(event) => setChildSeats(Number(event.target.value))}
+              >
+                {Array.from({ length: maxChildSeats + 1 }, (_, count) => (
+                  <option key={count} value={count}>
+                    {count === 0 ? "None" : `${count} seat${count > 1 ? "s" : ""}`}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
 
           <Field label="Bags" id="bags">
             <Input
@@ -260,7 +306,6 @@ export function BookingForm() {
               max={20}
               className="tabular-nums"
               defaultValue={prior("bags") || 0}
-              key={`bags:${prior("bags")}`}
             />
           </Field>
         </div>
@@ -325,7 +370,6 @@ export function BookingForm() {
             required
             error={fieldError("terms")}
             defaultChecked={prior("terms") === "on"}
-            key={`terms:${prior("terms")}`}
             label={
               <>
                 I accept the{" "}
@@ -353,6 +397,11 @@ export function BookingForm() {
             </p>
             <p className="mt-2 text-[13px] text-charcoal/70">
               Tolls and gratuity included. Not an estimate.
+              {fare.seats > 0
+                ? ` Includes $${fare.seats} for ${seatsInRange} child seat${
+                    seatsInRange > 1 ? "s" : ""
+                  }.`
+                : ""}
             </p>
           </div>
 

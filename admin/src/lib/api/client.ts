@@ -29,8 +29,17 @@ export class ApiRequestError extends Error {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
+  /**
+   * Send raw bytes instead of JSON — used for photo uploads, where the image
+   * is the request body and its metadata travels in headers.
+   */
+  rawBody?: {
+    bytes: Buffer;
+    contentType: string;
+    headers?: Record<string, string>;
+  };
   /** Session token forwarded as a bearer credential for admin endpoints. */
   token?: string;
   /** Forwarded so the API's rate limiter sees the customer, not the server. */
@@ -47,6 +56,12 @@ export async function apiFetch<T>(
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
+  if (options.rawBody) {
+    headers.set("Content-Type", options.rawBody.contentType);
+    for (const [key, value] of Object.entries(options.rawBody.headers ?? {})) {
+      headers.set(key, value);
+    }
+  }
   if (options.token) {
     headers.set("Authorization", `Bearer ${options.token}`);
   }
@@ -60,7 +75,11 @@ export async function apiFetch<T>(
     response = await fetch(`${BASE_URL}${path}`, {
       method: options.method ?? "GET",
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.rawBody
+        ? new Uint8Array(options.rawBody.bytes)
+        : options.body === undefined
+          ? undefined
+          : JSON.stringify(options.body),
       // Operational data. A cached dashboard is a wrong dashboard.
       cache: "no-store",
       signal: options.signal,

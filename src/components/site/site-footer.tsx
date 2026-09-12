@@ -2,7 +2,8 @@ import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
-import { fleet, services } from "@/lib/content";
+import { services } from "@/lib/content";
+import { getFleetSafely } from "@/lib/public/fleet";
 
 const boroughs = [
   "Manhattan",
@@ -12,7 +13,11 @@ const boroughs = [
   "Staten Island",
 ];
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  // The same cached read the fleet page uses, so hiding a class removes it from
+  // the footer too rather than leaving a link to a car we no longer run.
+  const fleet = await getFleetSafely();
+
   return (
     <footer className="bg-midnight text-white">
       <div className="mx-auto w-full max-w-6xl px-6 py-16 lg:px-8">
@@ -39,11 +44,15 @@ export function SiteFooter() {
           </FooterColumn>
 
           <FooterColumn title="Fleet">
-            {fleet.map((vehicle) => (
-              <FooterLink key={vehicle.slug} href={`/fleet#${vehicle.slug}`}>
-                {vehicle.name}
-              </FooterLink>
-            ))}
+            {fleet.length === 0 ? (
+              <FooterLink href="/fleet">See the fleet</FooterLink>
+            ) : (
+              fleet.map((vehicle) => (
+                <FooterLink key={vehicle.slug} href={`/fleet#${vehicle.slug}`}>
+                  {vehicle.name}
+                </FooterLink>
+              ))
+            )}
           </FooterColumn>
 
           <FooterColumn title="Contact">

@@ -25,3 +25,38 @@ export type TrackedBooking = {
   destination: string;
   vehicleClass: string;
 };
+
+/* -------------------------------------------------------------------------- */
+/* Fleet                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type VehiclePhoto = {
+  id: number;
+  url: string;
+  kind: "exterior" | "interior";
+  altText: string;
+  width: number | null;
+  height: number | null;
+  isPrimary: boolean;
+  displayOrder: number;
+};
+
+/**
+ * What `/api/fleet` exposes. Note the absences: no id, no `isActive`, no
+ * timestamps. A hidden vehicle never reaches this shape at all.
+ */
+export type FleetVehicle = {
+  slug: string;
+  name: string;
+  category: "sedan" | "suv" | "premium-suv" | "van" | "sprinter";
+  model: string | null;
+  passengerCapacity: number;
+  luggageCapacity: number;
+  maxChildSeats: number;
+  baseFareCents: number;
+  bestFor: string;
+  detail: string;
+  amenities: { key: string; label: string; hint?: string }[];
+  photos: VehiclePhoto[];
+  primaryPhoto: VehiclePhoto | null;
+};

@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS bookings (
   pickup_at         DATETIME NOT NULL,
   passengers        TINYINT UNSIGNED NOT NULL DEFAULT 1,
   bags              TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  -- Requested child seats. Priced into `quoted_total_cents`, so the operator
+  -- must be able to see why the fare is what it is.
+  child_seats       TINYINT UNSIGNED NOT NULL DEFAULT 0,
   vehicle_class     VARCHAR(60) NOT NULL,
   airline           VARCHAR(120) NULL,
   flight_number     VARCHAR(20) NULL,
@@ -92,11 +95,84 @@ CREATE TABLE IF NOT EXISTS quotes (
   KEY ix_quotes_email (customer_email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- The fleet, as the operator maintains it. The public /fleet page and the
+-- booking form's vehicle list both read from here, so a class that is not in
+-- this table cannot be advertised or booked — which is the requirement doc's
+-- "only show vehicles actually available" enforced by construction rather than
+-- by remembering.
+CREATE TABLE IF NOT EXISTS vehicles (
+  id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  -- Used in URLs and stored on bookings, so it must stay stable once live.
+  slug               VARCHAR(60) NOT NULL,
+  name               VARCHAR(120) NOT NULL,
+  -- The class families from §49 of the requirements.
+  category           ENUM('sedan','suv','premium-suv','van','sprinter') NOT NULL,
+  -- Free text: "Cadillac XTS or similar". Kept separate from `name` so the
+  -- card can say "Luxury Sedan" while being honest about the actual car.
+  model              VARCHAR(160) NULL,
+
+  passenger_capacity TINYINT UNSIGNED NOT NULL,
+  luggage_capacity   TINYINT UNSIGNED NOT NULL,
+  -- How many child seats this class can physically take. 0 means none; the
+  -- booking form caps its add-on selector at this number.
+  max_child_seats    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+
+  -- Money in cents, never a float. The "from" price shown on the fleet page.
+  base_fare_cents    INT UNSIGNED NOT NULL,
+
+  -- One sentence for the card, one paragraph for the detail.
+  best_for           VARCHAR(500) NOT NULL,
+  detail             TEXT NOT NULL,
+
+  -- Amenity keys from the canonical list in `src/vehicles/amenities.ts`, as a
+  -- JSON array. A lookup table would be the textbook answer; this list is
+  -- fixed, short, and never queried by amenity, so a joined table would buy
+  -- nothing and cost two more round trips per page.
+  amenities          JSON NOT NULL,
+
+  -- Hidden vehicles keep their bookings and their history but leave the public
+  -- site immediately — the honest way to retire a car mid-season.
+  is_active          TINYINT(1) NOT NULL DEFAULT 1,
+  display_order      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_vehicles_slug (slug),
+  KEY ix_vehicles_active_order (is_active, display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Uploaded photography. Exterior and interior are distinguished because §15
+-- asks for both, and the card shows one exterior while the detail view shows
+-- the rest.
+CREATE TABLE IF NOT EXISTS vehicle_photos (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  vehicle_id    BIGINT UNSIGNED NOT NULL,
+  -- Path relative to the uploads root, never an absolute URL: the host changes
+  -- between staging and production, the file does not.
+  file_path     VARCHAR(255) NOT NULL,
+  kind          ENUM('exterior','interior') NOT NULL DEFAULT 'exterior',
+  -- Required, not optional: §38 asks for alt text on every image, and an empty
+  -- column is how that silently stops happening.
+  alt_text      VARCHAR(255) NOT NULL,
+  width         SMALLINT UNSIGNED NULL,
+  height        SMALLINT UNSIGNED NULL,
+  byte_size     INT UNSIGNED NULL,
+  /** Exactly one photo per vehicle should be primary; enforced in the service. */
+  is_primary    TINYINT(1) NOT NULL DEFAULT 0,
+  display_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_vehicle_photos_vehicle (vehicle_id, display_order),
+  CONSTRAINT fk_vehicle_photos_vehicle
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Who changed what. The dashboard holds customer names, phone numbers and home
 -- addresses; every status change is attributable.
 CREATE TABLE IF NOT EXISTS activity_log (
   id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  subject_type   ENUM('booking','quote') NOT NULL,
+  subject_type   ENUM('booking','quote','vehicle') NOT NULL,
   subject_id     BIGINT UNSIGNED NOT NULL,
   admin_user_id  BIGINT UNSIGNED NULL,
   action         VARCHAR(40) NOT NULL,

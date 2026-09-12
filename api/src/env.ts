@@ -36,6 +36,20 @@ const schema = z.object({
     ),
 
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
+
+  /**
+   * Where uploaded vehicle photography is written. Kept outside the code tree
+   * so a deploy that replaces the application directory does not delete the
+   * client's photo library.
+   */
+  UPLOADS_DIR: z.string().min(1).default("./var/uploads"),
+
+  /**
+   * Public base URL for those files, as a browser will see them. In production
+   * nginx serves the uploads directory from the site's own origin; in dev the
+   * API serves them itself.
+   */
+  UPLOADS_BASE_URL: z.string().min(1).default("http://127.0.0.1:4000/uploads"),
 });
 
 const parsed = schema.safeParse(process.env);

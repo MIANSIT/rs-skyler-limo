@@ -5,109 +5,133 @@ import { FleetCard } from "@/components/site/fleet-card";
 import { PageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { RationaleNote, Section, SectionHeading } from "@/components/ui/section";
-import { fleet } from "@/lib/content";
+import { getFleetSafely } from "@/lib/public/fleet";
 
 export const metadata: Metadata = {
   title: "Fleet",
   description:
-    "Four vehicle classes — Luxury Sedan, Luxury SUV, Premium SUV and Sprinter Van. Passengers, luggage and starting fares, stated plainly.",
+    "Every vehicle class with real passenger and luggage capacities, child-seat availability and starting fares. Stated plainly, before you book.",
 };
 
-const comparison = [
-  { label: "Passengers", key: "passengers" },
-  { label: "Luggage", key: "luggage" },
-  { label: "From", key: "from" },
-] as const;
+function fare(cents: number): string {
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
 
-export default function FleetPage() {
+export default async function FleetPage() {
+  const fleet = await getFleetSafely();
+
   return (
     <>
       <PageHeader
         eyebrow="The fleet"
-        title="Four classes, one standard"
+        title="One standard, whichever you choose"
         intro="Every class is maintained on the same inspection cadence and driven by the same vetted chauffeurs. The difference is room, not care."
       />
 
       <Section tone="light">
-        <Reveal className="grid gap-6 md:grid-cols-2" y={30}>
-          {fleet.map((vehicle) => (
-            <div key={vehicle.slug} data-reveal className="flex">
-              <FleetCard vehicle={vehicle} />
-            </div>
-          ))}
-        </Reveal>
+        {fleet.length === 0 ? (
+          <div className="mx-auto max-w-xl text-center">
+            <p className="text-[17px] leading-[1.7] text-charcoal">
+              Our fleet listing is briefly unavailable. Call reservations on{" "}
+              <a
+                href="tel:+12125550147"
+                className="text-midnight underline-offset-4 tabular-nums hover:underline"
+              >
+                +1 (212) 555-0147
+              </a>{" "}
+              and someone will talk you through the options.
+            </p>
+          </div>
+        ) : (
+          <Reveal className="grid gap-6 md:grid-cols-2" y={30}>
+            {fleet.map((vehicle) => (
+              <div key={vehicle.slug} data-reveal className="flex">
+                <FleetCard vehicle={vehicle} />
+              </div>
+            ))}
+          </Reveal>
+        )}
       </Section>
 
-      <Section tone="grey">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Side by side"
-            title="Compare without calling support"
-            data-reveal
-          />
-          <div data-reveal className="mt-10 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left">
-              <caption className="sr-only">
-                Fleet comparison by passengers, luggage capacity and starting
-                fare
-              </caption>
-              <thead>
-                <tr className="border-b border-midnight/15">
-                  <th
-                    scope="col"
-                    className="pb-3 font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase"
-                  >
-                    Class
-                  </th>
-                  {comparison.map((column) => (
-                    <th
-                      key={column.key}
-                      scope="col"
-                      className="pb-3 font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase"
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {fleet.map((vehicle) => (
-                  <tr
-                    key={vehicle.slug}
-                    className="border-b border-midnight/10"
-                  >
-                    <th
-                      scope="row"
-                      className="py-4 font-sans text-[15px] font-semibold text-midnight"
-                    >
-                      {vehicle.name}
-                    </th>
-                    {comparison.map((column) => (
-                      <td
-                        key={column.key}
-                        className="py-4 text-[15px] text-charcoal tabular-nums"
+      {fleet.length > 0 ? (
+        <Section tone="grey">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Side by side"
+              title="Compare without calling support"
+              data-reveal
+            />
+            <div data-reveal className="mt-10 overflow-x-auto">
+              <table className="w-full min-w-[44rem] border-collapse text-left">
+                <caption className="sr-only">
+                  Fleet comparison by passengers, luggage, child seats and
+                  starting fare
+                </caption>
+                <thead>
+                  <tr className="border-b border-midnight/15">
+                    {[
+                      "Class",
+                      "Passengers",
+                      "Luggage",
+                      "Child seats",
+                      "From",
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        scope="col"
+                        className="pb-3 font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase"
                       >
-                        {vehicle[column.key]}
-                      </td>
+                        {heading}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p data-reveal className="mt-5 text-[13px] text-charcoal/70">
-            Starting fares are for point-to-point travel within Manhattan and
-            include tolls and gratuity. Your quote is fixed before you book.
-          </p>
-        </Reveal>
-      </Section>
+                </thead>
+                <tbody>
+                  {fleet.map((vehicle) => (
+                    <tr
+                      key={vehicle.slug}
+                      className="border-b border-midnight/10"
+                    >
+                      <th
+                        scope="row"
+                        className="py-4 font-sans text-[15px] font-semibold text-midnight"
+                      >
+                        {vehicle.name}
+                      </th>
+                      <td className="py-4 text-[15px] text-charcoal tabular-nums">
+                        Up to {vehicle.passengerCapacity}
+                      </td>
+                      <td className="py-4 text-[15px] text-charcoal tabular-nums">
+                        {vehicle.luggageCapacity} large cases
+                      </td>
+                      <td className="py-4 text-[15px] text-charcoal tabular-nums">
+                        {vehicle.maxChildSeats === 0
+                          ? "—"
+                          : `Up to ${vehicle.maxChildSeats}`}
+                      </td>
+                      <td className="py-4 text-[15px] text-charcoal tabular-nums">
+                        {fare(vehicle.baseFareCents)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p data-reveal className="mt-5 text-[13px] text-charcoal/70">
+              Starting fares are for point-to-point travel within Manhattan and
+              include tolls and gratuity. Child seats are $35 each, up to two
+              per vehicle. Your quote is fixed before you book.
+            </p>
+          </Reveal>
+        </Section>
+      ) : null}
 
       <Section tone="light">
         <Reveal className="mx-auto max-w-3xl">
           <div data-reveal>
             <RationaleNote label="On photography">
-              Vehicle imagery on this page will be RSSkyler&rsquo;s own fleet on
-              real New York routes, shot at golden or blue hour — never stock
+              Vehicle imagery on this page is RSSkyler&rsquo;s own fleet on real
+              New York routes, shot at golden or blue hour — never stock
               photography of unrelated luxury cars. A client who has already
               ridden with us should recognise the car.
             </RationaleNote>

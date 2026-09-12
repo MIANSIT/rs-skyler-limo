@@ -9,8 +9,10 @@ import type {
   AdminUser,
   Booking,
   DashboardStats,
+  FleetMeta,
   Paginated,
   Quote,
+  Vehicle,
 } from "@/lib/api/types";
 
 import { getSessionToken } from "./session";
@@ -123,3 +125,43 @@ export async function getQuote(
     throw error;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Fleet                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export async function getVehicles(q?: string): Promise<Vehicle[]> {
+  const { token } = await verifySession();
+  const { vehicles } = await apiFetch<{ vehicles: Vehicle[] }>(
+    `/api/admin/vehicles${toQueryString({ q })}`,
+    { token },
+  );
+  return vehicles;
+}
+
+export async function getVehicle(id: number): Promise<Vehicle | null> {
+  const { token } = await verifySession();
+
+  try {
+    const { vehicle } = await apiFetch<{ vehicle: Vehicle }>(
+      `/api/admin/vehicles/${id}`,
+      { token },
+    );
+    return vehicle;
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.failure.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * The amenity and category vocabulary the form renders from. Fetched rather
+ * than duplicated so the checkboxes can never offer something validation will
+ * reject.
+ */
+export const getFleetMeta = cache(async (): Promise<FleetMeta> => {
+  const { token } = await verifySession();
+  return apiFetch<FleetMeta>("/api/admin/vehicles/meta", { token });
+});

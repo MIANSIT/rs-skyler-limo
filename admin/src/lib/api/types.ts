@@ -37,6 +37,7 @@ export type Booking = {
   pickupAt: string;
   passengers: number;
   bags: number;
+  childSeats: number;
   vehicleClass: string;
   airline: string | null;
   flightNumber: string | null;
@@ -110,4 +111,58 @@ export type TrackedBooking = {
   pickup: string;
   destination: string;
   vehicleClass: string;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Fleet                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const vehicleCategories = [
+  "sedan",
+  "suv",
+  "premium-suv",
+  "van",
+  "sprinter",
+] as const;
+
+export type VehicleCategory = (typeof vehicleCategories)[number];
+
+export type VehiclePhoto = {
+  id: number;
+  url: string;
+  kind: "exterior" | "interior";
+  altText: string;
+  width: number | null;
+  height: number | null;
+  isPrimary: boolean;
+  displayOrder: number;
+};
+
+export type Amenity = { key: string; label: string; hint?: string };
+
+export type Vehicle = {
+  id: number;
+  slug: string;
+  name: string;
+  category: VehicleCategory;
+  model: string | null;
+  passengerCapacity: number;
+  luggageCapacity: number;
+  maxChildSeats: number;
+  baseFareCents: number;
+  bestFor: string;
+  detail: string;
+  amenities: string[];
+  amenityLabels: Amenity[];
+  isActive: boolean;
+  displayOrder: number;
+  photos: VehiclePhoto[];
+  primaryPhoto: VehiclePhoto | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FleetMeta = {
+  amenities: Amenity[];
+  categories: readonly VehicleCategory[];
 };

@@ -23,14 +23,18 @@ import {
   Section,
   SectionHeading,
 } from "@/components/ui/section";
-import { fleet, services, values } from "@/lib/content";
+import { services, values } from "@/lib/content";
+import { getFleetSafely } from "@/lib/public/fleet";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // One fetch, shared by the booking widget and the fleet strip below.
+  const fleet = await getFleetSafely();
+
   return (
     <>
-      <Hero />
+      <Hero fleet={fleet} />
       <BoroughMarquee />
 
       {/* Services — light ground, so gold appears only as icons and rules. */}
@@ -124,12 +128,12 @@ export default function HomePage() {
         <Reveal className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
             eyebrow="The fleet"
-            title="Four classes, chosen without a phone call"
-            intro="Each class states plainly who it is for, what it holds, and where the fare starts."
+            title="Every class, chosen without a phone call"
+            intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
             data-reveal
           />
           <ButtonLink href="/fleet" variant="secondary" data-reveal>
-            Compare all four
+            Compare the fleet
           </ButtonLink>
         </Reveal>
 

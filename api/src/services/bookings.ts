@@ -27,6 +27,7 @@ type BookingRow = RowDataPacket & {
   pickup_at: Date;
   passengers: number;
   bags: number;
+  child_seats: number;
   vehicle_class: string;
   airline: string | null;
   flight_number: string | null;
@@ -53,6 +54,7 @@ function toBooking(row: BookingRow) {
     pickupAt: row.pickup_at.toISOString(),
     passengers: row.passengers,
     bags: row.bags,
+    childSeats: row.child_seats,
     vehicleClass: row.vehicle_class,
     airline: row.airline,
     flightNumber: row.flight_number,
@@ -68,7 +70,7 @@ function toBooking(row: BookingRow) {
 }
 
 const SELECT_COLUMNS = `id, reference, status, trip_type, pickup, destination,
-  pickup_at, passengers, bags, vehicle_class, airline, flight_number,
+  pickup_at, passengers, bags, child_seats, vehicle_class, airline, flight_number,
   customer_name, customer_email, customer_phone, notes, quoted_total_cents,
   source, created_at, updated_at`;
 
@@ -84,11 +86,11 @@ export async function createBooking(
       const result = await execute(
         `INSERT INTO bookings
            (reference, trip_type, pickup, destination, pickup_at, passengers,
-            bags, vehicle_class, airline, flight_number, customer_name,
+            bags, child_seats, vehicle_class, airline, flight_number, customer_name,
             customer_email, customer_phone, notes, quoted_total_cents, source)
          VALUES
            (:reference, :tripType, :pickup, :destination, :pickupAt, :passengers,
-            :bags, :vehicleClass, :airline, :flightNumber, :customerName,
+            :bags, :childSeats, :vehicleClass, :airline, :flightNumber, :customerName,
             :customerEmail, :customerPhone, :notes, :quotedTotalCents, :source)`,
         {
           reference,
@@ -98,6 +100,7 @@ export async function createBooking(
           pickupAt: new Date(input.pickupAt),
           passengers: input.passengers,
           bags: input.bags,
+          childSeats: input.childSeats,
           vehicleClass: input.vehicleClass,
           airline: input.airline ?? null,
           flightNumber: input.flightNumber ?? null,

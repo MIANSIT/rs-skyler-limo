@@ -21,6 +21,13 @@ export type BookingFormState =
        * empties itself on a rejected phone number loses the booking.
        */
       values: Record<string, string>;
+      /**
+       * Increments on every rejected submission. The form uses it as a React
+       * `key` so the subtree remounts and the restored `defaultValue`s take
+       * effect — a changed `defaultValue` alone does not move an input that is
+       * already mounted.
+       */
+      attempt: number;
     };
 
 /**
@@ -50,6 +57,7 @@ export async function submitBooking(
       "flight",
       "passengers",
       "bags",
+      "childSeats",
       "name",
       "phone",
       "email",
@@ -57,6 +65,10 @@ export async function submitBooking(
     ].map((key) => [key, text(key)]),
   );
   values.terms = formData.get("terms") === "on" ? "on" : "";
+
+  // Bumped once per rejected submission; the form keys off it to remount and
+  // pick up the restored values.
+  const attempt = (_previous.status === "error" ? _previous.attempt : 0) + 1;
 
   // Checked here, not only by the `required` attribute on the box. A Server
   // Action is a public endpoint: anything the browser enforces, the server has
@@ -68,6 +80,7 @@ export async function submitBooking(
       message: "Accept the terms to continue.",
       fields: { terms: "Please accept the terms and conditions." },
       values,
+      attempt,
     };
   }
 
@@ -78,6 +91,7 @@ export async function submitBooking(
       message: "Check the date and time.",
       fields: { pickupAt: "Enter a date and a time." },
       values,
+      attempt,
     };
   }
 
@@ -95,6 +109,7 @@ export async function submitBooking(
         pickupAt,
         passengers: Number(text("passengers") || 1),
         bags: Number(text("bags") || 0),
+        childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
         // Only meaningful on an airport run; the field is disabled otherwise.
         flightNumber: tripType === "airport" && flightNumber ? flightNumber : null,
@@ -114,6 +129,7 @@ export async function submitBooking(
         message: error.failure.message,
         fields: error.failure.fields,
         values,
+        attempt,
       };
     }
     throw error;

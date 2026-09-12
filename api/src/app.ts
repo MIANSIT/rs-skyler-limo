@@ -3,9 +3,11 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 
 import { pool } from "./db.js";
-import { env } from "./env.js";
+import { env, isProduction } from "./env.js";
+import { UPLOADS_ROOT } from "./lib/uploads.js";
 import { errorHandler, notFound } from "./middleware.js";
 import { adminRouter } from "./routes/admin.js";
+import { adminVehiclesRouter } from "./routes/vehicles.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
 
@@ -47,7 +49,41 @@ export function createApp(): Express {
 
   app.use("/api", publicRouter);
   app.use("/api/auth", authRouter);
+  app.use("/api/admin/vehicles", adminVehiclesRouter);
   app.use("/api/admin", adminRouter);
+
+  /**
+   * Uploaded photography, in development only.
+   *
+   * In production nginx serves `UPLOADS_DIR` directly from the public origin —
+   * see `deploy/nginx.conf`. Static files have no business occupying a Node
+   * event loop, and serving them from the site's own domain keeps them behind
+   * Cloudflare's cache.
+   */
+  if (!isProduction) {
+    app.use(
+      "/uploads",
+      (_req, res, next) => {
+        // `helmet()` sets Cross-Origin-Resource-Policy: same-origin, which
+        // stops the dashboard on another origin from rendering these in an
+        // <img>. Vehicle photos are public images meant to be embedded, so the
+        // uploads path — and only the uploads path — opts out. Every JSON
+        // endpoint keeps the strict default.
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        next();
+      },
+      express.static(UPLOADS_ROOT, {
+        // Generated filenames are unique per upload, so a long cache is safe.
+        maxAge: "30d",
+        index: false,
+        dotfiles: "deny",
+      }),
+    );
+  }
+
+  app.get("/", (_req, res) => {
+    res.json({ message: "Welcome to the RS SKLYER LIMO API" });
+  });
 
   app.use(notFound);
   app.use(errorHandler);

@@ -11,61 +11,12 @@ export const nav = [
   { href: "/track", label: "Track a ride" },
 ] as const;
 
-export type VehicleClass = {
-  slug: string;
-  name: string;
-  passengers: string;
-  luggage: string;
-  bestFor: string;
-  from: string;
-  detail: string;
-};
-
-export const fleet: VehicleClass[] = [
-  {
-    slug: "luxury-sedan",
-    name: "Luxury Sedan",
-    passengers: "Up to 3",
-    luggage: "2 large cases",
-    bestFor:
-      "Individual and two-passenger travel — airport transfers, point-to-point, executive pickups.",
-    from: "$95",
-    detail:
-      "The default choice for a 6 a.m. run to JFK or a meeting across town. Quiet cabin, bottled water, a driver who already knows the terminal.",
-  },
-  {
-    slug: "luxury-suv",
-    name: "Luxury SUV",
-    passengers: "Up to 5",
-    luggage: "4 large cases",
-    bestFor:
-      "Small groups and extra luggage, without stepping up to a full premium class.",
-    from: "$135",
-    detail:
-      "Room for a family arriving on an international flight, or three colleagues and their carry-ons, at a fare that stays sensible.",
-  },
-  {
-    slug: "premium-suv",
-    name: "Premium SUV",
-    passengers: "Up to 5",
-    luggage: "4 large cases",
-    bestFor:
-      "The top of the fleet — VIP, diplomatic and flagship corporate bookings.",
-    from: "$185",
-    detail:
-      "Reserved for the bookings where the vehicle itself is part of the impression. Vetted drivers, consistent assignment on repeat travel.",
-  },
-  {
-    slug: "sprinter-van",
-    name: "Sprinter Van",
-    passengers: "Up to 14",
-    luggage: "12 large cases",
-    bestFor: "Group transport, wedding parties, and event logistics.",
-    from: "$240",
-    detail:
-      "One vehicle instead of three cars that arrive four minutes apart. The backbone of the wedding and events division.",
-  },
-];
+/**
+ * The fleet used to be hardcoded here. It now lives in the `vehicles` table and
+ * is served by `GET /api/fleet`, so the operator can add a class without a
+ * deploy — see `src/lib/public/fleet.ts`. Nothing in this file should describe
+ * a vehicle again; two lists would disagree the first time a car changed.
+ */
 
 export type Service = {
   name: string;
@@ -201,9 +152,12 @@ export const airports = ["JFK", "LaGuardia (LGA)", "Newark (EWR)"] as const;
 /** Waiting past the complimentary window, in whole dollars per hour. */
 export const hourlyWaitingRate = 70;
 
-/** Per child seat, up to `maxChildSeats` per vehicle. */
+/**
+ * Per child seat. How many a given class can take is a property of the vehicle
+ * (`maxChildSeats` on the vehicle record), not a site-wide constant — a sedan
+ * fits one, an SUV two.
+ */
 export const childSeatFee = 35;
-export const maxChildSeats = 2;
 
 /**
  * Every airport the booking form offers, including the two private-aviation

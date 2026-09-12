@@ -5,6 +5,7 @@ import { env, isProduction } from "../env.js";
 import { createAdminUser } from "../services/auth.js";
 import { createBooking } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
+import { installFleet } from "../vehicles/install.js";
 
 /**
  * Development data only. Refuses to run against production because seeding a
@@ -38,6 +39,15 @@ async function main() {
     console.log("Operator accounts already exist; leaving them alone.");
   }
 
+  // The fleet is real content rather than sample data, so it has its own
+  // production-safe installer; run it here too for a one-command dev setup.
+  const installed = await installFleet();
+  console.log(
+    installed === 0
+      ? "Vehicles already present; leaving the fleet alone."
+      : `Installed ${installed} vehicle classes.`,
+  );
+
   const bookingCount = await query<RowDataPacket & { total: number }>(
     "SELECT COUNT(*) AS total FROM bookings",
   );
@@ -59,6 +69,7 @@ async function main() {
       pickupAt: hoursFromNow(6),
       passengers: 2,
       bags: 3,
+      childSeats: 1,
       vehicleClass: "luxury-suv",
       airline: "Delta",
       flightNumber: "DL 401",
@@ -75,6 +86,7 @@ async function main() {
       pickupAt: hoursFromNow(30),
       passengers: 1,
       bags: 0,
+      childSeats: 0,
       vehicleClass: "luxury-sedan",
       airline: null,
       flightNumber: null,
@@ -91,6 +103,7 @@ async function main() {
       pickupAt: hoursFromNow(72),
       passengers: 3,
       bags: 2,
+      childSeats: 0,
       vehicleClass: "premium-suv",
       airline: null,
       flightNumber: null,
@@ -107,6 +120,7 @@ async function main() {
       pickupAt: hoursFromNow(-20),
       passengers: 4,
       bags: 5,
+      childSeats: 2,
       vehicleClass: "sprinter-van",
       airline: "United",
       flightNumber: "UA 1712",

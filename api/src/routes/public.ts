@@ -6,6 +6,7 @@ import { rateLimit } from "../middleware.js";
 import { createBookingSchema, createQuoteSchema } from "../schemas.js";
 import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
+import { listVehicles } from "../services/vehicles.js";
 
 export const publicRouter: Router = Router();
 
@@ -13,6 +14,34 @@ export const publicRouter: Router = Router();
 // enough that a script cannot fill the dashboard with noise overnight.
 const submitLimit = rateLimit({ windowMs: 60_000, max: 8 });
 const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+
+/**
+ * The fleet as the public site shows it: active vehicles only, in the
+ * operator's chosen order. A hidden vehicle is invisible here the moment it is
+ * hidden, which is what makes "only show vehicles actually available" true
+ * rather than aspirational.
+ */
+publicRouter.get("/fleet", async (_req, res) => {
+  const vehicles = await listVehicles({ includeInactive: false });
+
+  res.json({
+    vehicles: vehicles.map((vehicle) => ({
+      slug: vehicle.slug,
+      name: vehicle.name,
+      category: vehicle.category,
+      model: vehicle.model,
+      passengerCapacity: vehicle.passengerCapacity,
+      luggageCapacity: vehicle.luggageCapacity,
+      maxChildSeats: vehicle.maxChildSeats,
+      baseFareCents: vehicle.baseFareCents,
+      bestFor: vehicle.bestFor,
+      detail: vehicle.detail,
+      amenities: vehicle.amenityLabels,
+      photos: vehicle.photos,
+      primaryPhoto: vehicle.primaryPhoto,
+    })),
+  });
+});
 
 publicRouter.post("/bookings", submitLimit, async (req, res) => {
   const input = createBookingSchema.parse(req.body);

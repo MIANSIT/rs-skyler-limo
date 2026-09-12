@@ -51,6 +51,27 @@ cp api/.env.example api/.env          # API   → database credentials
 - `http://localhost:3001` — the reservations dashboard
 - `http://localhost:3000/styleguide` — every component with its contrast table
 
+## The fleet
+
+Vehicle classes live in the database, not in code. The dashboard's **Fleet**
+section is full CRUD: capacities, child-seat count, starting fare, amenities
+from a closed list, ordering, and photo upload with required alt text.
+
+- `GET /api/fleet` serves only vehicles marked as showing, so hiding one removes
+  it from the fleet page, the homepage strip, the footer and the booking form at
+  once. Hiding is reversible; deleting is refused while bookings reference the
+  class.
+- The public page caches that read under the `fleet` tag. Saving in the
+  dashboard calls `POST /api/revalidate` on the public site with a shared
+  secret, so the page stays prerendered and still updates within seconds.
+- Amenities are a fixed vocabulary in `api/src/vehicles/amenities.ts`. Adding
+  one is a code change on purpose — the requirement doc is emphatic that the
+  site must not advertise anything the company does not provide, and free-text
+  amenities are how that rule quietly breaks.
+- Uploads are validated by magic bytes, not by the claimed `Content-Type`, and
+  written under `UPLOADS_DIR` with generated filenames. Keep that directory
+  outside the deploy path and in the nightly backup.
+
 ## How the pieces fit
 
 A customer submits the booking form. A Server Action posts it to
@@ -84,6 +105,7 @@ guards the whole origin by default, so a new route is protected by existing.
 | `npm run build:all` | Production builds, all three |
 | `npm run api:migrate` | Apply `api/src/schema.sql` (idempotent) |
 | `npm run api:seed` | Development sample data — refuses to run in production |
+| `npm run api:seed-fleet` | Install the four starting vehicle classes (production-safe; skips a non-empty table) |
 | `npm run api:create-admin` | Add a real operator account, interactively |
 | `npm run plan:pdf` | Regenerate the client build plan PDF |
 

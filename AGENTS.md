@@ -38,6 +38,10 @@ Things that are easy to get wrong here:
   only does an optimistic cookie-presence check, and guards the whole origin.
 - **Chrome lives in route-group layouts.** Each root layout is the document
   shell only. Putting a header there renders it over every page in that app.
+- **The fleet is data, not code.** Vehicle classes come from the `vehicles`
+  table via `GET /api/fleet`; `src/lib/content.ts` must never describe a vehicle
+  again. The public page caches under the `fleet` tag and the admin app clears
+  it through `POST /api/revalidate`.
 - **Timestamps are UTC in the database**, converted to `America/New_York` at
   the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
   anything with a date in it. Money is integer cents.

@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { MaskedWords } from "@/components/motion/masked-words";
 import { BookingForm } from "@/components/site/booking-form";
 import { ButtonLinkOnDark } from "@/components/ui/button";
+import type { FleetVehicle } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
 
 /**
@@ -16,7 +17,7 @@ import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
  * about gold applies to motion too — a small amount, used with intent, reads
  * as expensive; more of it reads as a demo.
  */
-export function Hero() {
+export function Hero({ fleet }: { fleet: FleetVehicle[] }) {
   const scope = useRef<HTMLElement>(null);
 
   useGSAP(
@@ -149,7 +150,7 @@ export function Hero() {
           </div>
 
           <div data-hero-card className="lg:col-span-6">
-            <BookingForm />
+            <BookingForm fleet={fleet} />
             <p className="mt-4 text-center text-[13px] text-white/55">
               A fare and a confirmed pickup in under a minute.
             </p>
