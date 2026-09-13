@@ -72,6 +72,48 @@ from a closed list, ordering, and photo upload with required alt text.
   written under `UPLOADS_DIR` with generated filenames. Keep that directory
   outside the deploy path and in the nightly backup.
 
+## Booking and quoting
+
+Two paths, decided by the server on submission:
+
+- **Fixed** — an airport transfer inside the five boroughs where the operator
+  has published a fare for that airport and vehicle. The customer sees the price
+  before booking and the trip is confirmed at it.
+- **Quote** — everything else. Point to point, hourly, an airport with no
+  published rate, or anywhere outside New York City. No price is shown; the
+  request lands in the dashboard and an operator prices it.
+
+`decideFare` in `api/src/services/pricing.ts` makes that call. The browser never
+sends a price — it is re-derived on every submission against the live rate card,
+so a stale tab or an edited request cannot book a Sprinter at a sedan fare. The
+form's on-screen figure is a preview of the same calculation.
+
+The rate card is `admin.rsskylerlimo.com/rates`: one price per airport per
+vehicle, covering all five boroughs. An empty cell is not an error — that
+combination quotes instead, which is the safe direction to be unsure in.
+
+Setting a price in the dashboard moves the booking to `quoted` and publishes it
+to the customer's tracking page immediately. Sending the email or making the
+call is still the operator's job; there is a clean seam for Resend when you
+want it.
+
+**Tracking needs a reference and the phone number on the booking.** A reference
+alone travels in email and on paper and would otherwise expose a customer's name
+and route to anyone who read one. Numbers are compared on their last ten digits,
+so `+1 (212) 555-0147` and `212-555-0147` are the same line.
+
+## Google Places
+
+Address autocomplete and the "is this inside New York City" test both run
+through `GOOGLE_MAPS_API_KEY`, set on the **API** and never exposed to a
+browser — autocomplete fires on every keystroke, and a key in the browser is a
+key on someone else's bill.
+
+Without a key the booking form falls back to a plain address field plus a
+borough selector, and fixed airport fares still work. Enable "Places API (New)"
+in a Google Cloud project with billing, restrict the key to that one API, and
+put it in `api/.env`.
+
 ## How the pieces fit
 
 A customer submits the booking form. A Server Action posts it to

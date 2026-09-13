@@ -8,40 +8,31 @@ import { Field, Input } from "@/components/ui/field";
 import { trackBooking, type TrackState } from "@/lib/public/actions";
 
 const statusCopy: Record<string, string> = {
-  new: "Received. A reservations agent is confirming it now.",
+  new: "Received. A reservations agent is looking at it now.",
+  quoted: "Quoted. The fare below is yours — call us to confirm the booking.",
   confirmed: "Confirmed. Your car is booked and assigned.",
   completed: "Completed. Thank you for riding with us.",
   cancelled: "Cancelled. Call dispatch if that is not right.",
   pending: "On hold while we confirm a detail with you.",
 };
 
-const vehicleNames: Record<string, string> = {
-  "luxury-sedan": "Luxury Sedan",
-  "luxury-suv": "Luxury SUV",
-  "premium-suv": "Premium SUV",
-  "sprinter-van": "Sprinter Van",
-};
-
 function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      variant="cta"
-      disabled={pending}
-      className="sm:self-start"
-    >
-      {pending ? "Looking…" : "Show my ride"}
+    <Button type="submit" variant="cta" disabled={pending} className="sm:self-start">
+      {pending ? "Looking…" : "Show my booking"}
     </Button>
   );
 }
 
-export function TrackForm() {
-  const [state, formAction] = useActionState<TrackState, FormData>(
-    trackBooking,
-    { status: "idle" },
-  );
+export function TrackForm({ vehicleNames }: { vehicleNames: Record<string, string> }) {
+  const [state, formAction] = useActionState<TrackState, FormData>(trackBooking, {
+    status: "idle",
+  });
+
+  const prior = (field: "reference" | "phone") =>
+    state.status === "error" ? state[field] : "";
 
   return (
     <>
@@ -52,18 +43,36 @@ export function TrackForm() {
         <Field
           label="Booking reference"
           id="reference"
-          hint="Printed at the top of your confirmation, in the form RS-4K2P9WD."
-          error={state.status === "error" ? state.message : undefined}
+          hint="From your confirmation, in the form RS-4K2P9WD."
         >
           <Input
             id="reference"
             name="reference"
-            placeholder="RS-4K2P9WD"
-            className="tabular-nums uppercase"
-            autoComplete="off"
             required
-            defaultValue={state.status === "error" ? state.reference : ""}
-            key={state.status === "error" ? state.reference : "blank"}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="RS-4K2P9WD"
+            className="font-mono tracking-[0.08em] uppercase"
+            defaultValue={prior("reference")}
+            key={`reference:${prior("reference")}`}
+          />
+        </Field>
+
+        <Field
+          label="Phone number"
+          id="phone"
+          hint="The number on the booking. We ask for both so a reference on its own cannot open your trip."
+          error={state.status === "error" ? state.message : undefined}
+        >
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            required
+            autoComplete="tel"
+            placeholder="(212) 555-0147"
+            defaultValue={prior("phone")}
+            key={`phone:${prior("phone")}`}
           />
         </Field>
 
@@ -73,48 +82,74 @@ export function TrackForm() {
       {state.status === "found" ? (
         <div
           role="status"
-          className="mt-6 border-l-2 border-gold bg-grey px-6 py-5"
+          className="mt-8 border border-midnight/10 bg-grey p-6 md:p-8"
         >
           <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
             {state.booking.reference}
           </p>
-          <p className="font-display mt-1 text-[22px] leading-tight font-semibold text-midnight">
+          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-midnight">
             {statusCopy[state.booking.status] ?? "We have your booking."}
           </p>
 
-          <dl className="mt-5 grid gap-3 text-[15px] sm:grid-cols-2">
-            <div>
-              <dt className="text-charcoal/60">Pickup</dt>
-              <dd className="text-midnight">{state.booking.pickup}</dd>
+          {state.booking.quotedTotalCents !== null ? (
+            <div className="mt-6 border-t border-midnight/10 pt-6">
+              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                {state.booking.pricingMode === "fixed"
+                  ? "Fixed fare"
+                  : "Your quote"}
+              </p>
+              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+                ${Math.round(state.booking.quotedTotalCents / 100)}
+              </p>
+              {state.booking.quoteNote ? (
+                <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-charcoal">
+                  {state.booking.quoteNote}
+                </p>
+              ) : null}
             </div>
-            <div>
-              <dt className="text-charcoal/60">Destination</dt>
-              <dd className="text-midnight">{state.booking.destination}</dd>
-            </div>
-            <div>
-              <dt className="text-charcoal/60">Vehicle</dt>
-              <dd className="text-midnight">
-                {vehicleNames[state.booking.vehicleClass] ??
-                  state.booking.vehicleClass}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-charcoal/60">Scheduled</dt>
-              <dd className="text-midnight tabular-nums">
-                {new Intl.DateTimeFormat("en-US", {
-                  timeZone: "America/New_York",
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "numeric",
-                  minute: "2-digit",
-                }).format(new Date(state.booking.pickupAt))}{" "}
-                ET
-              </dd>
-            </div>
+          ) : state.booking.pricingMode === "quote" ? (
+            <p className="mt-6 max-w-md border-t border-midnight/10 pt-6 text-[15px] leading-[1.7] text-charcoal">
+              We are still pricing this trip. A reservations agent will come back
+              to you by phone or email — the fare will appear here as soon as it
+              is set.
+            </p>
+          ) : null}
+
+          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-midnight/10 pt-6 sm:grid-cols-2">
+            <Row label="Pickup" value={state.booking.pickup} />
+            <Row label="Destination" value={state.booking.destination} />
+            <Row
+              label="Vehicle"
+              value={
+                vehicleNames[state.booking.vehicleClass] ??
+                state.booking.vehicleClass
+              }
+            />
+            <Row
+              label="Scheduled"
+              value={new Date(state.booking.pickupAt).toLocaleString("en-US", {
+                timeZone: "America/New_York",
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            />
           </dl>
         </div>
       ) : null}
     </>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/60 uppercase">
+        {label}
+      </dt>
+      <dd className="mt-1 text-[15px] text-midnight tabular-nums">{value}</dd>
+    </div>
   );
 }

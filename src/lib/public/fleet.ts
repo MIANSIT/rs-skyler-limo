@@ -3,7 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 
 import { apiFetch } from "@/lib/api/client";
-import type { FleetVehicle } from "@/lib/api/types";
+import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 
 /**
  * The fleet, cached under the `fleet` tag.
@@ -40,5 +40,34 @@ export async function getFleetSafely(): Promise<FleetVehicle[]> {
   } catch (error) {
     console.error("Could not load the fleet:", error);
     return [];
+  }
+}
+
+/**
+ * The booking form's pricing inputs, cached under the same `fleet` tag.
+ *
+ * Shares the tag deliberately: saving a vehicle or a rate in the dashboard
+ * invalidates both, and a rate that referenced a vehicle the page had not yet
+ * heard about would render a fare against a class nobody can select.
+ */
+export const getBookingOptions = unstable_cache(
+  async (): Promise<BookingOptions> =>
+    apiFetch<BookingOptions>("/api/booking-options"),
+  ["booking-options"],
+  { tags: ["fleet"], revalidate: 3600 },
+);
+
+/** The form must still render if the API is briefly unreachable. */
+export async function getBookingOptionsSafely(): Promise<BookingOptions> {
+  try {
+    return await getBookingOptions();
+  } catch (error) {
+    console.error("Could not load booking options:", error);
+    return {
+      airports: [],
+      rates: [],
+      placesEnabled: false,
+      childSeatFeeCents: 3500,
+    };
   }
 }

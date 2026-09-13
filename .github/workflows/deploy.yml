@@ -1,0 +1,68 @@
+# Build-gate then release.
+#
+# `check` runs the same lint and typecheck as a developer's `npm run check`,
+# plus a production build of all three apps. `deploy` only runs if that passes,
+# so a compile error never reaches the server.
+#
+# The SSH key in DEPLOY_SSH_KEY is restricted on the server to a forced command:
+# it can run the release script and nothing else. It cannot open a shell, read
+# the database password, or touch the env files.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # One release at a time; a newer push supersedes an in-flight one.
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: |
+          npm install --no-audit --no-fund
+          npm --prefix admin install --no-audit --no-fund
+          npm --prefix api   install --no-audit --no-fund
+
+      - name: Check
+        run: npm run check
+
+      - name: Build
+        # No API or database here, so the fleet reads fall back to empty — that
+        # path is deliberate and exercised. This proves the apps compile.
+        run: npm run build:all
+
+  deploy:
+    name: Release
+    needs: check
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Authorise
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Release
+        # The remote command is ignored — the server's forced command decides
+        # what runs. Passing the SHA keeps the intent legible in the log.
+        run: |
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "deploy ${{ github.sha }}"

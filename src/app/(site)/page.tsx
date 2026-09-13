@@ -24,17 +24,20 @@ import {
   SectionHeading,
 } from "@/components/ui/section";
 import { services, values } from "@/lib/content";
-import { getFleetSafely } from "@/lib/public/fleet";
+import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
 export default async function HomePage() {
   // One fetch, shared by the booking widget and the fleet strip below.
-  const fleet = await getFleetSafely();
+  const [fleet, bookingOptions] = await Promise.all([
+    getFleetSafely(),
+    getBookingOptionsSafely(),
+  ]);
 
   return (
     <>
-      <Hero fleet={fleet} />
+      <Hero fleet={fleet} bookingOptions={bookingOptions} />
       <BoroughMarquee />
 
       {/* Services — light ground, so gold appears only as icons and rules. */}
@@ -137,10 +140,18 @@ export default async function HomePage() {
           </ButtonLink>
         </Reveal>
 
-        <Reveal className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4" y={30}>
+        {/*
+          Four across only from `xl`. At `lg` the content column is 1024px, which
+          leaves each of four cards about 220px — narrower than the spec labels
+          inside them.
+        */}
+        <Reveal
+          className="mt-14 grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
+          y={30}
+        >
           {fleet.map((vehicle) => (
-            <div key={vehicle.slug} data-reveal className="flex">
-              <FleetCard vehicle={vehicle} />
+            <div key={vehicle.slug} data-reveal className="flex min-w-0">
+              <FleetCard vehicle={vehicle} variant="compact" />
             </div>
           ))}
         </Reveal>

@@ -5,6 +5,8 @@ import { requireAdmin } from "../middleware.js";
 import {
   listBookingsSchema,
   listQuotesSchema,
+  saveRatesSchema,
+  sendQuoteSchema,
   updateBookingSchema,
   updateQuoteSchema,
 } from "../schemas.js";
@@ -15,6 +17,7 @@ import {
   updateBooking,
 } from "../services/bookings.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
+import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
 
 export const adminRouter: Router = Router();
@@ -71,4 +74,31 @@ adminRouter.patch("/quotes/:id", async (req, res) => {
   const quote = await updateQuote(id, patch, req.admin!.id);
 
   res.json({ quote, activity: await getActivity("quote", id) });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Airport rate card                                                          */
+/* -------------------------------------------------------------------------- */
+
+adminRouter.get("/rates", async (_req, res) => {
+  res.json(await getRateGrid());
+});
+
+adminRouter.put("/rates", async (req, res) => {
+  const { rates } = saveRatesSchema.parse(req.body);
+  await saveRates(rates, req.admin!.id);
+
+  res.json(await getRateGrid());
+});
+
+/** Prices a quote request and moves it to `quoted`. */
+adminRouter.post("/bookings/:id/quote", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) throw ApiError.notFound();
+
+  const { totalCents, note } = sendQuoteSchema.parse(req.body);
+  await sendQuote(id, totalCents, note ?? null, req.admin!.id);
+
+  const booking = await getBookingById(id);
+  res.json({ booking });
 });

@@ -12,6 +12,8 @@ const schema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
+  /** Loopback by default; the API has no business answering the internet. */
+  HOST: z.string().min(1).default("127.0.0.1"),
 
   DB_HOST: z.string().min(1).default("127.0.0.1"),
   DB_PORT: z.coerce.number().int().positive().default(3306),
@@ -50,6 +52,16 @@ const schema = z.object({
    * API serves them itself.
    */
   UPLOADS_BASE_URL: z.string().min(1).default("http://127.0.0.1:4000/uploads"),
+
+  /**
+   * Google Places, used for address autocomplete and for deciding whether an
+   * address is inside New York City. Optional: without it the booking form
+   * falls back to a plain address field and a borough selector, and fixed
+   * airport fares still work.
+   *
+   * Server-side only — it must never be exposed with a NEXT_PUBLIC_ prefix.
+   */
+  GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

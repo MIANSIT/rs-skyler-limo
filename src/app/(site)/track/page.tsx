@@ -4,6 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
 import { RoutePreview } from "@/components/site/route-preview";
 import { TrackForm } from "@/components/site/track-form";
+import { getFleetSafely } from "@/lib/public/fleet";
 import { Section, SectionHeading } from "@/components/ui/section";
 
 export const metadata: Metadata = {
@@ -12,13 +13,19 @@ export const metadata: Metadata = {
     "Enter a booking reference to see your driver's live position, vehicle and ETA. No app required.",
 };
 
-export default function TrackPage() {
+export default async function TrackPage() {
+  // Vehicle names come from the fleet the operator maintains, not a copy.
+  const fleet = await getFleetSafely();
+  const vehicleNames = Object.fromEntries(
+    fleet.map((vehicle) => [vehicle.slug, vehicle.name]),
+  );
+
   return (
     <>
       <PageHeader
         eyebrow="Live tracking"
         title="Where is my car"
-        intro="Enter the reference from your confirmation to see the status of your booking. Nothing to install, and it works on any phone."
+        intro="Enter your reference and the phone number on the booking. Nothing to install, and it works on any phone."
       />
 
       <Section tone="light">
@@ -26,11 +33,11 @@ export default function TrackPage() {
           <Reveal>
             <SectionHeading
               eyebrow="Find a booking"
-              title="One reference, nothing to install"
+              title="Two details, nothing to install"
               data-reveal
             />
             <div data-reveal>
-              <TrackForm />
+              <TrackForm vehicleNames={vehicleNames} />
             </div>
 
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">

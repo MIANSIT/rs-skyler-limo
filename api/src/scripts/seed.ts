@@ -77,7 +77,7 @@ async function main() {
       customerEmail: "amara.osei@example.com",
       customerPhone: "+1 212 555 0142",
       notes: "Arriving from Accra. Two large cases.",
-      quotedTotalCents: 13500,
+      seedFareCents: 13500,
     },
     {
       tripType: "point-to-point" as const,
@@ -94,7 +94,7 @@ async function main() {
       customerEmail: "d.reyes@example.com",
       customerPhone: "(917) 555-0188",
       notes: null,
-      quotedTotalCents: 8100,
+      seedFareCents: 8100,
     },
     {
       tripType: "hourly" as const,
@@ -111,7 +111,7 @@ async function main() {
       customerEmail: "s.marchetti@example.com",
       customerPhone: "+1 646 555 0110",
       notes: "Three stops, itinerary to follow from the assistant.",
-      quotedTotalCents: 29600,
+      seedFareCents: 29600,
     },
     {
       tripType: "airport" as const,
@@ -128,12 +128,20 @@ async function main() {
       customerEmail: "priya.n@example.com",
       customerPhone: "201-555-0173",
       notes: null,
-      quotedTotalCents: 24000,
+      seedFareCents: 24000,
     },
   ];
 
   for (const sample of samples) {
-    const booking = await createBooking(sample, "seed");
+    const booking = await createBooking(sample, "seed", {
+      // Sample data stands in for both paths so the dashboard has something of
+      // each to show.
+      pricingMode: sample.tripType === "airport" ? "fixed" : "quote",
+      totalCents: sample.tripType === "airport" ? sample.seedFareCents : null,
+      reason: "seed",
+      pickupPlace: null,
+      destinationPlace: null,
+    });
     console.log(`  booking ${booking.reference} — ${sample.customerName}`);
   }
 

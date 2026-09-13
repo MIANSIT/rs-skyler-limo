@@ -54,6 +54,39 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               ADD COLUMN child_seats TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER bags`,
     },
     {
+      description: "bookings.pricing_mode and quote fields",
+      check: () => columnMissing(connection, "bookings", "pricing_mode"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN pricing_mode ENUM('fixed','quote') NOT NULL DEFAULT 'quote' AFTER trip_type,
+              ADD COLUMN quoted_at DATETIME NULL AFTER quoted_total_cents,
+              ADD COLUMN quoted_by BIGINT UNSIGNED NULL AFTER quoted_at,
+              ADD COLUMN quote_note TEXT NULL AFTER quoted_by,
+              ADD COLUMN pickup_place_id VARCHAR(255) NULL AFTER quote_note,
+              ADD COLUMN pickup_locality VARCHAR(120) NULL AFTER pickup_place_id,
+              ADD COLUMN pickup_region VARCHAR(60) NULL AFTER pickup_locality,
+              ADD COLUMN destination_place_id VARCHAR(255) NULL AFTER pickup_region,
+              ADD COLUMN destination_locality VARCHAR(120) NULL AFTER destination_place_id,
+              ADD COLUMN destination_region VARCHAR(60) NULL AFTER destination_locality,
+              ADD COLUMN airport_code VARCHAR(8) NULL AFTER destination_region,
+              ADD COLUMN airport_direction ENUM('from-airport','to-airport') NULL AFTER airport_code`,
+    },
+    {
+      description: "bookings.status += 'quoted'",
+      check: async () => {
+        const [rows] = await connection.query<mysql.RowDataPacket[]>(
+          `SELECT COLUMN_TYPE AS type
+             FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'bookings'
+              AND COLUMN_NAME = 'status'`,
+          [env.DB_NAME],
+        );
+        return !String(rows[0]?.type ?? "").includes("quoted");
+      },
+      sql: `ALTER TABLE bookings
+              MODIFY status ENUM('new','quoted','confirmed','completed','cancelled','pending')
+              NOT NULL DEFAULT 'new'`,
+    },
+    {
       // Widening an ENUM is safe to repeat, but only run it when needed so the
       // table is not rebuilt on every deploy.
       description: "activity_log.subject_type += 'vehicle'",

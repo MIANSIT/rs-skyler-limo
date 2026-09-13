@@ -16,6 +16,7 @@ import type {
   listBookingsSchema,
   updateBookingSchema,
 } from "../schemas.js";
+import type { FareDecision } from "./pricing.js";
 
 type BookingRow = RowDataPacket & {
   id: number;
@@ -29,6 +30,15 @@ type BookingRow = RowDataPacket & {
   bags: number;
   child_seats: number;
   vehicle_class: string;
+  pricing_mode: "fixed" | "quote";
+  quoted_at: Date | null;
+  quote_note: string | null;
+  pickup_locality: string | null;
+  pickup_region: string | null;
+  destination_locality: string | null;
+  destination_region: string | null;
+  airport_code: string | null;
+  airport_direction: string | null;
   airline: string | null;
   flight_number: string | null;
   customer_name: string;
@@ -56,6 +66,15 @@ function toBooking(row: BookingRow) {
     bags: row.bags,
     childSeats: row.child_seats,
     vehicleClass: row.vehicle_class,
+    pricingMode: row.pricing_mode,
+    quotedAt: row.quoted_at ? row.quoted_at.toISOString() : null,
+    quoteNote: row.quote_note,
+    pickupLocality: row.pickup_locality,
+    pickupRegion: row.pickup_region,
+    destinationLocality: row.destination_locality,
+    destinationRegion: row.destination_region,
+    airportCode: row.airport_code,
+    airportDirection: row.airport_direction,
     airline: row.airline,
     flightNumber: row.flight_number,
     customerName: row.customer_name,
@@ -69,14 +88,22 @@ function toBooking(row: BookingRow) {
   };
 }
 
-const SELECT_COLUMNS = `id, reference, status, trip_type, pickup, destination,
-  pickup_at, passengers, bags, child_seats, vehicle_class, airline, flight_number,
-  customer_name, customer_email, customer_phone, notes, quoted_total_cents,
+const SELECT_COLUMNS = `id, reference, status, trip_type, pricing_mode, pickup,
+  destination, pickup_at, passengers, bags, child_seats, vehicle_class,
+  airline, flight_number, customer_name, customer_email, customer_phone, notes,
+  quoted_total_cents, quoted_at, quote_note,
+  pickup_locality, pickup_region, destination_locality, destination_region,
+  airport_code, airport_direction,
   source, created_at, updated_at`;
 
 export async function createBooking(
   input: z.infer<typeof createBookingSchema>,
   source: string,
+  /**
+   * Decided server-side by `decideFare`, never sent by the browser. A customer
+   * who could name their own price would.
+   */
+  fare: FareDecision,
 ): Promise<Booking> {
   // A reference collision is a ~1-in-34-billion event, but a booking lost to
   // one is a customer standing on a kerb, so retry rather than assume.
@@ -85,13 +112,19 @@ export async function createBooking(
     try {
       const result = await execute(
         `INSERT INTO bookings
-           (reference, trip_type, pickup, destination, pickup_at, passengers,
-            bags, child_seats, vehicle_class, airline, flight_number, customer_name,
-            customer_email, customer_phone, notes, quoted_total_cents, source)
+           (reference, trip_type, pricing_mode, pickup, destination, pickup_at,
+            passengers, bags, child_seats, vehicle_class, airline, flight_number,
+            customer_name, customer_email, customer_phone, notes,
+            quoted_total_cents, pickup_place_id, pickup_locality, pickup_region,
+            destination_place_id, destination_locality, destination_region,
+            airport_code, airport_direction, source)
          VALUES
-           (:reference, :tripType, :pickup, :destination, :pickupAt, :passengers,
-            :bags, :childSeats, :vehicleClass, :airline, :flightNumber, :customerName,
-            :customerEmail, :customerPhone, :notes, :quotedTotalCents, :source)`,
+           (:reference, :tripType, :pricingMode, :pickup, :destination, :pickupAt,
+            :passengers, :bags, :childSeats, :vehicleClass, :airline, :flightNumber,
+            :customerName, :customerEmail, :customerPhone, :notes,
+            :quotedTotalCents, :pickupPlaceId, :pickupLocality, :pickupRegion,
+            :destinationPlaceId, :destinationLocality, :destinationRegion,
+            :airportCode, :airportDirection, :source)`,
         {
           reference,
           tripType: input.tripType,
@@ -108,7 +141,16 @@ export async function createBooking(
           customerEmail: input.customerEmail.toLowerCase(),
           customerPhone: input.customerPhone,
           notes: input.notes ?? null,
-          quotedTotalCents: input.quotedTotalCents ?? null,
+          pricingMode: fare.pricingMode,
+          quotedTotalCents: fare.totalCents,
+          pickupPlaceId: input.pickupPlaceId ?? null,
+          pickupLocality: fare.pickupPlace?.locality ?? input.statedBorough ?? null,
+          pickupRegion: fare.pickupPlace?.region ?? null,
+          destinationPlaceId: input.destinationPlaceId ?? null,
+          destinationLocality: fare.destinationPlace?.locality ?? null,
+          destinationRegion: fare.destinationPlace?.region ?? null,
+          airportCode: input.airportCode ?? null,
+          airportDirection: input.airportDirection ?? null,
           source,
         },
       );

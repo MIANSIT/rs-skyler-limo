@@ -24,7 +24,10 @@ export function SiteHeader() {
           <Logo tone="dark" priority />
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Desktop nav from `lg`, not `md`. The lockup, four links at 15px and
+            the CTA need about 900px; between 768 and 900 the links wrapped to
+            two lines and collided with the wordmark. */}
+        <nav className="hidden items-center gap-8 lg:flex">
           {nav.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
@@ -44,7 +47,7 @@ export function SiteHeader() {
 
         {/* Outlined rather than gold: the chrome persists on every screen, and
             the gold action belongs to the page the client is actually on. */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <ButtonLinkOnDark href="/#book">Book a car</ButtonLinkOnDark>
         </div>
 
@@ -53,7 +56,7 @@ export function SiteHeader() {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls="mobile-nav"
-          className="-mr-2 p-2 text-white md:hidden"
+          className="-mr-2 p-2 text-white lg:hidden"
         >
           <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
           <svg
@@ -77,7 +80,7 @@ export function SiteHeader() {
       {open ? (
         <nav
           id="mobile-nav"
-          className="border-t border-white/10 px-6 pt-4 pb-6 md:hidden"
+          className="border-t border-white/10 px-6 pt-4 pb-6 lg:hidden"
         >
           <ul className="flex flex-col">
             {nav.map((item) => (

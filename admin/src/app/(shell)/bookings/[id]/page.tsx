@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { BookingActions } from "@/components/admin/booking-actions";
+import { QuotePanel } from "@/components/admin/quote-panel";
 import { DetailRow } from "@/components/admin/detail-row";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getBooking } from "@/lib/admin/dal";
@@ -85,6 +86,26 @@ export default async function BookingDetailPage({
                 }`}
                 numeric
               />
+              <DetailRow
+                label="Pricing"
+                value={
+                  booking.pricingMode === "fixed"
+                    ? "Fixed airport fare — agreed at booking"
+                    : booking.quotedTotalCents === null
+                      ? "Quote request — not yet priced"
+                      : "Quote request — priced"
+                }
+              />
+              {booking.airportCode ? (
+                <DetailRow
+                  label="Airport"
+                  value={`${booking.airportCode} · ${
+                    booking.airportDirection === "to-airport"
+                      ? "to the airport"
+                      : "from the airport"
+                  }`}
+                />
+              ) : null}
               {booking.childSeats > 0 ? (
                 <DetailRow
                   label="Child seats"
@@ -131,6 +152,10 @@ export default async function BookingDetailPage({
               ) : null}
             </dl>
           </section>
+
+          {booking.pricingMode === "quote" ? (
+            <QuotePanel booking={booking} />
+          ) : null}
 
           <ActivityTrail entries={activity} />
         </div>

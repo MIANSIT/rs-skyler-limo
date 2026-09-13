@@ -28,6 +28,7 @@ export function Field({
   hint,
   error,
   children,
+  className,
 }: {
   label: string;
   id: string;
@@ -35,9 +36,11 @@ export function Field({
   /** A validation message from the server. Replaces the hint while present. */
   error?: string;
   children: ReactNode;
+  /** Lets the calling layout span grid columns without a wrapper element. */
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className={clsx("flex flex-col gap-2", className)}>
       <Label htmlFor={id}>{label}</Label>
       {children}
       {error ? (

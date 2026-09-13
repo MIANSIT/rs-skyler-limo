@@ -21,7 +21,7 @@ export async function SiteFooter() {
   return (
     <footer className="bg-midnight text-white">
       <div className="mx-auto w-full max-w-6xl px-6 py-16 lg:px-8">
-        <div className="grid gap-12 md:grid-cols-4">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="md:col-span-1">
             <LogoMark className="h-14" />
             <div className="mt-5">
@@ -60,7 +60,11 @@ export async function SiteFooter() {
               <span className="tabular-nums">+1 (212) 555-0147</span>
             </FooterLink>
             <FooterLink href="mailto:reservations@rsskylerlimo.com">
-              reservations@rsskylerlimo.com
+              {/* An email address has no natural break opportunity, so it needs
+                  explicit permission to wrap or it widens the whole page. */}
+              <span className="[overflow-wrap:anywhere]">
+                reservations@rsskylerlimo.com
+              </span>
             </FooterLink>
             <FooterLink href="/corporate">Corporate accounts</FooterLink>
             <FooterLink href="/track">Track a ride</FooterLink>

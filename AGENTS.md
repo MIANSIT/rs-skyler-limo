@@ -42,6 +42,12 @@ Things that are easy to get wrong here:
   table via `GET /api/fleet`; `src/lib/content.ts` must never describe a vehicle
   again. The public page caches under the `fleet` tag and the admin app clears
   it through `POST /api/revalidate`.
+- **The server decides the fare, never the browser.** `decideFare` in
+  `api/src/services/pricing.ts` re-derives it on every submission; the form's
+  figure is a preview. Airport-inside-NYC with a published rate is `fixed`,
+  everything else is `quote`. Adding a booking status means updating the
+  `Record<BookingStatus, …>` maps in `admin/src/components/admin/booking-actions.tsx`
+  — and `admin/src/lib/api/types.ts`, or TypeScript will not tell you.
 - **Timestamps are UTC in the database**, converted to `America/New_York` at
   the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
   anything with a date in it. Money is integer cents.

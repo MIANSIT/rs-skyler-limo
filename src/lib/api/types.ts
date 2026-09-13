@@ -2,13 +2,15 @@
  * The slice of the API's responses this app needs.
  *
  * The public site only ever creates a booking or a quote and looks one up by
- * reference — it has no business knowing the shape of a customer record. The
- * admin app keeps its own, fuller copy in `admin/src/lib/api/types.ts`; if a
- * field here changes, it changes there and in `api/src/services/` too.
+ * reference and phone — it has no business knowing the shape of a customer
+ * record. The admin app keeps its own, fuller copy in
+ * `admin/src/lib/api/types.ts`; if a field here changes, it changes there and
+ * in `api/src/services/` too.
  */
 
 export type BookingStatus =
   | "new"
+  | "quoted"
   | "confirmed"
   | "completed"
   | "cancelled"
@@ -16,14 +18,53 @@ export type BookingStatus =
 
 export type TripType = "airport" | "point-to-point" | "hourly";
 
-/** What /track is allowed to know — deliberately no customer contact details. */
+/**
+ * How a trip is priced.
+ *
+ * `fixed` — an airport transfer inside New York City matching a published rate.
+ * `quote` — everything else; a person sets the price afterwards.
+ */
+export type PricingMode = "fixed" | "quote";
+
+/* -------------------------------------------------------------------------- */
+/* Booking                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type PlaceSuggestion = {
+  placeId: string;
+  primary: string;
+  secondary: string;
+};
+
+export type Airport = { code: string; name: string };
+
+export type PublishedRate = {
+  airportCode: string;
+  vehicleSlug: string;
+  priceCents: number;
+};
+
+/** What the booking form needs to preview a fare before submission. */
+export type BookingOptions = {
+  airports: Airport[];
+  rates: PublishedRate[];
+  /** False when no Google key is configured; the address field degrades. */
+  placesEnabled: boolean;
+  childSeatFeeCents: number;
+};
+
+/** What /track returns. Still no customer contact details. */
 export type TrackedBooking = {
   reference: string;
   status: BookingStatus;
+  pricingMode: PricingMode;
   pickupAt: string;
   pickup: string;
   destination: string;
   vehicleClass: string;
+  quotedTotalCents: number | null;
+  quoteNote: string | null;
+  quotedAt: string | null;
 };
 
 /* -------------------------------------------------------------------------- */

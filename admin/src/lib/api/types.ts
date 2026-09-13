@@ -7,6 +7,8 @@
 
 export const bookingStatuses = [
   "new",
+  /** Priced by an operator, awaiting the customer's yes. Quote requests only. */
+  "quoted",
   "confirmed",
   "completed",
   "cancelled",
@@ -39,6 +41,15 @@ export type Booking = {
   bags: number;
   childSeats: number;
   vehicleClass: string;
+  pricingMode: "fixed" | "quote";
+  quotedAt: string | null;
+  quoteNote: string | null;
+  pickupLocality: string | null;
+  pickupRegion: string | null;
+  destinationLocality: string | null;
+  destinationRegion: string | null;
+  airportCode: string | null;
+  airportDirection: "from-airport" | "to-airport" | null;
   airline: string | null;
   flightNumber: string | null;
   customerName: string;
@@ -103,16 +114,6 @@ export type Paginated<K extends string, T> = {
   perPage: number;
 } & Record<K, T[]>;
 
-/** What /track is allowed to know — no customer contact details. */
-export type TrackedBooking = {
-  reference: string;
-  status: BookingStatus;
-  pickupAt: string;
-  pickup: string;
-  destination: string;
-  vehicleClass: string;
-};
-
 /* -------------------------------------------------------------------------- */
 /* Fleet                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -165,4 +166,26 @@ export type Vehicle = {
 export type FleetMeta = {
   amenities: Amenity[];
   categories: readonly VehicleCategory[];
+};
+
+/* -------------------------------------------------------------------------- */
+/* Airport rate card                                                          */
+/* -------------------------------------------------------------------------- */
+
+export type Airport = { code: string; name: string };
+
+export type AirportRate = {
+  airportCode: string;
+  vehicleId: number;
+  vehicleSlug: string;
+  vehicleName: string;
+  priceCents: number;
+  isActive: boolean;
+  updatedAt: string | null;
+};
+
+export type RateGrid = {
+  airports: Airport[];
+  vehicles: { id: number; slug: string; name: string }[];
+  rates: AirportRate[];
 };

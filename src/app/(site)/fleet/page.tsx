@@ -45,7 +45,7 @@ export default async function FleetPage() {
         ) : (
           <Reveal className="grid gap-6 md:grid-cols-2" y={30}>
             {fleet.map((vehicle) => (
-              <div key={vehicle.slug} data-reveal className="flex">
+              <div key={vehicle.slug} data-reveal className="flex min-w-0">
                 <FleetCard vehicle={vehicle} />
               </div>
             ))}
@@ -118,9 +118,11 @@ export default async function FleetPage() {
               </table>
             </div>
             <p data-reveal className="mt-5 text-[13px] text-charcoal/70">
-              Starting fares are for point-to-point travel within Manhattan and
-              include tolls and gratuity. Child seats are $35 each, up to two
-              per vehicle. Your quote is fixed before you book.
+              Airport transfers within the five boroughs have a published fare,
+              shown before you confirm. Point-to-point and hourly travel is
+              priced by a reservations agent — send the details and we come back
+              with a fare. Child seats are $35 each. All fares include tolls and
+              gratuity.
             </p>
           </Reveal>
         </Section>

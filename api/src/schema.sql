@@ -45,8 +45,14 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- Customer-facing identifier. This is what the operator reads down the phone
   -- and what /track accepts, so it never exposes a sequential row id.
   reference         CHAR(10) NOT NULL,
-  status            ENUM('new','confirmed','completed','cancelled','pending') NOT NULL DEFAULT 'new',
+  status            ENUM('new','quoted','confirmed','completed','cancelled','pending') NOT NULL DEFAULT 'new',
   trip_type         ENUM('airport','point-to-point','hourly') NOT NULL,
+
+  -- How this trip is priced, decided at submission and never by the customer.
+  --   `fixed` — an airport transfer inside New York City that matched a row in
+  --             `airport_rates`. The fare was shown before booking and is owed.
+  --   `quote` — everything else. No price until a person sets one.
+  pricing_mode      ENUM('fixed','quote') NOT NULL DEFAULT 'quote',
   pickup            VARCHAR(255) NOT NULL,
   destination       VARCHAR(255) NOT NULL,
   pickup_at         DATETIME NOT NULL,
@@ -62,8 +68,28 @@ CREATE TABLE IF NOT EXISTS bookings (
   customer_email    VARCHAR(255) NOT NULL,
   customer_phone    VARCHAR(40) NOT NULL,
   notes             TEXT NULL,
-  -- Money in cents. Never a float.
+  -- Money in cents. Never a float. Set at submission for `fixed`, and by an
+  -- operator for `quote` — NULL means nobody has priced it yet.
   quoted_total_cents INT UNSIGNED NULL,
+  quoted_at         DATETIME NULL,
+  quoted_by         BIGINT UNSIGNED NULL,
+  -- What the operator wants the customer to read beside the number.
+  quote_note        TEXT NULL,
+
+  -- Resolved from the address by the Places lookup, so "is this inside New
+  -- York" is answered by Google rather than by trusting typed text. NULL when
+  -- the lookup was unavailable and the customer typed a plain address.
+  pickup_place_id        VARCHAR(255) NULL,
+  pickup_locality        VARCHAR(120) NULL,
+  pickup_region          VARCHAR(60) NULL,
+  destination_place_id   VARCHAR(255) NULL,
+  destination_locality   VARCHAR(120) NULL,
+  destination_region     VARCHAR(60) NULL,
+
+  -- Which airport, on an airport transfer, and which way it runs.
+  airport_code      VARCHAR(8) NULL,
+  airport_direction ENUM('from-airport','to-airport') NULL,
+
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -71,7 +97,12 @@ CREATE TABLE IF NOT EXISTS bookings (
   UNIQUE KEY uq_bookings_reference (reference),
   KEY ix_bookings_status_pickup (status, pickup_at),
   KEY ix_bookings_created (created_at),
-  KEY ix_bookings_email (customer_email)
+  KEY ix_bookings_email (customer_email),
+  -- /track matches on both, so the index carries both.
+  KEY ix_bookings_reference_phone (reference, customer_phone),
+  KEY ix_bookings_pricing (pricing_mode, status),
+  CONSTRAINT fk_bookings_quoted_by
+    FOREIGN KEY (quoted_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quotes (
@@ -166,6 +197,30 @@ CREATE TABLE IF NOT EXISTS vehicle_photos (
   KEY ix_vehicle_photos_vehicle (vehicle_id, display_order),
   CONSTRAINT fk_vehicle_photos_vehicle
     FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The fixed-price card for airport transfers inside New York City.
+--
+-- One price per airport per vehicle class, covering all five boroughs. A row
+-- that is missing or inactive is not an error: it means that combination has no
+-- published fare and the request falls through to a quote, which is the safe
+-- direction to fail.
+CREATE TABLE IF NOT EXISTS airport_rates (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  airport_code  VARCHAR(8) NOT NULL,
+  vehicle_id    BIGINT UNSIGNED NOT NULL,
+  price_cents   INT UNSIGNED NOT NULL,
+  is_active     TINYINT(1) NOT NULL DEFAULT 1,
+  updated_by    BIGINT UNSIGNED NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_airport_rates (airport_code, vehicle_id),
+  KEY ix_airport_rates_active (is_active),
+  CONSTRAINT fk_airport_rates_vehicle
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE,
+  CONSTRAINT fk_airport_rates_admin
+    FOREIGN KEY (updated_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Who changed what. The dashboard holds customer names, phone numbers and home

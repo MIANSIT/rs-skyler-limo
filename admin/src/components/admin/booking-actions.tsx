@@ -19,12 +19,16 @@ const nextStep: Partial<
   Record<BookingStatus, { status: BookingStatus; label: string }>
 > = {
   new: { status: "confirmed", label: "Confirm booking" },
+  // A quoted trip is waiting on the customer to accept the fare; confirming is
+  // still the move once they do.
+  quoted: { status: "confirmed", label: "Confirm booking" },
   pending: { status: "confirmed", label: "Confirm booking" },
   confirmed: { status: "completed", label: "Mark completed" },
 };
 
 const secondarySteps: Record<BookingStatus, BookingStatus[]> = {
   new: ["pending", "cancelled"],
+  quoted: ["pending", "cancelled"],
   pending: ["cancelled"],
   confirmed: ["pending", "cancelled"],
   completed: ["confirmed"],
@@ -33,6 +37,7 @@ const secondarySteps: Record<BookingStatus, BookingStatus[]> = {
 
 const stepLabels: Record<BookingStatus, string> = {
   new: "Reopen as new",
+  quoted: "Back to quoted",
   confirmed: "Confirm",
   completed: "Mark completed",
   cancelled: "Cancel booking",

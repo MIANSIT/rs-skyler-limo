@@ -12,6 +12,7 @@ import type {
   FleetMeta,
   Paginated,
   Quote,
+  RateGrid,
   Vehicle,
 } from "@/lib/api/types";
 
@@ -165,3 +166,12 @@ export const getFleetMeta = cache(async (): Promise<FleetMeta> => {
   const { token } = await verifySession();
   return apiFetch<FleetMeta>("/api/admin/vehicles/meta", { token });
 });
+
+/* -------------------------------------------------------------------------- */
+/* Airport rate card                                                          */
+/* -------------------------------------------------------------------------- */
+
+export async function getRateGrid(): Promise<RateGrid> {
+  const { token } = await verifySession();
+  return apiFetch<RateGrid>("/api/admin/rates", { token });
+}

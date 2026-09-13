@@ -3,13 +3,19 @@
 import { headers } from "next/headers";
 
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
-import type { TrackedBooking } from "@/lib/api/types";
+import type { PricingMode, TrackedBooking } from "@/lib/api/types";
 
 import { newYorkToIso } from "./new-york-time";
 
 export type BookingFormState =
   | { status: "idle" }
-  | { status: "success"; reference: string }
+  | {
+      status: "success";
+      reference: string;
+      pricingMode: PricingMode;
+      /** Present only on a fixed-fare booking. */
+      quotedTotalCents: number | null;
+    }
   | {
       status: "error";
       message: string;
@@ -99,29 +105,65 @@ export async function submitBooking(
   const tripType = text("tripType");
 
   try {
-    const result = await apiFetch<{ reference: string }>("/api/bookings", {
+    const isAirport = tripType === "airport";
+
+    /**
+     * On an airport run only one end is an address — the other is the airport
+     * itself, so it is filled in here rather than asked for twice.
+     */
+    const airportCode = text("airportCode");
+    const airportDirection = text("airportDirection");
+    const airportLabel = airportCode ? `${airportCode} Airport` : "Airport";
+
+    const pickup = isAirport
+      ? airportDirection === "to-airport"
+        ? text("pickup")
+        : airportLabel
+      : text("pickup");
+
+    const destination = isAirport
+      ? airportDirection === "to-airport"
+        ? airportLabel
+        : text("destination")
+      : text("destination");
+
+    const result = await apiFetch<{
+      reference: string;
+      pricingMode: PricingMode;
+      quotedTotalCents: number | null;
+    }>("/api/bookings", {
       method: "POST",
       forwardedFor: await callerIp(),
       body: {
         tripType,
-        pickup: text("pickup"),
-        destination: text("destination"),
+        pickup,
+        destination,
         pickupAt,
         passengers: Number(text("passengers") || 1),
         bags: Number(text("bags") || 0),
         childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
-        // Only meaningful on an airport run; the field is disabled otherwise.
-        flightNumber: tripType === "airport" && flightNumber ? flightNumber : null,
+        flightNumber: isAirport && flightNumber ? flightNumber : null,
+        airportCode: isAirport && airportCode ? airportCode : null,
+        airportDirection: isAirport && airportDirection ? airportDirection : null,
+        // The server re-resolves these; it does not trust a typed address.
+        pickupPlaceId: text("pickupPlaceId") || null,
+        destinationPlaceId: text("destinationPlaceId") || null,
+        statedBorough: text("statedBorough") || null,
+        placesSessionToken: text("placesSessionToken") || null,
         customerName: text("name"),
         customerEmail: text("email"),
         customerPhone: text("phone"),
         notes: text("notes") || null,
-        quotedTotalCents: Number(text("quotedTotalCents")) || null,
       },
     });
 
-    return { status: "success", reference: result.reference };
+    return {
+      status: "success",
+      reference: result.reference,
+      pricingMode: result.pricingMode,
+      quotedTotalCents: result.quotedTotalCents,
+    };
   } catch (error) {
     if (error instanceof ApiRequestError) {
       return {
@@ -139,8 +181,8 @@ export async function submitBooking(
 export type TrackState =
   | { status: "idle" }
   | { status: "found"; booking: TrackedBooking }
-  /** `reference` is echoed back for the same reason the booking form echoes. */
-  | { status: "error"; message: string; reference: string };
+  /** Both values are echoed for the same reason the booking form echoes. */
+  | { status: "error"; message: string; reference: string; phone: string };
 
 export async function trackBooking(
   _previous: TrackState,
@@ -149,25 +191,28 @@ export async function trackBooking(
   const reference = String(formData.get("reference") ?? "")
     .trim()
     .toUpperCase();
+  const phone = String(formData.get("phone") ?? "").trim();
 
-  if (!reference) {
+  if (!reference || !phone) {
     return {
       status: "error",
-      message: "Enter your booking reference.",
+      message: "Enter your reference and the phone number on the booking.",
       reference,
+      phone,
     };
   }
 
   try {
-    const booking = await apiFetch<TrackedBooking>(
-      `/api/track/${encodeURIComponent(reference)}`,
-      { forwardedFor: await callerIp() },
-    );
+    const booking = await apiFetch<TrackedBooking>("/api/track", {
+      method: "POST",
+      forwardedFor: await callerIp(),
+      body: { reference, phone },
+    });
 
     return { status: "found", booking };
   } catch (error) {
     if (error instanceof ApiRequestError) {
-      return { status: "error", message: error.failure.message, reference };
+      return { status: "error", message: error.failure.message, reference, phone };
     }
     throw error;
   }

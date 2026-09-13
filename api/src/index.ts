@@ -5,7 +5,15 @@ import { purgeExpiredSessions } from "./services/auth.js";
 
 const app = createApp();
 
-const server = app.listen(env.PORT, () => {
+/**
+ * Bound to the loopback interface, not 0.0.0.0.
+ *
+ * The API is reached only by the two Next servers on this same host. Listening
+ * on every interface would put it on the public internet the moment a firewall
+ * rule is mistyped; binding here means the firewall is the second line of
+ * defence rather than the only one.
+ */
+const server = app.listen(env.PORT, env.HOST, () => {
   console.log(`RSSkyler API listening on :${env.PORT} (${env.NODE_ENV})`);
 });
 

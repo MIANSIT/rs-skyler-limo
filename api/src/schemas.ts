@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { AIRPORT_CODES } from "./services/pricing.js";
 import { AMENITY_KEYS, VEHICLE_CATEGORIES } from "./vehicles/amenities.js";
 
 /**
@@ -11,6 +12,7 @@ const trimmed = (max: number) => z.string().trim().min(1).max(max);
 
 export const bookingStatuses = [
   "new",
+  "quoted",
   "confirmed",
   "completed",
   "cancelled",
@@ -55,13 +57,25 @@ export const createBookingSchema = z.object({
   /** Capped against the chosen vehicle's `maxChildSeats` by the booking form. */
   childSeats: z.coerce.number().int().min(0).max(4).default(0),
   vehicleClass: trimmed(60),
+
+  /* Airport transfers carry the airport, the direction, and the Place ids the
+     server re-resolves. The customer never sends a price — `decideFare` derives
+     it from the live rate card. */
+  airportCode: z.enum(AIRPORT_CODES).optional().nullable(),
+  airportDirection: z.enum(["from-airport", "to-airport"]).optional().nullable(),
+  pickupPlaceId: z.string().trim().max(255).optional().nullable(),
+  destinationPlaceId: z.string().trim().max(255).optional().nullable(),
+  /** Used only when Places is unavailable and the customer picked a borough. */
+  statedBorough: z.string().trim().max(60).optional().nullable(),
+  /** Ties the autocomplete keystrokes and the details call into one billed session. */
+  placesSessionToken: z.string().trim().max(120).optional().nullable(),
+
   airline: z.string().trim().max(120).optional().nullable(),
   flightNumber: z.string().trim().max(20).optional().nullable(),
   customerName: trimmed(160),
   customerEmail: z.email().max(255),
   customerPhone: phone,
   notes: z.string().trim().max(5000).optional().nullable(),
-  quotedTotalCents: z.coerce.number().int().min(0).max(100_000_00).optional().nullable(),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
@@ -115,6 +129,36 @@ export const listQuotesSchema = z.object({
   q: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export const sendQuoteSchema = z.object({
+  /** Whole dollars from the operator's form, converted before it arrives. */
+  totalCents: z.coerce.number().int().min(0).max(100_000_00),
+  note: z.string().trim().max(2000).optional().nullable(),
+});
+
+export const saveRatesSchema = z.object({
+  rates: z
+    .array(
+      z.object({
+        airportCode: z.enum(AIRPORT_CODES),
+        vehicleId: z.coerce.number().int().positive(),
+        /** `null` clears the cell, so that combination quotes instead. */
+        priceCents: z.coerce.number().int().min(0).max(100_000_00).nullable(),
+      }),
+    )
+    .max(200),
+});
+
+export const trackSchema = z.object({
+  reference: z.string().trim().min(3).max(20),
+  /** Second factor: a reference alone should not reveal a trip. */
+  phone: z.string().trim().min(4).max(40),
+});
+
+export const placesAutocompleteSchema = z.object({
+  q: z.string().trim().min(1).max(200),
+  session: z.string().trim().min(1).max(120),
 });
 
 export const loginSchema = z.object({

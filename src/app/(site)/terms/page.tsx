@@ -215,7 +215,7 @@ export default function TermsPage() {
           <SectionHeading
             eyebrow="Your final invoice"
             title="The fare can only move for things you asked for"
-            intro="You are quoted a fixed fare before you book. It changes afterwards only if the trip itself changed — never because of traffic, a longer route, or a driver running behind."
+            intro="Once you have a fare from us it is fixed. It changes afterwards only if the trip itself changed — never because of traffic, a longer route, or a driver running behind."
             data-reveal
           />
 
@@ -323,9 +323,12 @@ export default function TermsPage() {
             data-reveal
             className="mt-10 max-w-2xl text-[15px] leading-[1.7] text-charcoal"
           >
-            Your base fare, taxes, fees and total are shown before you confirm.
-            There is no figure on the final invoice you have not already seen or
-            asked for.
+            Airport transfers within the five boroughs carry a published fare,
+            shown in full before you confirm. Every other trip — point to point,
+            hourly, or anywhere outside New York City — is priced by a person:
+            you send the details, we come back with a fare, and nothing is
+            charged until you accept it. Either way, there is no figure on the
+            final invoice you have not already seen or asked for.
           </p>
         </Reveal>
       </Section>

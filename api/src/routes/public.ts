@@ -1,12 +1,21 @@
 import { Router } from "express";
 
 import { ApiError } from "../lib/http.js";
+import { samePhone } from "../lib/phone.js";
 import { isReference } from "../lib/reference.js";
 import { rateLimit } from "../middleware.js";
-import { createBookingSchema, createQuoteSchema } from "../schemas.js";
+import {
+  createBookingSchema,
+  createQuoteSchema,
+  placesAutocompleteSchema,
+  trackSchema,
+} from "../schemas.js";
 import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
 import { listVehicles } from "../services/vehicles.js";
+import { decideFare, getPublicRates, AIRPORTS } from "../services/pricing.js";
+import { autocomplete, placesAvailable } from "../services/places.js";
+import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
 
@@ -14,6 +23,12 @@ export const publicRouter: Router = Router();
 // enough that a script cannot fill the dashboard with noise overnight.
 const submitLimit = rateLimit({ windowMs: 60_000, max: 8 });
 const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+
+/**
+ * Kept beside the fare logic rather than in the site's content file: this
+ * number is charged, so it belongs where the charging happens.
+ */
+const CHILD_SEAT_FEE_CENTS = 3500;
 
 /**
  * The fleet as the public site shows it: active vehicles only, in the
@@ -43,15 +58,62 @@ publicRouter.get("/fleet", async (_req, res) => {
   });
 });
 
+/**
+ * What the booking form needs to preview a fare: the airports, the published
+ * rates, and whether address autocomplete is available at all.
+ */
+publicRouter.get("/booking-options", async (_req, res) => {
+  res.json({
+    airports: AIRPORTS,
+    rates: await getPublicRates(),
+    placesEnabled: placesAvailable(),
+    childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
+  });
+});
+
+const placesLimit = rateLimit({ windowMs: 60_000, max: 60 });
+
+publicRouter.get("/places/autocomplete", placesLimit, async (req, res) => {
+  if (!placesAvailable()) {
+    res.json({ suggestions: [], available: false });
+    return;
+  }
+
+  const { q, session } = placesAutocompleteSchema.parse(req.query);
+  res.json({ suggestions: await autocomplete(q, session), available: true });
+});
+
 publicRouter.post("/bookings", submitLimit, async (req, res) => {
   const input = createBookingSchema.parse(req.body);
-  const booking = await createBooking(input, "website");
 
-  // The customer gets back only what they need to follow the request up.
+  /**
+   * The fare is decided here, not accepted from the request.
+   *
+   * The form previews a price so the customer is not booking blind, but that
+   * number never travels back — this re-runs the decision against the live rate
+   * card. A stale tab, an edited payload or a rate the operator changed one
+   * minute ago all resolve to the price the business actually publishes now.
+   */
+  const fare = await decideFare({
+    tripType: input.tripType,
+    vehicleClass: input.vehicleClass,
+    airportCode: input.airportCode,
+    airportDirection: input.airportDirection,
+    childSeats: input.childSeats,
+    childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
+    pickupPlaceId: input.pickupPlaceId,
+    destinationPlaceId: input.destinationPlaceId,
+    statedBorough: input.statedBorough,
+    sessionToken: input.placesSessionToken ?? randomUUID(),
+  });
+
+  const booking = await createBooking(input, "website", fare);
+
   res.status(201).json({
     reference: booking.reference,
-    status: booking.status,
-    pickupAt: booking.pickupAt,
+    pricingMode: booking.pricingMode,
+    quotedTotalCents: booking.quotedTotalCents,
+    fareReason: fare.reason,
   });
 });
 
@@ -66,25 +128,39 @@ publicRouter.post("/quotes", submitLimit, async (req, res) => {
 });
 
 /**
- * Backs /track. Deliberately thin: a reference alone proves very little, so it
- * returns only what the person holding it already knows, and never the
- * customer's contact details.
+ * Look up a booking with its reference *and* the phone number on it.
+ *
+ * The reference alone used to be enough. It is 35 bits of randomness, which is
+ * not guessable in bulk, but it also travels in email, in text messages and on
+ * paper — and it would otherwise expose a customer's name, route and times to
+ * anyone who read one over a shoulder. Two factors, neither of them secret
+ * alone.
  */
-publicRouter.get("/track/:reference", lookupLimit, async (req, res) => {
-  const reference = String(req.params.reference).toUpperCase();
-  if (!isReference(reference)) {
-    throw ApiError.badRequest("That is not a valid reference.");
+publicRouter.post("/track", lookupLimit, async (req, res) => {
+  const { reference, phone } = trackSchema.parse(req.body);
+
+  if (!isReference(reference.toUpperCase())) {
+    throw ApiError.notFound("No booking matches those details.");
   }
 
   const booking = await getBookingByReference(reference);
-  if (!booking) throw ApiError.notFound("We cannot find that reference.");
+
+  const matches = booking && samePhone(booking.customerPhone, phone);
+
+  // One message for "no such reference" and for "wrong phone", so this cannot
+  // be used to test whether a reference exists.
+  if (!matches) throw ApiError.notFound("No booking matches those details.");
 
   res.json({
     reference: booking.reference,
     status: booking.status,
+    pricingMode: booking.pricingMode,
     pickupAt: booking.pickupAt,
     pickup: booking.pickup,
     destination: booking.destination,
     vehicleClass: booking.vehicleClass,
+    quotedTotalCents: booking.quotedTotalCents,
+    quoteNote: booking.quoteNote,
+    quotedAt: booking.quotedAt,
   });
 });
