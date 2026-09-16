@@ -50,8 +50,14 @@ next-env.d.ts
 
 # Production secrets, kept here so they are findable, never committed.
 # `.env*` above only matches names that START with .env, so this needs saying.
+#
+# The glob matters more than the exact names: `deploy/ci_deploy_key` slipped
+# past an earlier `*.key` rule because it has no extension. Anything in this
+# directory whose name contains "secret", or looks like a key, is ignored
+# whatever else it is called.
 /deploy/production.env
 /deploy/ci_deploy_key
+/deploy/*secret*
 /deploy/*.secrets
 /deploy/*.key
 /deploy/*_key

@@ -19,8 +19,18 @@ holds the live originals; that file is a copy for your reference.
 
 ## Deploying
 
-Today's release was an rsync of the working tree. Once the code is pushed to
-GitHub, releases run through CI — see below.
+`/srv/rsskyler/app` is now a git checkout tracking `origin/main`, so releases
+run through the script rather than an rsync of somebody's working tree.
+
+The remote is **HTTPS**, not SSH: the GitHub repository is public, so the server
+pulls without any credential. That means the read-only deploy key described
+below is not needed for releases — only CI's *write* path uses SSH. If the
+repository is ever made private, add the deploy key and switch the remote to
+`git@github.com:MIANSIT/rs-skyler-limo.git`.
+
+Root also carries `safe.directory` for that path. The tree is owned by
+`rsskyler`, and git refuses to run on another user's repository without it —
+the release script calls `git` as both users.
 
 To release by hand at any time:
 
@@ -68,47 +78,57 @@ this holds real customer data.
 
 ## Setting up CI/CD
 
-`.github/workflows/deploy.yml` is written and ready. It will not run until the
-code is pushed. Four things to do on GitHub:
+The code is pushed and the server is a git checkout, so the only thing left is
+letting GitHub Actions reach the box.
 
-1. **Deploy key** — repo → Settings → Deploy keys → Add. Read-only. This lets
-   the *server* pull from GitHub:
+1. ~~**Deploy key**~~ — **not needed.** The repository is public and the server
+   pulls over HTTPS. The server's public key is kept in
+   `deploy/github-secrets.md` for the day the repo goes private.
 
-   ```
-   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGo6/CzE6U/4j3kghHk611KgzhszzRzVUlaPjDa5djb rsskyler-server-deploy
-   ```
+2. **Secrets** — four of them, and that is the whole list. The names, the
+   values and how to rotate them are in **`deploy/github-secrets.md`**, which
+   is git-ignored and sits beside this file:
 
-2. **Secrets** — repo → Settings → Secrets and variables → Actions:
-
-   | Secret | Value |
+   | Secret | Required |
    |---|---|
-   | `DEPLOY_HOST` | `184.94.215.246` |
-   | `DEPLOY_USER` | `root` |
-   | `DEPLOY_SSH_KEY` | the private key printed by the setup (see below) |
+   | `DEPLOY_HOST` | yes |
+   | `DEPLOY_USER` | yes |
+   | `DEPLOY_SSH_KEY` | yes |
+   | `DEPLOY_HOST_KEY` | strongly recommended |
+
+   **No application configuration belongs in GitHub.** The database password,
+   the session secret and the Google key live in `.env` files on the server,
+   are git-ignored, and are never touched by a release. CI never needs to see
+   them, so do not add them — every copy is another thing that can leak.
 
 3. **Push.** The workflow lints, typechecks and builds all three apps, and only
-   releases if that passes.
+   releases if that passes. Once the secrets above exist, every push to `main`
+   deploys itself. Pull requests run the gate and never release.
 
-4. **One-time**, after the first push — turn the server's app directory into a
-   git checkout so `rsskyler-deploy` can fetch:
+   Optionally: repo → Settings → Environments → `production` → require a
+   reviewer. The workflow already names that environment, so approval gates
+   apply the moment you configure one.
 
-   ```bash
-   ssh -i ~/.ssh/rsskyler_deploy root@184.94.215.246 '
-     cd /srv/rsskyler/app &&
-     sudo -u rsskyler git init -q -b main &&
-     sudo -u rsskyler git remote add origin git@github.com:MIANSIT/rs-skyler-limo.git &&
-     sudo -u rsskyler git fetch origin &&
-     sudo -u rsskyler git reset --hard origin/main'
-   ```
-
-   The `.env` files are git-ignored and survive this; uploads live outside the
-   tree entirely.
+4. ~~**One-time git checkout**~~ — **done.** `/srv/rsskyler/app` tracks
+   `origin/main` over HTTPS. The `.env` files are git-ignored and survived the
+   conversion; uploads live outside the tree entirely, and both were checked
+   afterwards.
 
 The CI key is restricted on the server to a **forced command** — it can run the
-release script and nothing else. No shell, no port forwarding. A leaked CI
-secret can redeploy `main`; it cannot read the database or the env files. That
-was tested by asking it to print the database password, which ran the deploy
-script instead.
+release script and nothing else. No shell, no port forwarding, no pty. A leaked
+CI secret can redeploy `main`; it cannot read the database or the env files.
+Re-tested with `ssh -i deploy/ci_deploy_key root@… "cat api/.env"`, which ran
+the release script and printed no secret.
+
+The workflow sends `deploy <40-char SHA>`, and the forced command honours only a
+full SHA — anything else falls back to the tip of `main`, so a crafted command
+cannot check out an arbitrary ref. Pinning the SHA also means the release is the
+commit CI just tested, not whatever `main` points at by the time it runs. Both
+paths were exercised against the live server before this was written.
+
+After the release, CI curls the site over the public IP. The release script's
+own health check runs on loopback and cannot see an nginx or firewall fault;
+this one is on the outside, where the customers are.
 
 ## Attaching the domains
 
@@ -152,8 +172,12 @@ journalctl -u rsskyler-admin | grep COOKIE_INSECURE
 - **Google Places** — `GOOGLE_MAPS_API_KEY` is unset in `api/.env`. Address
   autocomplete is off and the booking form uses its borough-selector fallback;
   fixed airport fares work either way.
+- **Email** — nothing is sent, in either direction. A quote submitted on the
+  site reaches the dashboard and stops there, so somebody has to be watching it.
+  This is the largest remaining gap now that the forms themselves work, and it
+  needs a sending domain with SPF and DKIM on `rsskylerlimo.com` — the business
+  mailbox is on Yahoo, which cannot send on the site's behalf.
 - **Off-site backups** — see above.
-- **Email** — no Resend integration, so quote emails are still sent by hand.
 - **The root password** used to bootstrap this server was typed into a chat
   window. Password authentication is now disabled, so it cannot be used to log
   in, but rotate it anyway at your provider.

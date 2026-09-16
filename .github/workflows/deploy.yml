@@ -1,68 +1,155 @@
-# Build-gate then release.
+# Build-gate, then release.
 #
-# `check` runs the same lint and typecheck as a developer's `npm run check`,
-# plus a production build of all three apps. `deploy` only runs if that passes,
-# so a compile error never reaches the server.
+# `check` runs the same lint and typecheck a developer runs, plus a production
+# build of all three apps. `deploy` only runs if that passes, so a compile error
+# never reaches the server. On a pull request the gate runs and the release does
+# not.
 #
-# The SSH key in DEPLOY_SSH_KEY is restricted on the server to a forced command:
-# it can run the release script and nothing else. It cannot open a shell, read
-# the database password, or touch the env files.
+# Nothing here needs application configuration. The three apps read their
+# secrets from `.env` files that live on the server, are git-ignored, and are
+# never recreated by a deploy — so CI needs no database password, no session
+# secret and no API key. The only secrets below are the ones needed to reach the
+# box.
+#
+# DEPLOY_SSH_KEY is restricted on the server to a forced command: it can run the
+# release script and nothing else. No shell, no port forwarding, no pty. A
+# leaked CI secret can redeploy `main`; it cannot read the database or the env
+# files.
 
 name: Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# Least privilege: this workflow only ever reads the repository.
+permissions:
+  contents: read
+
 concurrency:
-  # One release at a time; a newer push supersedes an in-flight one.
-  group: deploy-production
-  cancel-in-progress: false
+  # One release at a time. Queue rather than cancel — a half-finished deploy is
+  # worse than a slow one. Pull requests get their own group so a PR check never
+  # blocks a release.
+  group: deploy-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
     name: Lint, typecheck, build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
+          # Matches the server, which runs Node 22. Building on a different
+          # major than the one that will execute the output is a way to find
+          # out about incompatibilities in production instead of here.
           node-version: "22"
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            admin/package-lock.json
+            api/package-lock.json
 
       - name: Install
+        # `ci` rather than `install`: it installs exactly what the lockfiles
+        # pin and fails if a lockfile is out of step with its package.json,
+        # which is the failure you want in CI rather than a silent upgrade.
         run: |
-          npm install --no-audit --no-fund
-          npm --prefix admin install --no-audit --no-fund
-          npm --prefix api   install --no-audit --no-fund
+          npm ci --no-audit --no-fund
+          npm --prefix admin ci --no-audit --no-fund
+          npm --prefix api   ci --no-audit --no-fund
 
-      - name: Check
+      - name: Lint and typecheck
         run: npm run check
 
-      - name: Build
-        # No API or database here, so the fleet reads fall back to empty — that
-        # path is deliberate and exercised. This proves the apps compile.
+      - name: Build all three apps
+        # There is no API or database here, so the fleet reads fail and fall
+        # back to an empty list. That path is deliberate and is what the site
+        # does if the API is ever down; seeing it exercised on every build is a
+        # feature. The build still proves all three apps compile.
         run: npm run build:all
 
   deploy:
     name: Release
     needs: check
+    # Never release from a pull request, even a green one.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Lets you require a reviewer before production in the repo's Environments
+    # settings, and scopes the secrets if you set them there rather than at
+    # repository level.
     environment: production
     steps:
       - name: Authorise
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo "::error::DEPLOY_SSH_KEY is not set"; exit 1; }
+          test -n "$DEPLOY_HOST"    || { echo "::error::DEPLOY_HOST is not set"; exit 1; }
+
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Pin the host key rather than trusting whatever answers on the night.
+          # ssh-keyscan accepts the first key offered, which is exactly what an
+          # attacker in the middle would like it to do. If DEPLOY_HOST_KEY is
+          # set we use it; if not we scan and say so loudly.
+          if [ -n "$DEPLOY_HOST_KEY" ]; then
+            printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+            echo "Host key pinned from DEPLOY_HOST_KEY."
+          else
+            echo "::warning::DEPLOY_HOST_KEY is not set — trusting the key the host offers now. See deploy/README.md."
+            ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Release
-        # The remote command is ignored — the server's forced command decides
-        # what runs. Passing the SHA keeps the intent legible in the log.
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        # The remote command is advisory — the server's forced command decides
+        # what actually runs, and only honours a full 40-character SHA. Passing
+        # it keeps the release legible in both logs and pins the deploy to the
+        # exact commit this run tested, not to whatever `main` points at by the
+        # time the release starts.
         run: |
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "deploy ${{ github.sha }}"
+          ssh -i ~/.ssh/deploy \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 \
+              "${DEPLOY_USER}@${DEPLOY_HOST}" \
+              "deploy ${{ github.sha }}"
+
+      - name: Discard the key
+        if: always()
+        run: rm -f ~/.ssh/deploy
+
+      - name: Smoke-test the released site
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        # The release script health-checks from inside the box. This checks the
+        # same thing from outside it, which is where the customers are — it
+        # catches an nginx or firewall problem that loopback curls cannot see.
+        run: |
+          set -euo pipefail
+          fail=0
+          for path in / /quote /fleet /privacy /terms; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "http://${DEPLOY_HOST}${path}")
+            printf "  %-10s %s\n" "$path" "$code"
+            [ "$code" = 200 ] || fail=1
+          done
+          admin=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "http://${DEPLOY_HOST}:8080/login")
+          printf "  %-10s %s\n" "admin" "$admin"
+          [ "$admin" = 200 ] || fail=1
+          [ "$fail" = 0 ] || { echo "::error::The site did not answer correctly after release."; exit 1; }
