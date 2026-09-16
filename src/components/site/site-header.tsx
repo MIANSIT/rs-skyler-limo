@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLinkOnDark } from "@/components/ui/button";
 import { clsx } from "@/lib/clsx";
-import { nav } from "@/lib/content";
+import { contact, nav } from "@/lib/content";
 
 /**
  * Consistent chrome, per Chapter 7: midnight header on every screen, with gold
@@ -45,11 +45,42 @@ export function SiteHeader() {
           })}
         </nav>
 
-        {/* Outlined rather than gold: the chrome persists on every screen, and
+        {/* The phone number is a header requirement and was missing entirely.
+            It sits beside the CTA on desktop and is the first item in the
+            mobile panel, since a phone is where most of these calls start.
+
+            Outlined rather than gold: the chrome persists on every screen, and
             the gold action belongs to the page the client is actually on. */}
-        <div className="hidden lg:block">
+        <div className="hidden items-center gap-6 lg:flex">
+          <a
+            href={contact.phoneHref}
+            className="font-sans text-[15px] font-medium text-white underline-offset-4 tabular-nums transition-colors hover:text-gold hover:underline"
+          >
+            {contact.phone}
+          </a>
           <ButtonLinkOnDark href="/#book">Book a car</ButtonLinkOnDark>
         </div>
+
+        {/* Below `lg` the number collapses to an icon so it survives beside the
+            lockup on a 360px screen without the menu having to be opened. */}
+        <a
+          href={contact.phoneHref}
+          aria-label={`Call RSSkyler Limo on ${contact.phone}`}
+          className="ml-auto p-2 text-white lg:hidden"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.5.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.57 3.5a1 1 0 0 1-.25 1z" />
+          </svg>
+        </a>
 
         <button
           type="button"
@@ -95,6 +126,19 @@ export function SiteHeader() {
               </li>
             ))}
           </ul>
+          <a
+            href={contact.phoneHref}
+            onClick={() => setOpen(false)}
+            className="mt-6 flex items-center justify-between border-b border-white/10 pb-3 font-sans text-white"
+          >
+            <span className="text-[13px] tracking-[0.12em] text-white/55 uppercase">
+              Call us
+            </span>
+            <span className="text-[15px] font-medium tabular-nums">
+              {contact.phone}
+            </span>
+          </a>
+
           <ButtonLinkOnDark
             href="/#book"
             className="mt-6 w-full"

@@ -54,6 +54,14 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               ADD COLUMN child_seats TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER bags`,
     },
     {
+      description: "bookings.service_type",
+      check: () => columnMissing(connection, "bookings", "service_type"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN service_type
+                ENUM('personal','corporate','wedding','event','other')
+                NOT NULL DEFAULT 'personal' AFTER vehicle_class`,
+    },
+    {
       description: "bookings.pricing_mode and quote fields",
       check: () => columnMissing(connection, "bookings", "pricing_mode"),
       sql: `ALTER TABLE bookings

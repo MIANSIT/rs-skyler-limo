@@ -4,10 +4,40 @@
  * no filler, no exclamation points.
  */
 
+/**
+ * Every way to reach the business, in one place.
+ *
+ * These are live details, not placeholders — the number rings and the mailbox
+ * is read. They were once typed into five separate components; keeping them
+ * here means a change to either is one edit rather than a search.
+ *
+ * `phone` and `phoneHref` are two fields on purpose and must move together:
+ * the display form carries the formatting a person reads, the href carries the
+ * E.164 form a phone dials.
+ *
+ * There is one address, not a set of departmental ones. `weddings@` and
+ * `corporate@` used to sit here and neither mailbox existed, so an enquiry sent
+ * to either would have bounced.
+ */
+export const contact = {
+  phone: "+1 (914) 338-6414",
+  phoneHref: "tel:+19143386414",
+  /**
+   * The brief is explicit: do not offer texting unless texts are monitored.
+   * Flip `smsEnabled` to true only once someone is actually reading them, and
+   * the TEXT US affordances appear.
+   */
+  smsHref: "sms:+19143386414",
+  smsEnabled: false,
+  email: "rsskylerlimo@yahoo.com",
+  serviceArea: "All five boroughs of New York City",
+} as const;
+
 export const nav = [
   { href: "/fleet", label: "Fleet" },
   { href: "/corporate", label: "Corporate" },
   { href: "/weddings", label: "Weddings & Events" },
+  { href: "/quote", label: "Get a quote" },
   { href: "/track", label: "Track a ride" },
 ] as const;
 
@@ -24,23 +54,29 @@ export type Service = {
   href: string;
 };
 
+/**
+ * `href` must land on a page that actually describes the service. Three of
+ * these used to point at `/fleet`, so "Airport Transfers" opened a page about
+ * cars. Until the dedicated service pages exist, airport and hourly work point
+ * at the booking form, which is the thing a visitor clicking them wants.
+ */
 export const services: Service[] = [
   {
     name: "Airport Transfers",
     description:
-      "Flight-tracked pickup and drop-off across JFK, LaGuardia and Newark. If your flight moves, your pickup moves with it.",
-    href: "/fleet",
+      "JFK, LaGuardia, Newark, Teterboro and Westchester. Fixed fares within the five boroughs, published before you book.",
+    href: "/#book",
   },
   {
     name: "Hourly Charters",
     description:
       "A car and driver on standby for meetings, appointments, or a day that will not hold still.",
-    href: "/fleet",
+    href: "/#book",
   },
   {
     name: "Corporate Accounts",
     description:
-      "Monthly billing, SLAs and a dedicated contact for company travel programs.",
+      "Monthly billing and a named contact for company travel programmes.",
     href: "/corporate",
   },
   {
@@ -52,7 +88,7 @@ export const services: Service[] = [
   {
     name: "Weddings",
     description:
-      "A dedicated division, its own coordinators, and a timeline rehearsed before the day.",
+      "A dedicated division, its own coordinators, and a timeline agreed before the day.",
     href: "/weddings",
   },
 ];
@@ -115,14 +151,19 @@ export const weddingPackages: WeddingPackage[] = [
   },
 ];
 
+/**
+ * Only capabilities that exist today.
+ *
+ * Service level agreements, saved traveller profiles, duty-of-care reporting
+ * and live tracking links were listed here and none of them are built. The
+ * brief is explicit — do not advertise what the company does not provide — so
+ * they are gone rather than softened. Restore any of them the day the thing
+ * behind it actually ships.
+ */
 export const corporateFeatures = [
   {
     title: "Monthly invoicing",
-    body: "One consolidated invoice with tabular figures, cost centres, and per-trip detail your finance team can reconcile without calling us.",
-  },
-  {
-    title: "Service level agreements",
-    body: "Written response and arrival commitments, agreed at account setup rather than assumed.",
+    body: "One consolidated invoice at the end of the month, with every trip itemised, rather than a receipt per journey.",
   },
   {
     title: "A single point of contact",
@@ -130,15 +171,19 @@ export const corporateFeatures = [
   },
   {
     title: "Assistant-friendly booking",
-    body: "Book on behalf of anyone in your organisation. Travellers get their own confirmations and live tracking link.",
+    body: "Book on behalf of anyone in your organisation. The confirmation goes to the traveller, not only to whoever made the arrangements.",
   },
   {
-    title: "Saved traveller profiles",
-    body: "Preferred vehicle class, temperature and route notes remembered across bookings.",
+    title: "Fixed airport fares",
+    body: "Transfers between the five boroughs and the New York airports are priced from a published rate card, so a finance team can check a trip against it.",
   },
   {
-    title: "Duty-of-care reporting",
-    body: "Know where your travellers are, and export the record when procurement asks for it.",
+    title: "Priced before you travel",
+    body: "Anything outside the rate card is quoted by a person and agreed in writing first. No trip is invoiced at a figure nobody saw coming.",
+  },
+  {
+    title: "A reference on every trip",
+    body: "Each booking carries a reference your travellers can quote back to you, and look up themselves with the number on the booking.",
   },
 ];
 

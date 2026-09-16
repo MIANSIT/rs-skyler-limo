@@ -100,7 +100,7 @@ want it.
 **Tracking needs a reference and the phone number on the booking.** A reference
 alone travels in email and on paper and would otherwise expose a customer's name
 and route to anyone who read one. Numbers are compared on their last ten digits,
-so `+1 (212) 555-0147` and `212-555-0147` are the same line.
+so `+1 (212) 555-0123` and `212-555-0123` are the same line.
 
 ## Google Places
 

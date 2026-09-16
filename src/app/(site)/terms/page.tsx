@@ -4,7 +4,12 @@ import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { Section, SectionHeading } from "@/components/ui/section";
-import { hourlyWaitingRate, childSeatFee, bookingAirports } from "@/lib/content";
+import {
+  hourlyWaitingRate,
+  childSeatFee,
+  bookingAirports,
+  contact,
+} from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions",
@@ -37,7 +42,7 @@ const waitTime = [
   {
     pickup: "Domestic flights",
     free: "45 minutes",
-    from: "Your actual landing time, tracked from the flight number on the booking — not your scheduled time.",
+    from: "Your actual landing time — not your scheduled time. Give us the flight number on the booking so we can check it.",
   },
   {
     pickup: "International flights",
@@ -70,7 +75,7 @@ const collected = [
   {
     term: "Your flight number, on airport transfers",
     detail:
-      "Used to track your arrival so a delayed landing moves your pickup rather than costing you a fare.",
+      "So we can check when you actually land, and a delayed flight moves your pickup rather than costing you a fare.",
   },
   {
     term: "Payment details",
@@ -237,7 +242,7 @@ export default function TermsPage() {
               },
               {
                 title: "Your receipt",
-                body: "A final invoice is emailed automatically once the trip closes, showing the quoted fare and every adjustment on its own line.",
+                body: "A final invoice is issued once the trip closes, showing the quoted fare and every adjustment on its own line.",
               },
             ].map((item) => (
               <li key={item.title} className="border-t border-midnight/10 pt-6">
@@ -427,10 +432,10 @@ export default function TermsPage() {
               Book a car
             </ButtonLink>
             <a
-              href="tel:+12125550147"
+              href={contact.phoneHref}
               className="text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
             >
-              +1 (212) 555-0147
+              {contact.phone}
             </a>
           </div>
 

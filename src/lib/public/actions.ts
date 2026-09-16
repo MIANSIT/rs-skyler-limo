@@ -61,6 +61,8 @@ export async function submitBooking(
       "date",
       "time",
       "flight",
+      "airline",
+      "serviceType",
       "passengers",
       "bags",
       "childSeats",
@@ -143,6 +145,8 @@ export async function submitBooking(
         bags: Number(text("bags") || 0),
         childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
+        serviceType: text("serviceType") || "personal",
+        airline: isAirport && text("airline") ? text("airline") : null,
         flightNumber: isAirport && flightNumber ? flightNumber : null,
         airportCode: isAirport && airportCode ? airportCode : null,
         airportDirection: isAirport && airportDirection ? airportDirection : null,
@@ -164,6 +168,88 @@ export async function submitBooking(
       pricingMode: result.pricingMode,
       quotedTotalCents: result.quotedTotalCents,
     };
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      return {
+        status: "error",
+        message: error.failure.message,
+        fields: error.failure.fields,
+        values,
+        attempt,
+      };
+    }
+    throw error;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Quote requests                                                             */
+/* -------------------------------------------------------------------------- */
+
+export type QuoteFormState =
+  | { status: "idle" }
+  | { status: "success"; reference: string }
+  | {
+      status: "error";
+      message: string;
+      fields?: Record<string, string>;
+      /** Echoed back for the same reason the booking form echoes: see above. */
+      values: Record<string, string>;
+      attempt: number;
+    };
+
+/**
+ * The public end of the quote pipeline.
+ *
+ * `POST /api/quotes`, the `quotes` table and the dashboard's Quotes screens all
+ * existed before this did — the back half was finished and nothing on the site
+ * ever called it. Every "request a quote" surface now routes through here.
+ */
+export async function submitQuote(
+  _previous: QuoteFormState,
+  formData: FormData,
+): Promise<QuoteFormState> {
+  const text = (key: string) => String(formData.get(key) ?? "").trim();
+
+  const values = Object.fromEntries(
+    [
+      "serviceType",
+      "eventDate",
+      "passengers",
+      "company",
+      "name",
+      "phone",
+      "email",
+      "details",
+    ].map((key) => [key, text(key)]),
+  );
+
+  const attempt = (_previous.status === "error" ? _previous.attempt : 0) + 1;
+
+  const passengers = text("passengers");
+
+  try {
+    const result = await apiFetch<{ reference: string; status: string }>(
+      "/api/quotes",
+      {
+        method: "POST",
+        forwardedFor: await callerIp(),
+        body: {
+          serviceType: text("serviceType") || "other",
+          // Empty strings would fail the API's date and integer parsing, so an
+          // untouched optional field is sent as an absent one.
+          eventDate: text("eventDate") || null,
+          passengers: passengers ? Number(passengers) : null,
+          company: text("company") || null,
+          customerName: text("name"),
+          customerEmail: text("email"),
+          customerPhone: text("phone"),
+          details: text("details"),
+        },
+      },
+    );
+
+    return { status: "success", reference: result.reference };
   } catch (error) {
     if (error instanceof ApiRequestError) {
       return {

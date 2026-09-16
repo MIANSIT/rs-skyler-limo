@@ -41,6 +41,8 @@ export type Booking = {
   bags: number;
   childSeats: number;
   vehicleClass: string;
+  /** The occasion. Distinct from tripType, which is the shape of the journey. */
+  serviceType: "personal" | "corporate" | "wedding" | "event" | "other";
   pricingMode: "fixed" | "quote";
   quotedAt: string | null;
   quoteNote: string | null;

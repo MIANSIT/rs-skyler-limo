@@ -26,6 +26,15 @@ const tripTypes: { value: TripType; label: string }[] = [
  * it is the customer telling us the trip is inside the city, which Google
  * would otherwise have told us.
  */
+/** Mirrors `bookingServiceTypes` in `api/src/schemas.ts`. */
+const SERVICE_TYPES = [
+  { value: "personal", label: "Personal travel" },
+  { value: "corporate", label: "Corporate / business" },
+  { value: "wedding", label: "Wedding" },
+  { value: "event", label: "Event" },
+  { value: "other", label: "Something else" },
+] as const;
+
 const BOROUGHS = [
   "Manhattan",
   "Brooklyn",
@@ -369,14 +378,61 @@ export function BookingForm({
             </Select>
           </Field>
 
-          {trip === "airport" ? (
-            <Field
-              label="Flight number"
-              id="flight"
-              hint="We track it. If the flight moves, your pickup moves with it."
+          {/*
+            The occasion, not the shape of the journey — trip type above already
+            covers that. It decides who in the business picks the booking up, so
+            it is asked rather than inferred.
+          */}
+          <Field label="What is this for" id="serviceType">
+            <Select
+              id="serviceType"
+              name="serviceType"
+              defaultValue={prior("serviceType") || "personal"}
             >
-              <Input id="flight" name="flight" placeholder="Optional" {...restore("flight")} />
-            </Field>
+              {SERVICE_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          {/*
+            Airline and flight number together.
+
+            The API has accepted an `airline` field and the column has existed
+            since the first migration — the form simply never asked, so it was
+            always null. The hint used to promise that we track the flight and
+            move the pickup with it; nothing tracks flights, so it now says what
+            the number is genuinely for.
+          */}
+          {trip === "airport" ? (
+            <>
+              <Field label="Airline" id="airline" hint="Optional.">
+                <Input
+                  id="airline"
+                  name="airline"
+                  placeholder="e.g. Delta"
+                  maxLength={120}
+                  autoComplete="off"
+                  {...restore("airline")}
+                />
+              </Field>
+
+              <Field
+                label="Flight number"
+                id="flight"
+                hint="So your driver knows which arrival to meet."
+              >
+                <Input
+                  id="flight"
+                  name="flight"
+                  placeholder="Optional"
+                  maxLength={20}
+                  {...restore("flight")}
+                />
+              </Field>
+            </>
           ) : null}
 
           <Field label="Passengers" id="passengers">

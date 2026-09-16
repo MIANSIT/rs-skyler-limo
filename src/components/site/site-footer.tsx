@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
-import { services } from "@/lib/content";
+import { contact, services } from "@/lib/content";
 import { getFleetSafely } from "@/lib/public/fleet";
 
 const boroughs = [
@@ -31,7 +31,7 @@ export async function SiteFooter() {
               Arrive in Style
             </p>
             <p className="mt-6 text-[15px] leading-[1.7] text-white/70">
-              Chauffeured travel across all five boroughs, 24/7.
+              Chauffeured travel across all five boroughs.
             </p>
           </div>
 
@@ -56,14 +56,14 @@ export async function SiteFooter() {
           </FooterColumn>
 
           <FooterColumn title="Contact">
-            <FooterLink href="tel:+12125550147">
-              <span className="tabular-nums">+1 (212) 555-0147</span>
+            <FooterLink href={contact.phoneHref}>
+              <span className="tabular-nums">{contact.phone}</span>
             </FooterLink>
-            <FooterLink href="mailto:reservations@rsskylerlimo.com">
+            <FooterLink href={`mailto:${contact.email}`}>
               {/* An email address has no natural break opportunity, so it needs
                   explicit permission to wrap or it widens the whole page. */}
               <span className="[overflow-wrap:anywhere]">
-                reservations@rsskylerlimo.com
+                {contact.email}
               </span>
             </FooterLink>
             <FooterLink href="/corporate">Corporate accounts</FooterLink>
@@ -85,6 +85,12 @@ export async function SiteFooter() {
               className="text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
               Terms &amp; Conditions
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Privacy Policy
             </Link>
           </div>
         </div>

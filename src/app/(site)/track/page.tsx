@@ -6,6 +6,7 @@ import { RoutePreview } from "@/components/site/route-preview";
 import { TrackForm } from "@/components/site/track-form";
 import { getFleetSafely } from "@/lib/public/fleet";
 import { Section, SectionHeading } from "@/components/ui/section";
+import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Track a ride",
@@ -43,12 +44,12 @@ export default async function TrackPage() {
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">
               No reference to hand? Call dispatch on{" "}
               <a
-                href="tel:+12125550147"
+                href={contact.phoneHref}
                 className="text-midnight underline-offset-4 tabular-nums hover:underline"
               >
-                +1 (212) 555-0147
+                {contact.phone}
               </a>{" "}
-              — someone answers, at any hour.
+              — someone will look it up for you.
             </p>
           </Reveal>
 

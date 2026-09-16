@@ -67,6 +67,7 @@ export function formatTrip(type: string): string {
 }
 
 const serviceLabels: Record<string, string> = {
+  personal: "Personal",
   corporate: "Corporate",
   wedding: "Wedding",
   event: "Event",

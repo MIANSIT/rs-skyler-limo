@@ -29,6 +29,19 @@ export const quoteStatuses = [
 
 export const tripTypes = ["airport", "point-to-point", "hourly"] as const;
 
+/**
+ * The occasion behind a booking. Distinct from `tripTypes`, which describes the
+ * shape of the journey — an airport run can be corporate or personal, and the
+ * two reach different people in the business.
+ */
+export const bookingServiceTypes = [
+  "personal",
+  "corporate",
+  "wedding",
+  "event",
+  "other",
+] as const;
+
 export const serviceTypes = [
   "corporate",
   "wedding",
@@ -57,6 +70,8 @@ export const createBookingSchema = z.object({
   /** Capped against the chosen vehicle's `maxChildSeats` by the booking form. */
   childSeats: z.coerce.number().int().min(0).max(4).default(0),
   vehicleClass: trimmed(60),
+  /** Defaulted rather than required: an older client that omits it still books. */
+  serviceType: z.enum(bookingServiceTypes).default("personal"),
 
   /* Airport transfers carry the airport, the direction, and the Place ids the
      server re-resolves. The customer never sends a price — `decideFare` derives

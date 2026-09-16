@@ -62,6 +62,11 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- must be able to see why the fare is what it is.
   child_seats       TINYINT UNSIGNED NOT NULL DEFAULT 0,
   vehicle_class     VARCHAR(60) NOT NULL,
+  -- The occasion, as distinct from `trip_type` which is the shape of the
+  -- journey. An airport run can be corporate or personal and they are handled
+  -- by different people, so the booker is asked rather than guessed at.
+  service_type      ENUM('personal','corporate','wedding','event','other')
+                      NOT NULL DEFAULT 'personal',
   airline           VARCHAR(120) NULL,
   flight_number     VARCHAR(20) NULL,
   customer_name     VARCHAR(160) NOT NULL,

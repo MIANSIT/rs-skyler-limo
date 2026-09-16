@@ -7,6 +7,7 @@ import { BookingForm } from "@/components/site/booking-form";
 import { ButtonLinkOnDark } from "@/components/ui/button";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
+import { bookingAirports, contact } from "@/lib/content";
 
 /**
  * The one set piece on the site. Everything below it uses the quieter `Reveal`.
@@ -141,17 +142,20 @@ export function Hero({
             >
               <ButtonLinkOnDark href="/fleet">See the fleet</ButtonLinkOnDark>
               <a
-                href="tel:+12125550147"
+                href={contact.phoneHref}
                 className="font-sans text-[15px] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
               >
-                Or call <span className="tabular-nums">+1 (212) 555-0147</span>
+                Or call <span className="tabular-nums">{contact.phone}</span>
               </a>
             </div>
 
             <dl className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/15 pt-8">
+              {/* The airport count said 3 while the booking form has offered
+                  5 since Teterboro and Westchester were added, and "24/7
+                  Dispatch" was a staffing claim nothing here backs up. */}
               <HeroStat value="5" label="Boroughs" />
-              <HeroStat value="3" label="Airports" />
-              <HeroStat value="24/7" label="Dispatch" />
+              <HeroStat value={String(bookingAirports.length)} label="Airports" />
+              <HeroStat value={String(fleet.length)} label="Vehicle classes" />
             </dl>
           </div>
 

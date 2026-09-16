@@ -64,13 +64,16 @@ export function TrackForm({ vehicleNames }: { vehicleNames: Record<string, strin
           hint="The number on the booking. We ask for both so a reference on its own cannot open your trip."
           error={state.status === "error" ? state.message : undefined}
         >
+          {/* The placeholder is a format hint for the customer's own number, so
+              it stays in the 555-01xx range reserved for fiction rather than
+              echoing the real support line back at them. */}
           <Input
             id="phone"
             name="phone"
             type="tel"
             required
             autoComplete="tel"
-            placeholder="(212) 555-0147"
+            placeholder="(212) 555-0123"
             defaultValue={prior("phone")}
             key={`phone:${prior("phone")}`}
           />

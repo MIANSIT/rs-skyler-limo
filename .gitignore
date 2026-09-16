@@ -47,3 +47,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Production secrets, kept here so they are findable, never committed.
+# `.env*` above only matches names that START with .env, so this needs saying.
+/deploy/production.env
+/deploy/ci_deploy_key
+/deploy/*.secrets
+/deploy/*.key
+/deploy/*_key

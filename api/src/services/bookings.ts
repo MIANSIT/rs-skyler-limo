@@ -30,6 +30,7 @@ type BookingRow = RowDataPacket & {
   bags: number;
   child_seats: number;
   vehicle_class: string;
+  service_type: string;
   pricing_mode: "fixed" | "quote";
   quoted_at: Date | null;
   quote_note: string | null;
@@ -66,6 +67,7 @@ function toBooking(row: BookingRow) {
     bags: row.bags,
     childSeats: row.child_seats,
     vehicleClass: row.vehicle_class,
+    serviceType: row.service_type,
     pricingMode: row.pricing_mode,
     quotedAt: row.quoted_at ? row.quoted_at.toISOString() : null,
     quoteNote: row.quote_note,
@@ -90,7 +92,7 @@ function toBooking(row: BookingRow) {
 
 const SELECT_COLUMNS = `id, reference, status, trip_type, pricing_mode, pickup,
   destination, pickup_at, passengers, bags, child_seats, vehicle_class,
-  airline, flight_number, customer_name, customer_email, customer_phone, notes,
+  service_type, airline, flight_number, customer_name, customer_email, customer_phone, notes,
   quoted_total_cents, quoted_at, quote_note,
   pickup_locality, pickup_region, destination_locality, destination_region,
   airport_code, airport_direction,
@@ -113,14 +115,14 @@ export async function createBooking(
       const result = await execute(
         `INSERT INTO bookings
            (reference, trip_type, pricing_mode, pickup, destination, pickup_at,
-            passengers, bags, child_seats, vehicle_class, airline, flight_number,
+            passengers, bags, child_seats, vehicle_class, service_type, airline, flight_number,
             customer_name, customer_email, customer_phone, notes,
             quoted_total_cents, pickup_place_id, pickup_locality, pickup_region,
             destination_place_id, destination_locality, destination_region,
             airport_code, airport_direction, source)
          VALUES
            (:reference, :tripType, :pricingMode, :pickup, :destination, :pickupAt,
-            :passengers, :bags, :childSeats, :vehicleClass, :airline, :flightNumber,
+            :passengers, :bags, :childSeats, :vehicleClass, :serviceType, :airline, :flightNumber,
             :customerName, :customerEmail, :customerPhone, :notes,
             :quotedTotalCents, :pickupPlaceId, :pickupLocality, :pickupRegion,
             :destinationPlaceId, :destinationLocality, :destinationRegion,
@@ -135,6 +137,7 @@ export async function createBooking(
           bags: input.bags,
           childSeats: input.childSeats,
           vehicleClass: input.vehicleClass,
+          serviceType: input.serviceType,
           airline: input.airline ?? null,
           flightNumber: input.flightNumber ?? null,
           customerName: input.customerName,

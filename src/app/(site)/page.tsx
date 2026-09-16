@@ -6,7 +6,6 @@ import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
 import { HowItWorks } from "@/components/site/how-it-works";
-import { RoutePreview } from "@/components/site/route-preview";
 import { ButtonLink } from "@/components/ui/button";
 import {
   BriefcaseIcon,
@@ -23,7 +22,7 @@ import {
   Section,
   SectionHeading,
 } from "@/components/ui/section";
-import { services, values } from "@/lib/content";
+import { bookingAirports, services, values } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
@@ -74,15 +73,23 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
-      {/* Tracking — midnight ground, the one place gold carries text. */}
+      {/*
+        Tracking — midnight ground, the one place gold carries text.
+
+        This section used to promise automatic delay notifications, flight
+        tracking and a shareable live link, illustrated with a moving car and a
+        five-minute ETA. None of those exist: there is no flight-tracking
+        integration, no email of any kind, and `/track` is a two-field lookup.
+        It now describes the lookup, which is the thing that actually works.
+      */}
       <Section tone="dark">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <SectionHeading
               tone="dark"
               eyebrow="Calm under pressure"
-              title="You should never have to ask where the car is"
-              intro="Flight delays, driver changes and reroutes are handled and communicated automatically — plainly, and before you notice anything is wrong. Share a live link with an assistant or a family member; they will not need the app."
+              title="Check your booking without calling anyone"
+              intro="Every request gets a reference. That reference and the phone number on the booking are enough to see where it stands — no account, no password, no app."
               data-reveal
             />
             <ul
@@ -90,9 +97,9 @@ export default async function HomePage() {
               className="mt-8 flex flex-col gap-3 text-[15px] text-white/75"
             >
               {[
-                "Flight-tracked pickup across JFK, LaGuardia and Newark",
-                "A shareable tracking link, no download required",
-                "Your driver's name and vehicle, sent the day before",
+                "Your reference is shown the moment you submit",
+                "Two fields to look it up — nothing to remember",
+                "Agreed fares appear against the booking once set",
               ].map((item) => (
                 <li key={item} className="flex gap-3">
                   <span aria-hidden className="mt-2.5 h-px w-4 shrink-0 bg-gold" />
@@ -101,14 +108,14 @@ export default async function HomePage() {
               ))}
             </ul>
             <div data-reveal className="mt-9">
-              <ButtonLink href="/track" variant="cta">
+              <ButtonLink href="/track" variant="secondary">
                 Track a ride
               </ButtonLink>
             </div>
           </Reveal>
 
           <Reveal y={34}>
-            <RoutePreview />
+            <BookingStatusPreview />
           </Reveal>
         </div>
       </Section>
@@ -168,11 +175,20 @@ export default async function HomePage() {
               intro="The best compliment is a client who never had to think about the logistics at all."
               data-reveal
             />
+            {/*
+              These were 98% on-time arrivals, a 12-minute average airport wait
+              and 24/7 live dispatch. Nothing in the system measures any of
+              them. What is left is countable: the boroughs we cover, the
+              airports on the rate card, and the classes actually in the fleet
+              — the last read from the database, so it cannot drift.
+            */}
             <div data-reveal className="mt-10 grid grid-cols-2 gap-8">
-              <Stat value={12} suffix=" min" label="Average airport wait" />
-              <Stat value={98} suffix="%" label="On-time arrivals" />
               <Stat value={5} label="Boroughs served" />
-              <Stat value={24} suffix="/7" label="Live dispatch" />
+              <Stat value={bookingAirports.length} label="Airports on the rate card" />
+              <Stat
+                value={fleet.length}
+                label={fleet.length === 1 ? "Vehicle class" : "Vehicle classes"}
+              />
             </div>
           </Reveal>
 
@@ -191,10 +207,13 @@ export default async function HomePage() {
             </dl>
             <div data-reveal className="mt-10 flex items-start gap-4 border-t border-white/15 pt-8">
               <ShieldIcon className="mt-0.5 h-6 w-6 shrink-0 text-gold" />
+              {/* "Inspected on a fixed cadence" named a schedule nobody
+                  publishes or tracks. Licensing and background checks are
+                  requirements of operating here; the rest was decoration. */}
               <p className="text-[15px] leading-[1.7] text-white/70">
-                Every chauffeur is background-checked and every vehicle
-                inspected on a fixed cadence. Conversations, routes and client
-                details stay in the car.
+                Every chauffeur is licensed and background-checked before they
+                drive for us. Conversations, routes and client details stay in
+                the car.
               </p>
             </div>
           </Reveal>
@@ -239,6 +258,61 @@ export default async function HomePage() {
         </Container>
       </section>
     </>
+  );
+}
+
+/**
+ * What `/track` actually returns, drawn rather than described.
+ *
+ * It replaced `RoutePreview`, which animated a car along a route to a
+ * five-minute ETA — a convincing illustration of live tracking that does not
+ * exist. This shows the fields the lookup really produces. The reference is
+ * obviously a sample; everything it claims the product does, the product does.
+ */
+function BookingStatusPreview() {
+  return (
+    <div className="border border-white/15 bg-white/3 p-6 md:p-8">
+      <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-5">
+        <div>
+          <p className="font-sans text-[13px] font-medium tracking-[0.12em] text-gold uppercase">
+            Booking found
+          </p>
+          <p className="font-display mt-2 text-[26px] leading-none font-semibold text-white tabular-nums">
+            RS-4K2QP7
+          </p>
+        </div>
+        <span className="border border-white/25 px-3 py-1 font-sans text-[13px] tracking-[0.08em] text-white uppercase">
+          Confirmed
+        </span>
+      </div>
+
+      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5">
+        <Detail label="Pickup" value="JFK Airport" />
+        <Detail label="Destination" value="Midtown Manhattan" />
+        <Detail label="Date" value="14 Oct 2026" />
+        <Detail label="Time" value="6:40 p.m." />
+        <Detail label="Vehicle" value="Luxury Sedan" />
+        <Detail label="Fare" value="$145.00" />
+      </dl>
+
+      <p className="mt-6 border-t border-white/15 pt-5 text-[13px] leading-[1.6] text-white/55">
+        A sample lookup. Your own needs the reference and the phone number on
+        the booking.
+      </p>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="font-sans text-[13px] tracking-[0.08em] text-white/50 uppercase">
+        {label}
+      </dt>
+      <dd className="font-sans mt-1 text-[15px] font-medium text-white tabular-nums">
+        {value}
+      </dd>
+    </div>
   );
 }
 

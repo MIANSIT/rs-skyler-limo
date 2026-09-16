@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
+import { QuoteForm } from "@/components/site/quote-form";
 import { ButtonLink } from "@/components/ui/button";
 import { RingsIcon } from "@/components/ui/icon";
 import {
@@ -145,14 +146,24 @@ export default function WeddingsPage() {
           <p data-reveal className="mt-4 text-[17px] leading-[1.7] text-charcoal">
             We will hold provisional vehicles for seven days while you decide.
           </p>
+
+          {/*
+            This section used to end at a `mailto:` link, so a wedding enquiry
+            never reached the dashboard and depended on the sender having a mail
+            client configured. It now creates a real quote request.
+          */}
+          <div data-reveal className="mt-10 bg-white p-6 text-left md:p-8">
+            <QuoteForm
+              defaultServiceType="wedding"
+              lockService
+              submitLabel="Start a wedding enquiry"
+              showCompany={false}
+              detailsLabel="Tell us about the day"
+              detailsHint="Ceremony and reception locations, the timings you have so far, and how many people need moving."
+            />
+          </div>
+
           <div data-reveal className="mt-9 flex flex-wrap justify-center gap-4">
-            <ButtonLink
-              href="mailto:weddings@rsskylerlimo.com"
-              variant="cta"
-              size="lg"
-            >
-              Start a wedding enquiry
-            </ButtonLink>
             <ButtonLink href="/fleet" variant="secondary" size="lg">
               See the fleet
             </ButtonLink>

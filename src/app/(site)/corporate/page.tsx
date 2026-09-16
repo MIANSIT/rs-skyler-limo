@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 
 import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
-import { Button } from "@/components/ui/button";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { QuoteForm } from "@/components/site/quote-form";
 import { BriefcaseIcon, ShieldIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
 import { corporateFeatures } from "@/lib/content";
@@ -11,14 +10,31 @@ import { corporateFeatures } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Corporate Accounts",
   description:
-    "Monthly invoicing, written SLAs and a single point of contact for company travel programs across New York City.",
+    "Monthly invoicing, fixed airport fares and a single point of contact for company travel programmes across New York City.",
 };
 
-const slas = [
-  { metric: "Vehicle on site", value: "10 min", note: "before scheduled pickup" },
-  { metric: "Booking confirmation", value: "5 min", note: "by written reply" },
-  { metric: "Dispatch reachable", value: "24/7", note: "by phone and email" },
-  { metric: "Invoice issued", value: "1st", note: "of each month" },
+/**
+ * How an account is actually opened.
+ *
+ * This replaced a service-level table that published four commitments — a
+ * vehicle on site ten minutes early, confirmation within five, invoices on the
+ * first, and credits for anything missed. None of them were measured anywhere,
+ * and the brief forbids advertising what the company does not provide. A real
+ * SLA belongs here the day one is agreed and tracked.
+ */
+const steps = [
+  {
+    title: "Tell us how you travel",
+    body: "Roughly how many trips a month, which airports, and who books them. The form below is enough to start.",
+  },
+  {
+    title: "We propose a rate card",
+    body: "Fixed fares for the airport routes you use most, and a basis for everything else. Written down, so procurement has something to review.",
+  },
+  {
+    title: "One invoice a month",
+    body: "Trips are billed together at the end of the month with every journey itemised against its reference.",
+  },
 ];
 
 export default function CorporatePage() {
@@ -27,7 +43,7 @@ export default function CorporatePage() {
       <PageHeader
         eyebrow="Your city, chauffeured"
         title="A travel program your finance team will not have to chase"
-        intro="Monthly invoicing, written service levels, and one named contact who knows how your organisation travels. Built for the travel manager evaluating vendors, not just the traveller in the car."
+        intro="Monthly invoicing, fixed airport fares, and one named contact who knows how your organisation travels. Built for the travel manager evaluating vendors, not just the traveller in the car."
       />
 
       <Section tone="light">
@@ -61,27 +77,34 @@ export default function CorporatePage() {
         <Reveal>
           <SectionHeading
             tone="dark"
-            eyebrow="Service levels"
-            title="Committed in writing at account setup"
-            intro="Agreed numbers, not assumed ones. Anything we miss is credited without you having to ask."
+            eyebrow="Opening an account"
+            title="Three steps, and the first one is this page"
+            intro="No onboarding portal and no minimum spend. A conversation, a rate card, and an invoice at the end of the month."
             data-reveal
           />
-          <dl
+          <ol
             data-reveal
-            className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {slas.map((sla) => (
-              <div key={sla.metric} className="border-t border-white/15 pt-6">
-                <dt className="font-sans text-[13px] tracking-[0.08em] text-white/55 uppercase">
-                  {sla.metric}
-                </dt>
-                <dd className="font-display mt-3 text-[34px] leading-none font-semibold text-white tabular-nums">
-                  {sla.value}
-                </dd>
-                <p className="mt-2 text-[13px] text-white/55">{sla.note}</p>
-              </div>
+            {steps.map((step, index) => (
+              <li key={step.title} className="border-t border-white/15 pt-6">
+                {/* Gold as a large decorative numeral is the one way it is
+                    allowed to carry weight beside white text. */}
+                <span
+                  aria-hidden
+                  className="font-display block text-[34px] leading-none font-semibold text-gold tabular-nums"
+                >
+                  {index + 1}
+                </span>
+                <h3 className="font-sans mt-4 text-[17px] font-semibold text-white">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-[15px] leading-[1.7] text-white/70">
+                  {step.body}
+                </p>
+              </li>
             ))}
-          </dl>
+          </ol>
         </Reveal>
       </Section>
 
@@ -99,7 +122,7 @@ export default function CorporatePage() {
                 {
                   Icon: ShieldIcon,
                   title: "Chauffeur vetting",
-                  body: "Background checks at hire and re-verified annually. Consistent driver assignment for repeat travellers.",
+                  body: "Every chauffeur is licensed and background-checked before they drive for us.",
                 },
                 {
                   Icon: BriefcaseIcon,
@@ -127,37 +150,25 @@ export default function CorporatePage() {
               <h2 className="font-display text-[22px] font-semibold text-midnight">
                 Open an account
               </h2>
-              <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
-                Tell us how your organisation travels. We reply within one
-                business day with a proposed SLA and rate card.
+              <p className="mt-3 mb-8 text-[15px] leading-[1.7] text-charcoal">
+                Tell us how your organisation travels. We come back with a
+                proposed rate card.
               </p>
 
-              <form className="mt-8 flex flex-col gap-5">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Name" id="name">
-                    <Input id="name" name="name" required />
-                  </Field>
-                  <Field label="Company" id="company">
-                    <Input id="company" name="company" required />
-                  </Field>
-                  <Field label="Work email" id="email">
-                    <Input id="email" name="email" type="email" required />
-                  </Field>
-                  <Field label="Phone" id="phone">
-                    <Input id="phone" name="phone" type="tel" />
-                  </Field>
-                </div>
-                <Field
-                  label="Monthly travel"
-                  id="volume"
-                  hint="Approximate trips per month, and which airports you use most."
-                >
-                  <Textarea id="volume" name="volume" />
-                </Field>
-                <Button type="submit" variant="cta" className="sm:self-start">
-                  Request a rate card
-                </Button>
-              </form>
+              {/*
+                This was a `<form>` with no action. Pressing the button
+                navigated away and discarded the enquiry silently — no reply, no
+                error, and nothing in the dashboard. It now posts to the quote
+                endpoint that was already waiting for it.
+              */}
+              <QuoteForm
+                defaultServiceType="corporate"
+                lockService
+                submitLabel="Request a rate card"
+                showDate={false}
+                detailsLabel="Monthly travel"
+                detailsHint="Approximate trips per month, which airports you use most, and who does the booking."
+              />
             </div>
           </Reveal>
         </div>

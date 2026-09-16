@@ -13,6 +13,7 @@ import {
   formatMoney,
   formatPickup,
   formatTrip,
+  formatService,
   formatVehicle,
 } from "@/lib/admin/format";
 
@@ -78,6 +79,10 @@ export default async function BookingDetailPage({
               <DetailRow
                 label="Vehicle"
                 value={formatVehicle(booking.vehicleClass)}
+              />
+              <DetailRow
+                label="Service"
+                value={formatService(booking.serviceType)}
               />
               <DetailRow
                 label="Passengers"

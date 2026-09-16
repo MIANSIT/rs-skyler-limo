@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { RationaleNote, Section, SectionHeading } from "@/components/ui/section";
 import { getFleetSafely } from "@/lib/public/fleet";
+import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Fleet",
@@ -34,10 +35,10 @@ export default async function FleetPage() {
             <p className="text-[17px] leading-[1.7] text-charcoal">
               Our fleet listing is briefly unavailable. Call reservations on{" "}
               <a
-                href="tel:+12125550147"
+                href={contact.phoneHref}
                 className="text-midnight underline-offset-4 tabular-nums hover:underline"
               >
-                +1 (212) 555-0147
+                {contact.phone}
               </a>{" "}
               and someone will talk you through the options.
             </p>
