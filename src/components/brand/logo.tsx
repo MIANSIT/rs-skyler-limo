@@ -29,8 +29,12 @@ export function Logo({
       navigation never quite lined up. A block-level flex container makes no
       line box at all.
     */
-    <span className={clsx("flex items-center gap-2.5 sm:gap-3", className)}>
-      <LogoMark className="h-8 sm:h-9 md:h-10" priority={priority} />
+    <span className={clsx("flex items-center gap-2 sm:gap-2.5", className)}>
+      {/* Deliberately modest. The lockup competes with the navigation for the
+          same row, and a 40px mark plus a 19px wordmark was taking ~230px of a
+          1088px bar. At this size the whole lockup is ~185px and the menu has
+          room to breathe. */}
+      <LogoMark className="h-8 sm:h-9" priority={priority} />
       <span
         aria-hidden
         className={clsx(

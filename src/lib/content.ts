@@ -34,21 +34,18 @@ export const contact = {
 } as const;
 
 /**
- * `shortLabel` is used in the desktop bar below `xl`, where the full wording
- * would push five links onto a second line. The full label is always what the
- * mobile panel shows.
+ * One set of labels. The bar only shows this menu from `xl`, where every label
+ * fits at full length; below that the burger panel shows the same wording. An
+ * abbreviated set existed for an intermediate breakpoint that no longer has a
+ * horizontal menu to abbreviate.
  */
-export const nav: readonly {
-  href: string;
-  label: string;
-  shortLabel?: string;
-}[] = [
+export const nav = [
   { href: "/fleet", label: "Fleet" },
   { href: "/corporate", label: "Corporate" },
-  { href: "/weddings", label: "Weddings & Events", shortLabel: "Weddings" },
-  { href: "/quote", label: "Get a quote", shortLabel: "Quote" },
-  { href: "/track", label: "Track a ride", shortLabel: "Track" },
-];
+  { href: "/weddings", label: "Weddings & Events" },
+  { href: "/quote", label: "Get a quote" },
+  { href: "/track", label: "Track a ride" },
+] as const;
 
 /**
  * The fleet used to be hardcoded here. It now lives in the `vehicles` table and

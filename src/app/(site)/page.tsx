@@ -185,10 +185,14 @@ export default async function HomePage() {
             <div data-reveal className="mt-10 grid grid-cols-2 gap-8">
               <Stat value={5} label="Boroughs served" />
               <Stat value={bookingAirports.length} label="Airports on the rate card" />
-              <Stat
-                value={fleet.length}
-                label={fleet.length === 1 ? "Vehicle class" : "Vehicle classes"}
-              />
+              {/* Omitted rather than zero when the API is unreachable — see the
+                  matching note in the hero. */}
+              {fleet.length > 0 ? (
+                <Stat
+                  value={fleet.length}
+                  label={fleet.length === 1 ? "Vehicle class" : "Vehicle classes"}
+                />
+              ) : null}
             </div>
           </Reveal>
 

@@ -152,10 +152,19 @@ export function Hero({
             <dl className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/15 pt-8">
               {/* The airport count said 3 while the booking form has offered
                   5 since Teterboro and Westchester were added, and "24/7
-                  Dispatch" was a staffing claim nothing here backs up. */}
+                  Dispatch" was a staffing claim nothing here backs up.
+
+                  The fleet count is omitted rather than shown as zero when the
+                  API is unreachable: "0 Vehicle classes" reads as a company
+                  with no cars, which is worse than one fewer figure. */}
               <HeroStat value="5" label="Boroughs" />
               <HeroStat value={String(bookingAirports.length)} label="Airports" />
-              <HeroStat value={String(fleet.length)} label="Vehicle classes" />
+              {fleet.length > 0 ? (
+                <HeroStat
+                  value={String(fleet.length)}
+                  label={fleet.length === 1 ? "Vehicle class" : "Vehicle classes"}
+                />
+              ) : null}
             </dl>
           </div>
 

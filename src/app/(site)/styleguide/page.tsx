@@ -131,7 +131,7 @@ export default function StyleguidePage() {
           <div>
             <Label>H3 · Public Sans Semibold · 16–18px</Label>
             <p className="font-sans text-[17px] font-semibold text-midnight">
-              Airport transfers, flight-tracked
+              Airport transfers, at a published fare
             </p>
           </div>
           <Rule />

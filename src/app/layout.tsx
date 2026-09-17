@@ -22,8 +22,10 @@ export const metadata: Metadata = {
     default: "RSSkyler Limo — Premium Chauffeur Service in New York City",
     template: "%s · RSSkyler Limo",
   },
+  /* This is the line Google prints under the result, so it has to be true.
+     It claimed flight-tracked transfers; nothing tracks flights. */
   description:
-    "Private, punctual chauffeured travel across all five boroughs. Flight-tracked airport transfers, hourly charters, corporate accounts, weddings and events.",
+    "Private, punctual chauffeured travel across all five boroughs. Airport transfers at published fixed fares, hourly charters, corporate accounts, weddings and events.",
   openGraph: {
     title: "RSSkyler Limo — Arrive in Style",
     description:
