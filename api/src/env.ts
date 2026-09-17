@@ -75,8 +75,17 @@ const schema = z.object({
    *
    * MAIL_APP_PASSWORD must be an **app password**, not the account password.
    * Yahoo and Gmail both refuse plain account passwords over SMTP.
+   *
+   * ⚠️  This is `MAIL_USER`, not `MAIL`, and must stay that way.
+   *
+   * `MAIL` is a POSIX shell variable: login shells and `sudo` set it to the
+   * user's mail spool, `/var/mail/rsskyler` on this server. dotenv does not
+   * overwrite a variable that is already present in the environment, so a
+   * `MAIL=` line in the .env file was silently ignored in favour of that path
+   * and the address failed validation. It cost a deploy to find. Any name here
+   * that a shell might also define will do the same thing.
    */
-  MAIL: z.email().optional(),
+  MAIL_USER: z.email().optional(),
   MAIL_APP_PASSWORD: z.string().min(1).optional(),
 
   /** Defaults suit Yahoo, which is where the business mailbox lives. */

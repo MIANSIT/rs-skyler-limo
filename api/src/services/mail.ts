@@ -24,7 +24,7 @@ let transporter: Transporter | null = null;
 let warnedUnconfigured = false;
 
 export function mailAvailable(): boolean {
-  return Boolean(env.MAIL && env.MAIL_APP_PASSWORD);
+  return Boolean(env.MAIL_USER && env.MAIL_APP_PASSWORD);
 }
 
 function getTransport(): Transporter | null {
@@ -37,7 +37,7 @@ function getTransport(): Transporter | null {
       // 465 is implicit TLS. On 587 this must be false so STARTTLS is used
       // instead — setting it true there produces a hang, not an error.
       secure: env.MAIL_PORT === 465,
-      auth: { user: env.MAIL, pass: env.MAIL_APP_PASSWORD },
+      auth: { user: env.MAIL_USER, pass: env.MAIL_APP_PASSWORD },
       // One connection reused across sends. A booking sends two messages and
       // opening a fresh TLS session for each is a wasted round trip.
       pool: true,
@@ -60,7 +60,7 @@ function getTransport(): Transporter | null {
 export async function verifyMail(): Promise<void> {
   if (!mailAvailable()) {
     console.warn(
-      "[mail] MAIL / MAIL_APP_PASSWORD are unset — booking emails are disabled and will be logged instead.",
+      "[mail] MAIL_USER / MAIL_APP_PASSWORD are unset — booking emails are disabled and will be logged instead.",
     );
     return;
   }
@@ -68,7 +68,7 @@ export async function verifyMail(): Promise<void> {
   try {
     await getTransport()!.verify();
     console.log(
-      `[mail] ready: ${env.MAIL} via ${env.MAIL_HOST}:${env.MAIL_PORT} → ops ${env.MAIL_OPS_RECIPIENTS.join(", ")}`,
+      `[mail] ready: ${env.MAIL_USER} via ${env.MAIL_HOST}:${env.MAIL_PORT} → ops ${env.MAIL_OPS_RECIPIENTS.join(", ")}`,
     );
   } catch (error) {
     console.error(
@@ -105,7 +105,7 @@ async function send(message: Message): Promise<boolean> {
 
   try {
     const info = await transport.sendMail({
-      from: { name: env.MAIL_FROM_NAME, address: env.MAIL! },
+      from: { name: env.MAIL_FROM_NAME, address: env.MAIL_USER! },
       to: message.to,
       replyTo: message.replyTo,
       subject: message.subject,
