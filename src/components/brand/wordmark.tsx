@@ -12,7 +12,9 @@ type WordmarkProps = {
 
 const sizes = {
   sm: "text-[15px]",
-  md: "text-[19px]",
+  /* Steps down on narrow phones so the lockup, the call icon and the menu
+     button all fit on one row at 320px without the wordmark being clipped. */
+  md: "text-[16px] sm:text-[18px] lg:text-[19px]",
   lg: "text-[26px] md:text-[34px]",
 } as const;
 

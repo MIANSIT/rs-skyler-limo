@@ -62,7 +62,7 @@ export default async function FleetPage() {
               title="Compare without calling support"
               data-reveal
             />
-            <div data-reveal className="mt-10 overflow-x-auto">
+            <div data-reveal className="relative mt-10 overflow-x-auto">
               <table className="w-full min-w-[44rem] border-collapse text-left">
                 <caption className="sr-only">
                   Fleet comparison by passengers, luggage, child seats and

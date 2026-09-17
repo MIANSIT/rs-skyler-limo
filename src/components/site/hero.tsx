@@ -143,7 +143,7 @@ export function Hero({
               <ButtonLinkOnDark href="/fleet">See the fleet</ButtonLinkOnDark>
               <a
                 href={contact.phoneHref}
-                className="font-sans text-[15px] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+                className="inline-block py-2 font-sans text-[15px] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
               >
                 Or call <span className="tabular-nums">{contact.phone}</span>
               </a>

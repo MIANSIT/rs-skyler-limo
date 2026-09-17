@@ -76,7 +76,7 @@ export default function StyleguidePage() {
         <h3 className="font-sans mt-14 text-[17px] font-semibold text-midnight">
           Verified contrast
         </h3>
-        <div className="mt-5 overflow-x-auto">
+        <div className="relative mt-5 overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left">
             <thead>
               <tr className="border-b border-midnight/15">

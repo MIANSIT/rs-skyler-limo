@@ -46,7 +46,16 @@ export function RateGridForm({ grid }: { grid: RateGrid }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
-      <div className="overflow-x-auto rounded-sm border border-midnight/10 bg-white">
+      {/*
+        `relative` is load-bearing, not decoration.
+
+        The cells carry `sr-only` labels, and `sr-only` is `position: absolute`.
+        With a `static` wrapper their containing block is the page, so they
+        escaped the scroll box and stretched the document to the full 724px
+        table width — every phone could scroll the whole dashboard sideways into
+        empty space. Positioning the wrapper contains them.
+      */}
+      <div className="relative overflow-x-auto rounded-sm border border-midnight/10 bg-white">
         <table className="w-full min-w-[42rem] border-collapse text-left">
           <caption className="sr-only">
             Fixed airport fares in US dollars, by airport and vehicle class

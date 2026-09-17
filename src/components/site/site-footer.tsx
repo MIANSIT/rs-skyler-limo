@@ -82,13 +82,13 @@ export async function SiteFooter() {
             </p>
             <Link
               href="/terms"
-              className="text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+              className="inline-block py-1.5 text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
               Terms &amp; Conditions
             </Link>
             <Link
               href="/privacy"
-              className="text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+              className="inline-block py-1.5 text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
               Privacy Policy
             </Link>
@@ -111,7 +111,10 @@ function FooterColumn({
       <h3 className="font-sans text-[13px] font-semibold tracking-[0.12em] text-gold uppercase">
         {title}
       </h3>
-      <ul className="mt-5 flex flex-col gap-3">{children}</ul>
+      {/* The row gap moved onto the links themselves as padding. A 15px line of
+          text is a 17px tap target, which is an unkind thing to aim a thumb at;
+          padding makes each row ~33px without changing how the column looks. */}
+      <ul className="mt-3 flex flex-col">{children}</ul>
     </div>
   );
 }
@@ -127,7 +130,7 @@ function FooterLink({
     <li>
       <Link
         href={href}
-        className="text-[15px] text-white/75 underline-offset-4 transition-colors hover:text-white hover:underline"
+        className="block py-2 text-[15px] text-white/75 underline-offset-4 transition-colors hover:text-white hover:underline"
       >
         {children}
       </Link>

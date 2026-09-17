@@ -33,7 +33,9 @@ export function BookingsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-sm border border-midnight/10 bg-white">
+    /* `relative` contains any `sr-only` (position: absolute) descendant inside
+       the scroll box — see the note in rate-grid-form. */
+    <div className="relative overflow-x-auto rounded-sm border border-midnight/10 bg-white">
       <table className="w-full min-w-[52rem] border-collapse text-left">
         <caption className="sr-only">Bookings</caption>
         <thead>

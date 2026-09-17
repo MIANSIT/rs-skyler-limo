@@ -204,7 +204,7 @@ export default function PrivacyPage() {
             data-reveal
           />
 
-          <div data-reveal className="mt-10 overflow-x-auto">
+          <div data-reveal className="relative mt-10 overflow-x-auto">
             <table className="w-full min-w-[36rem] border-collapse text-left">
               <caption className="sr-only">Retention periods</caption>
               <thead>
@@ -330,7 +330,9 @@ export default function PrivacyPage() {
               </ButtonLink>
               <a
                 href={contact.phoneHref}
-                className="text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
+                /* inline-block + padding: a standalone call action deserves a
+                 real tap target, unlike a link inside a sentence. */
+              className="inline-block py-2 text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
               >
                 {contact.phone}
               </a>

@@ -33,13 +33,22 @@ export const contact = {
   serviceArea: "All five boroughs of New York City",
 } as const;
 
-export const nav = [
+/**
+ * `shortLabel` is used in the desktop bar below `xl`, where the full wording
+ * would push five links onto a second line. The full label is always what the
+ * mobile panel shows.
+ */
+export const nav: readonly {
+  href: string;
+  label: string;
+  shortLabel?: string;
+}[] = [
   { href: "/fleet", label: "Fleet" },
   { href: "/corporate", label: "Corporate" },
-  { href: "/weddings", label: "Weddings & Events" },
-  { href: "/quote", label: "Get a quote" },
-  { href: "/track", label: "Track a ride" },
-] as const;
+  { href: "/weddings", label: "Weddings & Events", shortLabel: "Weddings" },
+  { href: "/quote", label: "Get a quote", shortLabel: "Quote" },
+  { href: "/track", label: "Track a ride", shortLabel: "Track" },
+];
 
 /**
  * The fleet used to be hardcoded here. It now lives in the `vehicles` table and

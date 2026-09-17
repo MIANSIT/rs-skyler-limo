@@ -19,12 +19,22 @@ export function Logo({
   priority?: boolean;
 }) {
   return (
-    <span className={clsx("inline-flex items-center gap-3", className)}>
-      <LogoMark className="h-9 md:h-10" priority={priority} />
+    /*
+      `flex`, not `inline-flex`.
+
+      As an inline-level box this sat in a line box, and the line box reserves
+      descender space below the baseline — about 8px at the header's 27.2px
+      line-height. The lockup therefore rendered 4px above the centre of its own
+      link while the nav links sat exactly on it, so the wordmark and the
+      navigation never quite lined up. A block-level flex container makes no
+      line box at all.
+    */
+    <span className={clsx("flex items-center gap-2.5 sm:gap-3", className)}>
+      <LogoMark className="h-8 sm:h-9 md:h-10" priority={priority} />
       <span
         aria-hidden
         className={clsx(
-          "h-7 w-px",
+          "h-6 w-px sm:h-7",
           tone === "dark" ? "bg-white/25" : "bg-midnight/20",
         )}
       />

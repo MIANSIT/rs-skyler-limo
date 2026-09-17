@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { ButtonLinkOnDark } from "@/components/ui/button";
@@ -12,106 +12,165 @@ import { contact, nav } from "@/lib/content";
 /**
  * Consistent chrome, per Chapter 7: midnight header on every screen, with gold
  * reserved for the single primary action.
+ *
+ * Three zones on one row that never wraps — lockup, navigation, actions — each
+ * `shrink-0` so nothing is squeezed into a second line. The bar broke badly
+ * before: at 1024px the wordmark overlapped the first link and four items wrapped,
+ * because five links plus a phone number plus a button need about 1010px and the
+ * content column at that width is 976px. The density now steps up with the
+ * viewport rather than assuming the widest case fits everywhere.
  */
 export function SiteHeader() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+
+  /**
+   * The route the menu was opened on, rather than a boolean.
+   *
+   * A route change then closes the panel for free — including a back or forward
+   * gesture, which no link handler sees. The obvious alternative, resetting a
+   * boolean from an effect keyed on the pathname, sets state synchronously
+   * during an effect and triggers a cascading render; the lint rule that
+   * forbids it is right.
+   */
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const open = openFor === pathname;
+  const setOpen = (next: boolean) => setOpenFor(next ? pathname : null);
+
+  // A fixed-position panel over a scrollable body scrolls the page behind it.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-50 bg-midnight">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
-        <Link href="/" aria-label="RSSkyler Limo — home">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:gap-6 lg:px-8">
+        <Link
+          href="/"
+          aria-label="RSSkyler Limo — home"
+          /* `flex` on the anchor itself: see the note in `Logo`. A block anchor
+             would reintroduce the line box that knocked the lockup 4px out of
+             alignment with the navigation. */
+          className="flex shrink-0 items-center"
+        >
           <Logo tone="dark" priority />
         </Link>
 
-        {/* Desktop nav from `lg`, not `md`. The lockup, four links at 15px and
-            the CTA need about 900px; between 768 and 900 the links wrapped to
-            two lines and collided with the wordmark. */}
-        <nav className="hidden items-center gap-8 lg:flex">
+        {/* Desktop nav from `lg`. Tighter type and gaps until `xl`, which is
+            what keeps five links on one line on a 1024px laptop. */}
+        <nav className="hidden items-center gap-5 lg:flex xl:gap-7">
           {nav.map((item) => {
-            const active = pathname.startsWith(item.href);
+            const active =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={clsx(
-                  "font-sans text-[15px] transition-colors",
+                  "font-sans text-[14px] whitespace-nowrap transition-colors xl:text-[15px]",
                   active ? "text-gold" : "text-white/80 hover:text-white",
                 )}
               >
-                {item.label}
+                {/* The one label long enough to force a wrap gets a short form
+                    below xl. The full wording survives in the mobile panel. */}
+                {item.shortLabel ? (
+                  <>
+                    <span className="xl:hidden">{item.shortLabel}</span>
+                    <span className="hidden xl:inline">{item.label}</span>
+                  </>
+                ) : (
+                  item.label
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* The phone number is a header requirement and was missing entirely.
-            It sits beside the CTA on desktop and is the first item in the
-            mobile panel, since a phone is where most of these calls start.
-
-            Outlined rather than gold: the chrome persists on every screen, and
-            the gold action belongs to the page the client is actually on. */}
-        <div className="hidden items-center gap-6 lg:flex">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:gap-4">
+          {/*
+            One phone control at every width, rather than two that must be kept
+            in step. Below xl it is the icon — enough room for the nav — and from
+            xl the number itself. Calling is never more than one tap, and never
+            requires opening the menu.
+          */}
           <a
             href={contact.phoneHref}
-            className="font-sans text-[15px] font-medium text-white underline-offset-4 tabular-nums transition-colors hover:text-gold hover:underline"
+            aria-label={`Call RSSkyler Limo on ${contact.phone}`}
+            className="flex items-center gap-2 rounded-sm p-2 font-sans text-[15px] font-medium text-white transition-colors hover:text-gold xl:px-1"
           >
-            {contact.phone}
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5 xl:hidden"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.5.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.57 3.5a1 1 0 0 1-.25 1z" />
+            </svg>
+            <span className="hidden tabular-nums xl:inline">{contact.phone}</span>
           </a>
-          <ButtonLinkOnDark href="/#book">Book a car</ButtonLinkOnDark>
+
+          {/*
+            Hidden by a wrapper, not by a class on the button.
+
+            `clsx` here is a plain join, not tailwind-merge, so `hidden` passed
+            to `ButtonLinkOnDark` lands alongside the `inline-flex` in its base
+            class. Both are display utilities of equal specificity, `inline-flex`
+            wins on stylesheet order, and the button renders on phones — which
+            it did, pushing 117px of overflow onto a 320px screen.
+
+            Outlined rather than gold: the chrome persists on every screen, and
+            the gold action belongs to the page the client is actually on.
+          */}
+          <span className="hidden lg:block">
+            <ButtonLinkOnDark href="/#book">Book a car</ButtonLinkOnDark>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            className="-mr-1 p-2 text-white lg:hidden"
+          >
+            <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+            <svg
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              aria-hidden
+            >
+              {open ? (
+                <path d="m6 6 12 12M18 6 6 18" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
         </div>
-
-        {/* Below `lg` the number collapses to an icon so it survives beside the
-            lockup on a 360px screen without the menu having to be opened. */}
-        <a
-          href={contact.phoneHref}
-          aria-label={`Call RSSkyler Limo on ${contact.phone}`}
-          className="ml-auto p-2 text-white lg:hidden"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.5.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.57 3.5a1 1 0 0 1-.25 1z" />
-          </svg>
-        </a>
-
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          className="-mr-2 p-2 text-white lg:hidden"
-        >
-          <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
-          <svg
-            viewBox="0 0 24 24"
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            aria-hidden
-          >
-            {open ? (
-              <path d="m6 6 12 12M18 6 6 18" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            )}
-          </svg>
-        </button>
       </div>
 
       {open ? (
         <nav
           id="mobile-nav"
-          className="border-t border-white/10 px-6 pt-4 pb-6 lg:hidden"
+          /* Capped and scrollable: on a landscape phone the panel is taller than
+             the viewport, and without this the last links and the CTA are
+             unreachable. */
+          className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-white/10 px-4 pt-3 pb-6 sm:px-6 lg:hidden"
         >
           <ul className="flex flex-col">
             {nav.map((item) => (
@@ -119,17 +178,18 @@ export function SiteHeader() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block py-3 font-sans text-white/85 hover:text-white"
+                  className="block py-3.5 font-sans text-white/85 hover:text-white"
                 >
                   {item.label}
                 </Link>
               </li>
             ))}
           </ul>
+
           <a
             href={contact.phoneHref}
             onClick={() => setOpen(false)}
-            className="mt-6 flex items-center justify-between border-b border-white/10 pb-3 font-sans text-white"
+            className="mt-5 flex items-center justify-between gap-4 border-b border-white/10 pb-3.5 font-sans text-white"
           >
             <span className="text-[13px] tracking-[0.12em] text-white/55 uppercase">
               Call us
@@ -141,7 +201,7 @@ export function SiteHeader() {
 
           <ButtonLinkOnDark
             href="/#book"
-            className="mt-6 w-full"
+            className="mt-5 w-full"
             onClick={() => setOpen(false)}
           >
             Book a car
