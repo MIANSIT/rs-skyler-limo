@@ -62,6 +62,52 @@ const schema = z.object({
    * Server-side only — it must never be exposed with a NEXT_PUBLIC_ prefix.
    */
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+
+  /* ---------------------------------------------------------------- mail */
+
+  /**
+   * The mailbox everything is sent from, and its app password.
+   *
+   * Both optional together: with neither set the API runs exactly as before and
+   * simply logs that it would have sent. That keeps a developer's checkout
+   * working without handing every developer the live mailbox, and means a
+   * missing password degrades to "no email" rather than "no bookings".
+   *
+   * MAIL_APP_PASSWORD must be an **app password**, not the account password.
+   * Yahoo and Gmail both refuse plain account passwords over SMTP.
+   */
+  MAIL: z.email().optional(),
+  MAIL_APP_PASSWORD: z.string().min(1).optional(),
+
+  /** Defaults suit Yahoo, which is where the business mailbox lives. */
+  MAIL_HOST: z.string().min(1).default("smtp.mail.yahoo.com"),
+  /** 465 is implicit TLS. Port 587 would need `secure` false and STARTTLS. */
+  MAIL_PORT: z.coerce.number().int().positive().default(465),
+  MAIL_FROM_NAME: z.string().min(1).default("RSSkyler Limo"),
+
+  /**
+   * Who in the business is told about a new booking, comma separated.
+   *
+   * These are operational recipients, not marketing. They go in the envelope as
+   * Bcc so one operator's address is never exposed to another recipient, and
+   * never to the customer.
+   */
+  MAIL_OPS_RECIPIENTS: z
+    .string()
+    .default(
+      "raselislam9964@gmail.com,mhyeasin357@gmail.com,miansofficial@gmail.com",
+    )
+    .transform((value) =>
+      value
+        .split(",")
+        .map((address) => address.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+
+  /**
+   * Where a "track this booking" link should point. Used only in email bodies.
+   */
+  SITE_BASE_URL: z.string().min(1).default("http://localhost:3000"),
 });
 
 const parsed = schema.safeParse(process.env);

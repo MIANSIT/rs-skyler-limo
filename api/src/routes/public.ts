@@ -15,6 +15,7 @@ import { createQuote } from "../services/quotes.js";
 import { listVehicles } from "../services/vehicles.js";
 import { decideFare, getPublicRates, AIRPORTS } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
+import { sendBookingEmails } from "../services/mail.js";
 import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
@@ -108,6 +109,21 @@ publicRouter.post("/bookings", submitLimit, async (req, res) => {
   });
 
   const booking = await createBooking(input, "website", fare);
+
+  /**
+   * Confirmation to the customer, notification to the office.
+   *
+   * Deliberately not awaited. The booking is already committed, so the customer
+   * has their reference whatever SMTP does next; making them wait on Yahoo
+   * would add seconds to the form and turn a slow mail server into a failed
+   * booking. Failures are logged by the mailer and never surface here.
+   */
+  void sendBookingEmails(booking).catch((error: unknown) => {
+    console.error(
+      `[mail] unexpected failure for ${booking.reference}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
 
   res.status(201).json({
     reference: booking.reference,

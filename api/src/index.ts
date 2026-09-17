@@ -2,6 +2,7 @@ import { createApp } from "./app.js";
 import { pool } from "./db.js";
 import { env } from "./env.js";
 import { purgeExpiredSessions } from "./services/auth.js";
+import { closeMail, verifyMail } from "./services/mail.js";
 
 const app = createApp();
 
@@ -17,6 +18,11 @@ const server = app.listen(env.PORT, env.HOST, () => {
   console.log(`RSSkyler API listening on :${env.PORT} (${env.NODE_ENV})`);
 });
 
+// Checked once, at boot. A wrong app password should be found now, in a log,
+// rather than by a customer who never received their confirmation. Advisory:
+// the API serves whether or not mail works.
+void verifyMail();
+
 // Expired rows are dead weight and a small liability; clear them on boot and
 // once an hour after that.
 void purgeExpiredSessions().catch(() => {});
@@ -31,6 +37,9 @@ async function shutdown(signal: string) {
   clearInterval(sessionSweep);
 
   server.close(async () => {
+    // Close the pooled SMTP socket too, or the process lingers on a keep-alive
+    // connection that has nothing left to send.
+    closeMail();
     await pool.end();
     process.exit(0);
   });
