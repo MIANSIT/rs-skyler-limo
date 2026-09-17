@@ -51,6 +51,13 @@ Things that are easy to get wrong here:
 - **Timestamps are UTC in the database**, converted to `America/New_York` at
   the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
   anything with a date in it. Money is integer cents.
+- **Email is sent by the API and nowhere else.** `api/src/services/mail.ts`
+  plus the templates in `api/src/emails/`. A send is never awaited on a request
+  path and never throws: the booking is already committed, so a mail failure
+  belongs in the log, not in the customer's response. The address variable is
+  `MAIL_USER` — **never `MAIL`**, which is a POSIX shell variable holding the
+  user's mail spool that dotenv refuses to overwrite. Anything a customer typed
+  is escaped before it reaches the markup.
 
 See the README for setup and `deploy/nginx.conf` for the two server blocks.
 

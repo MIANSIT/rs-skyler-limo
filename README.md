@@ -93,9 +93,17 @@ vehicle, covering all five boroughs. An empty cell is not an error — that
 combination quotes instead, which is the safe direction to be unsure in.
 
 Setting a price in the dashboard moves the booking to `quoted` and publishes it
-to the customer's tracking page immediately. Sending the email or making the
-call is still the operator's job; there is a clean seam for Resend when you
-want it.
+to the customer's tracking page immediately. Telling the customer that a price
+is waiting is still the operator's job — that one is a call or a message, not an
+automated email.
+
+**A new booking does email itself.** The API sends two messages: a confirmation
+to the customer and a notification to the reservations desk, laid out as a
+reservation sheet in the brand's palette. Only the API talks to SMTP; neither
+Next.js app does. The send is never awaited and never throws, so a mail outage
+shows up in the log rather than as a failed booking. Configuration lives in
+`api/.env` — and the address variable is `MAIL_USER`, never `MAIL`, for the
+reason spelled out in `deploy/README.md`.
 
 **Tracking needs a reference and the phone number on the booking.** A reference
 alone travels in email and on paper and would otherwise expose a customer's name

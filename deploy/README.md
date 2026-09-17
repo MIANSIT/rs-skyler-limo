@@ -56,6 +56,54 @@ The GUI form: host `127.0.0.1`, port `3307`, user `rsskyler`, database
 the script *is* the tunnel, so do not also switch on the client's own SSH
 option.
 
+## Booking email
+
+Every booking sends two messages from the **API only** — no Next.js app ever
+talks to SMTP. A confirmation to the customer, and a notification to the
+reservations desk with the customer's contact details and `Reply-To` set to
+them, so hitting reply in the office writes to the customer.
+
+Two messages rather than one with four recipients: the office copy carries
+details the customer should not be shown, and a single message would expose
+each operator's address to the customer and to each other.
+
+Configured in `/srv/rsskyler/app/api/.env` (mode 600, owned by `rsskyler`):
+
+| Variable | Value |
+|---|---|
+| `MAIL_USER` | the sending mailbox |
+| `MAIL_APP_PASSWORD` | Yahoo **app password**, never the account password |
+| `MAIL_HOST` / `MAIL_PORT` | `smtp.mail.yahoo.com` / `465` |
+| `MAIL_FROM_NAME` | display name on the From header |
+| `MAIL_OPS_RECIPIENTS` | comma separated, no spaces |
+| `SITE_BASE_URL` | used for the "track this booking" link |
+
+Values are in `deploy/production.env`. After changing any of them:
+
+```bash
+systemctl restart rsskyler-api
+journalctl -u rsskyler-api -n 20 --no-pager | grep '\[mail\]'
+```
+
+A healthy boot logs `[mail] ready: … → ops …`. A bad password logs
+`[mail] transport will not authenticate`, and the API keeps serving.
+
+### It is MAIL_USER, never MAIL
+
+`MAIL` is a POSIX shell variable — login shells and `sudo` set it to the user's
+mail spool, `/var/mail/rsskyler`. dotenv does not overwrite a variable the
+environment already defines, so a `MAIL=` line here is silently ignored and the
+API ends up validating a file path as an email address. It failed one deploy at
+the migrate step with `MAIL: Invalid email address`. Do not rename it back, and
+be wary of any other variable a shell might also define.
+
+### A mail failure cannot cost a booking
+
+The row is committed before any of this runs, and the send is not awaited. Yahoo
+being slow, throttling, or refusing the password shows up in the log and nowhere
+else. Tested with a deliberately wrong password: the endpoint still returned 201
+in 47 ms and both failures were logged.
+
 ## Service control
 
 ```bash
@@ -144,9 +192,13 @@ In order, because the middle step is easy to get wrong:
 4. **Remove `COOKIE_INSECURE=true` from `/srv/rsskyler/app/admin/.env.local`**
    and restart `rsskyler-admin`. See the warning below.
 5. Update the URLs that currently name the IP:
-   - `api/.env` → `CORS_ORIGINS`, `UPLOADS_BASE_URL`
+   - `api/.env` → `CORS_ORIGINS`, `UPLOADS_BASE_URL`, **`SITE_BASE_URL`**
    - `.env.local` → `UPLOADS_BASE_URL`
    - `admin/.env.local` → `WEB_REVALIDATE_URL` stays on loopback
+
+   `SITE_BASE_URL` is the one that reaches customers: it is the "track this
+   booking" link in every confirmation email. Left on the IP, those links keep
+   working but advertise a bare address, and they break the day the IP changes.
 6. Close port 8080 in the firewall — the dashboard moves to its own hostname on
    443 and no longer needs it.
 
@@ -172,11 +224,14 @@ journalctl -u rsskyler-admin | grep COOKIE_INSECURE
 - **Google Places** — `GOOGLE_MAPS_API_KEY` is unset in `api/.env`. Address
   autocomplete is off and the booking form uses its borough-selector fallback;
   fixed airport fares work either way.
-- **Email** — nothing is sent, in either direction. A quote submitted on the
-  site reaches the dashboard and stops there, so somebody has to be watching it.
-  This is the largest remaining gap now that the forms themselves work, and it
-  needs a sending domain with SPF and DKIM on `rsskylerlimo.com` — the business
-  mailbox is on Yahoo, which cannot send on the site's behalf.
+- **Quote emails** — booking emails are live (see below), but a *quote request*
+  from `/quote`, corporate or weddings still lands in the dashboard silently.
+  The mailer takes another template when that is wanted.
+- **Deliverability to Gmail is unproven.** The three operator addresses are
+  Gmail; the sender is Yahoo. Mail from Yahoo to Gmail with no SPF or DKIM on
+  `rsskylerlimo.com` is exactly the shape that gets filed as spam. Nothing is
+  broken — Yahoo accepts and sends it — but check the spam folder on the first
+  real booking, and treat a proper sending domain as the fix if it lands there.
 - **Off-site backups** — see above.
 - **The root password** used to bootstrap this server was typed into a chat
   window. Password authentication is now disabled, so it cannot be used to log
