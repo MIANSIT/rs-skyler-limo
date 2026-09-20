@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import type {
   ActivityEntry,
+  AdminAirport,
   AdminUser,
   Booking,
   DashboardStats,
@@ -180,6 +181,15 @@ export const getFleetMeta = cache(async (): Promise<FleetMeta> => {
 /* -------------------------------------------------------------------------- */
 /* Airport rate card                                                          */
 /* -------------------------------------------------------------------------- */
+
+export async function getAirports(): Promise<AdminAirport[]> {
+  const { token } = await verifySession();
+  const { airports } = await apiFetch<{ airports: AdminAirport[] }>(
+    "/api/admin/airports",
+    { token },
+  );
+  return airports;
+}
 
 export async function getRateGrid(): Promise<RateGrid> {
   const { token } = await verifySession();

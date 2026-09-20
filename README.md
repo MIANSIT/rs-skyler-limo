@@ -92,6 +92,12 @@ The rate card is `admin.rsskylerlimo.com/rates`: one price per airport per
 vehicle, covering all five boroughs. An empty cell is not an error — that
 combination quotes instead, which is the safe direction to be unsure in.
 
+The airports themselves are managed at `admin.rsskylerlimo.com/airports`
+(add, rename, hide, delete) and live in the `airports` table, seeded with JFK,
+LGA, EWR, TEB and HPN on first migrate. The code is permanent because rates and
+bookings refer to it; hiding an airport takes it off the booking form but keeps
+its rates, and an airport named on any booking cannot be deleted.
+
 Setting a price in the dashboard moves the booking to `quoted` and publishes it
 to the customer's tracking page immediately. Telling the customer that a price
 is waiting is still the operator's job — that one is a call or a message, not an

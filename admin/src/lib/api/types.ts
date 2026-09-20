@@ -189,6 +189,14 @@ export type FleetMeta = {
 
 export type Airport = { code: string; name: string };
 
+/** An airport as the operator manages it, with what depends on it. */
+export type AdminAirport = Airport & {
+  isActive: boolean;
+  displayOrder: number;
+  rateCount: number;
+  bookingCount: number;
+};
+
 export type AirportRate = {
   airportCode: string;
   vehicleId: number;

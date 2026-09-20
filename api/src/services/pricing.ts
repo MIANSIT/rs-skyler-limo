@@ -2,23 +2,24 @@ import { execute, query, queryOne, transaction, type RowDataPacket } from "../db
 import { ApiError } from "../lib/http.js";
 import { resolvePlace, type ResolvedPlace } from "./places.js";
 
-/**
- * The airports with published fixed fares. Teterboro and Westchester are on the
- * list because the requirement doc names them; a code with no rate row simply
- * quotes, so listing one costs nothing.
- */
-export const AIRPORTS = [
-  { code: "JFK", name: "JFK International" },
-  { code: "LGA", name: "LaGuardia (LGA)" },
-  { code: "EWR", name: "Newark Liberty (EWR)" },
-  { code: "TEB", name: "Teterboro (TEB)" },
-  { code: "HPN", name: "Westchester County (HPN)" },
-] as const;
+export type Airport = { code: string; name: string };
 
-export const AIRPORT_CODES = AIRPORTS.map((a) => a.code) as [string, ...string[]];
+/** Airports the booking form offers. Managed in the dashboard. */
+export async function listActiveAirports(): Promise<Airport[]> {
+  const rows = await query<RowDataPacket & Airport>(
+    `SELECT code, name FROM airports WHERE is_active = 1
+      ORDER BY display_order ASC, name ASC`,
+  );
+  return rows.map((row) => ({ code: row.code, name: row.name }));
+}
 
-export function isAirportCode(value: unknown): boolean {
-  return typeof value === "string" && AIRPORT_CODES.includes(value);
+async function isActiveAirport(code: unknown): Promise<boolean> {
+  if (typeof code !== "string" || code === "") return false;
+  const row = await queryOne<RowDataPacket>(
+    `SELECT 1 FROM airports WHERE code = :code AND is_active = 1 LIMIT 1`,
+    { code },
+  );
+  return Boolean(row);
 }
 
 export type AirportRate = {
@@ -46,10 +47,11 @@ type RateRow = RowDataPacket & {
  * against every airport, with a rate where one has been set.
  */
 export async function getRateGrid(): Promise<{
-  airports: typeof AIRPORTS;
+  airports: Airport[];
   vehicles: { id: number; slug: string; name: string }[];
   rates: AirportRate[];
 }> {
+  const airports = await listActiveAirports();
   const vehicles = await query<
     RowDataPacket & { id: number; slug: string; name: string }
   >(
@@ -62,11 +64,12 @@ export async function getRateGrid(): Promise<{
             v.name AS vehicle_name, r.price_cents, r.is_active, r.updated_at
        FROM airport_rates r
        JOIN vehicles v ON v.id = r.vehicle_id
-      WHERE v.is_active = 1`,
+       JOIN airports a ON a.code = r.airport_code
+      WHERE v.is_active = 1 AND a.is_active = 1`,
   );
 
   return {
-    airports: AIRPORTS,
+    airports,
     vehicles: vehicles.map((v) => ({ id: v.id, slug: v.slug, name: v.name })),
     rates: rows.map((row) => ({
       airportCode: row.airport_code,
@@ -89,7 +92,8 @@ export async function getPublicRates(): Promise<
             v.name AS vehicle_name, r.price_cents, r.is_active, r.updated_at
        FROM airport_rates r
        JOIN vehicles v ON v.id = r.vehicle_id
-      WHERE r.is_active = 1 AND v.is_active = 1`,
+       JOIN airports a ON a.code = r.airport_code
+      WHERE r.is_active = 1 AND v.is_active = 1 AND a.is_active = 1`,
   );
 
   return rows.map((row) => ({
@@ -103,6 +107,12 @@ export async function saveRates(
   entries: { airportCode: string; vehicleId: number; priceCents: number | null }[],
   adminUserId: number,
 ): Promise<void> {
+  const known = new Set((await listActiveAirports()).map((a) => a.code));
+  const unknown = entries.find((entry) => !known.has(entry.airportCode));
+  if (unknown) {
+    throw ApiError.badRequest(`${unknown.airportCode} is not an airport on your list.`);
+  }
+
   await transaction(async (connection) => {
     for (const entry of entries) {
       if (entry.priceCents === null) {
@@ -187,7 +197,7 @@ export async function decideFare(input: {
     return quote("Point-to-point and hourly trips are priced by a person.");
   }
 
-  if (!input.airportCode || !isAirportCode(input.airportCode)) {
+  if (!input.airportCode || !(await isActiveAirport(input.airportCode))) {
     return quote("We could not match that airport to a published fare.");
   }
 

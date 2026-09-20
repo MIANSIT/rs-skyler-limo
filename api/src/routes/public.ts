@@ -14,7 +14,7 @@ import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
 import { listVehicles } from "../services/vehicles.js";
 import { listActiveHeroMedia } from "../services/hero.js";
-import { decideFare, getPublicRates, AIRPORTS } from "../services/pricing.js";
+import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
 import { sendBookingEmails } from "../services/mail.js";
 import { randomUUID } from "node:crypto";
@@ -87,7 +87,7 @@ publicRouter.get("/hero", async (_req, res) => {
  */
 publicRouter.get("/booking-options", async (_req, res) => {
   res.json({
-    airports: AIRPORTS,
+    airports: await listActiveAirports(),
     rates: await getPublicRates(),
     placesEnabled: placesAvailable(),
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,

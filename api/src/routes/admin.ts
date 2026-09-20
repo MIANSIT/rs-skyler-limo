@@ -3,6 +3,8 @@ import { Router } from "express";
 import { ApiError } from "../lib/http.js";
 import { requireAdmin } from "../middleware.js";
 import {
+  airportInputSchema,
+  airportUpdateSchema,
   listBookingsSchema,
   listQuotesSchema,
   saveRatesSchema,
@@ -16,6 +18,12 @@ import {
   listBookings,
   updateBooking,
 } from "../services/bookings.js";
+import {
+  createAirport,
+  deleteAirport,
+  listAirports,
+  updateAirport,
+} from "../services/airports.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
@@ -89,6 +97,35 @@ adminRouter.put("/rates", async (req, res) => {
   await saveRates(rates, req.admin!.id);
 
   res.json(await getRateGrid());
+});
+
+/* -------------------------------------------------------------------------- */
+/* Airports                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function parseCode(raw: string | undefined): string {
+  const code = String(raw ?? "").trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,8}$/.test(code)) throw ApiError.notFound();
+  return code;
+}
+
+adminRouter.get("/airports", async (_req, res) => {
+  res.json({ airports: await listAirports() });
+});
+
+adminRouter.post("/airports", async (req, res) => {
+  const input = airportInputSchema.parse(req.body);
+  res.status(201).json({ airport: await createAirport(input) });
+});
+
+adminRouter.patch("/airports/:code", async (req, res) => {
+  const patch = airportUpdateSchema.parse(req.body);
+  res.json({ airport: await updateAirport(parseCode(req.params.code), patch) });
+});
+
+adminRouter.delete("/airports/:code", async (req, res) => {
+  await deleteAirport(parseCode(req.params.code));
+  res.status(204).end();
 });
 
 /** Prices a quote request and moves it to `quoted`. */

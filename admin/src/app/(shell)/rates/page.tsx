@@ -21,7 +21,12 @@ export default async function RatesPage() {
           Fixed fares for airport transfers inside the five boroughs. A customer
           whose trip matches a price here books it instantly at that fare.
           Everything else — point to point, hourly, anywhere outside New York
-          City — comes in as a request for you to price.
+          City — comes in as a request for you to price. To add, rename, hide or
+          delete an airport, use{" "}
+          <Link href="/airports" className="text-midnight underline underline-offset-4">
+            Airports
+          </Link>
+          .
         </p>
         <p className="mt-3 font-sans text-[14px] text-charcoal/60">
           <span className="font-semibold text-midnight tabular-nums">

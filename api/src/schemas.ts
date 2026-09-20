@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { AIRPORT_CODES } from "./services/pricing.js";
 import { AMENITY_KEYS, VEHICLE_CATEGORIES } from "./vehicles/amenities.js";
 
 /**
@@ -26,6 +25,28 @@ export const quoteStatuses = [
   "lost",
   "pending",
 ] as const;
+
+/**
+ * Airports are rows the operator manages, so the code cannot be a compile-time
+ * enum. Shape is checked here; whether it is a live airport is decided against
+ * the table in `decideFare` and `saveRates`.
+ */
+const airportCodeField = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{2,8}$/, "Use 2–8 letters or numbers.");
+
+export const airportInputSchema = z.object({
+  code: airportCodeField,
+  name: z.string().trim().min(2, "Enter the airport's name.").max(120),
+  isActive: z.boolean().default(true),
+});
+
+export const airportUpdateSchema = z.object({
+  name: z.string().trim().min(2, "Enter the airport's name.").max(120).optional(),
+  isActive: z.boolean().optional(),
+});
 
 export const tripTypes = ["airport", "point-to-point", "hourly"] as const;
 
@@ -76,7 +97,7 @@ export const createBookingSchema = z.object({
   /* Airport transfers carry the airport, the direction, and the Place ids the
      server re-resolves. The customer never sends a price — `decideFare` derives
      it from the live rate card. */
-  airportCode: z.enum(AIRPORT_CODES).optional().nullable(),
+  airportCode: airportCodeField.optional().nullable(),
   airportDirection: z.enum(["from-airport", "to-airport"]).optional().nullable(),
   pickupPlaceId: z.string().trim().max(255).optional().nullable(),
   destinationPlaceId: z.string().trim().max(255).optional().nullable(),
@@ -156,7 +177,7 @@ export const saveRatesSchema = z.object({
   rates: z
     .array(
       z.object({
-        airportCode: z.enum(AIRPORT_CODES),
+        airportCode: airportCodeField,
         vehicleId: z.coerce.number().int().positive(),
         /** `null` clears the cell, so that combination quotes instead. */
         priceCents: z.coerce.number().int().min(0).max(100_000_00).nullable(),

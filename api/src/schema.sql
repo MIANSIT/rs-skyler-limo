@@ -223,6 +223,33 @@ CREATE TABLE IF NOT EXISTS hero_media (
   KEY ix_hero_media_active_order (is_active, display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- The airports a customer can book a transfer to or from. Managed in the
+-- dashboard. `code` is the operator-facing key and never changes after creation:
+-- rates and past bookings refer to it. Inactive airports leave the booking form
+-- but keep their rates, so switching one back on restores its prices.
+CREATE TABLE IF NOT EXISTS airports (
+  code          VARCHAR(8) NOT NULL,
+  name          VARCHAR(120) NOT NULL,
+  is_active     TINYINT(1) NOT NULL DEFAULT 1,
+  display_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (code),
+  KEY ix_airports_active_order (is_active, display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The starting list, inserted only into an empty table. Once the operator has
+-- any airport of their own, a re-run of migrate never brings a deleted one back.
+INSERT IGNORE INTO airports (code, name, display_order)
+SELECT * FROM (
+  SELECT 'JFK' AS code, 'JFK International' AS name, 1 AS display_order
+  UNION ALL SELECT 'LGA', 'LaGuardia (LGA)', 2
+  UNION ALL SELECT 'EWR', 'Newark Liberty (EWR)', 3
+  UNION ALL SELECT 'TEB', 'Teterboro (TEB)', 4
+  UNION ALL SELECT 'HPN', 'Westchester County (HPN)', 5
+) AS defaults
+WHERE NOT EXISTS (SELECT 1 FROM airports);
+
 -- The fixed-price card for airport transfers inside New York City.
 --
 -- One price per airport per vehicle class, covering all five boroughs. A row

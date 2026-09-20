@@ -42,6 +42,9 @@ Things that are easy to get wrong here:
   table via `GET /api/fleet`; `src/lib/content.ts` must never describe a vehicle
   again. The public page caches under the `fleet` tag and the admin app clears
   it through `POST /api/revalidate`.
+- **Airports are data too.** The `airports` table, managed at `/airports` in the
+  admin (`api/src/services/airports.ts`). There is no airport list in code;
+  `decideFare` checks the table, so a hidden airport quotes.
 - **The server decides the fare, never the browser.** `decideFare` in
   `api/src/services/pricing.ts` re-derives it on every submission; the form's
   figure is a preview. Airport-inside-NYC with a published rate is `fixed`,
