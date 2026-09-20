@@ -26,6 +26,7 @@ import {
   listAirports,
   updateAirport,
 } from "../services/airports.js";
+import { sendQuotedEmail } from "../services/mail.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
 import {
   deleteReview,
@@ -164,5 +165,17 @@ adminRouter.post("/bookings/:id/quote", async (req, res) => {
   await sendQuote(id, totalCents, note ?? null, req.admin!.id);
 
   const booking = await getBookingById(id);
+
+  // Tell the customer their price is ready. Not awaited, never throws: the
+  // quote is already saved, so a mail failure belongs in the log.
+  if (booking) {
+    void sendQuotedEmail(booking).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
+
   res.json({ booking });
 });

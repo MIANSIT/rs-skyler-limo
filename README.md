@@ -98,10 +98,13 @@ LGA, EWR, TEB and HPN on first migrate. The code is permanent because rates and
 bookings refer to it; hiding an airport takes it off the booking form but keeps
 its rates, and an airport named on any booking cannot be deleted.
 
-Setting a price in the dashboard moves the booking to `quoted` and publishes it
-to the customer's tracking page immediately. Telling the customer that a price
-is waiting is still the operator's job — that one is a call or a message, not an
-automated email.
+Setting a price in the dashboard moves the booking to `quoted`, publishes it to
+the customer's tracking page immediately, and emails the customer a "Your quote
+is ready" message with the fare and the operator's note. It is sent only when an
+operator presses Send quote, so nothing goes out that a person did not decide to
+send. A quote request from the quote, corporate or weddings forms emails the
+customer an acknowledgement and the reservations desk a notification, the same
+two-message rule as a booking.
 
 **A new booking does email itself.** The API sends two messages: a confirmation
 to the customer and a notification to the reservations desk, laid out as a

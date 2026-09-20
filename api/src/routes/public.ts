@@ -22,7 +22,7 @@ import { listVehicles } from "../services/vehicles.js";
 import { listActiveHeroMedia } from "../services/hero.js";
 import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
-import { sendBookingEmails } from "../services/mail.js";
+import { sendBookingEmails, sendQuoteRequestEmails } from "../services/mail.js";
 import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
@@ -164,6 +164,15 @@ publicRouter.post("/bookings", submitLimit, async (req, res) => {
 publicRouter.post("/quotes", submitLimit, async (req, res) => {
   const input = createQuoteSchema.parse(req.body);
   const quote = await createQuote(input, "website");
+
+  // Same rule as a booking: the request is saved, so a mail failure is logged
+  // and never reaches the customer, and nobody waits on SMTP.
+  void sendQuoteRequestEmails(quote).catch((error: unknown) => {
+    console.error(
+      `[mail] unexpected failure for ${quote.reference}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
 
   res.status(201).json({
     reference: quote.reference,
