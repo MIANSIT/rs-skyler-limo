@@ -212,3 +212,19 @@ export type RateGrid = {
   vehicles: { id: number; slug: string; name: string }[];
   rates: AirportRate[];
 };
+
+/* -------------------------------------------------------------------------- */
+/* Reviews                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type ReviewStatus = "pending" | "approved" | "hidden";
+
+export type AdminReview = {
+  id: number;
+  rating: number;
+  comment: string;
+  displayName: string;
+  createdAt: string;
+  status: ReviewStatus;
+  bookingReference: string;
+};

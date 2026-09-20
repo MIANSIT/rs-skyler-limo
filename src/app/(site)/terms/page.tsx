@@ -42,7 +42,7 @@ const waitTime = [
   {
     pickup: "Domestic flights",
     free: "45 minutes",
-    from: "Your actual landing time — not your scheduled time. Give us the flight number on the booking so we can check it.",
+    from: "Your actual landing time, not your scheduled time. Give us the flight number when you book.",
   },
   {
     pickup: "International flights",
@@ -75,7 +75,7 @@ const collected = [
   {
     term: "Your flight number, on airport transfers",
     detail:
-      "So we can check when you actually land, and a delayed flight moves your pickup rather than costing you a fare.",
+      "So we know which flight you are on, and your waiting time is counted from when you actually land rather than the scheduled time.",
   },
   {
     term: "Payment details",
@@ -174,7 +174,7 @@ export default function TermsPage() {
           <SectionHeading
             eyebrow="Waiting"
             title="The clock starts when you land, not when you were due"
-            intro="We track your flight. A delayed arrival moves your pickup with it, and your complimentary wait time begins at the wheels-down time, so a three-hour delay costs you nothing."
+            intro="Give us your flight number when you book. Your complimentary wait time is counted from your actual landing time, not the scheduled one, so a delayed arrival does not cost you waiting time."
             data-reveal
           />
 
@@ -278,7 +278,7 @@ export default function TermsPage() {
                 term: "Your flight, on airport transfers",
                 detail: `A flight number is required for pickups at ${bookingAirports.join(
                   ", ",
-                )}. It is how we track your landing and hold the car for a delay.`,
+                )}. It tells us which flight to expect, so your waiting time is counted from your actual landing.`,
               },
               {
                 term: "Passengers and luggage",

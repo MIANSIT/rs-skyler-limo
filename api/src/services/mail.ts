@@ -1,8 +1,10 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { buildBookingEmail } from "../emails/booking.js";
+import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
 import { env } from "../env.js";
 import type { Booking } from "./bookings.js";
+import type { Quote } from "./quotes.js";
 import { getVehicleBySlug } from "./vehicles.js";
 
 /**
@@ -82,7 +84,7 @@ type Message = {
   subject: string;
   html: string;
   text: string;
-  replyTo?: string;
+  replyTo?: string | string[];
 };
 
 /**
@@ -161,6 +163,60 @@ export async function sendBookingEmails(booking: Booking): Promise<void> {
       text: ops.text,
     }),
   ]);
+}
+
+/**
+ * Both messages for a quote request: the customer's acknowledgement and the
+ * office's notification. Same rules as a booking: not awaited by the caller,
+ * never throws, and the row is already saved.
+ */
+export async function sendQuoteRequestEmails(quote: Quote): Promise<void> {
+  const customer = buildQuoteRequestEmail(quote, "customer");
+  const ops = buildQuoteRequestEmail(quote, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: quote.customerEmail,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      to: env.MAIL_OPS_RECIPIENTS,
+      replyTo: quote.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
+}
+
+/**
+ * Tells the customer their trip has been priced. Sent only when an operator
+ * presses Send quote in the dashboard, so nothing is emailed that a person has
+ * not decided to send. The customer only: the office entered the price.
+ */
+export async function sendQuotedEmail(booking: Booking): Promise<void> {
+  if (booking.quotedTotalCents === null) return;
+
+  let vehicleName: string;
+  try {
+    vehicleName =
+      (await getVehicleBySlug(booking.vehicleClass))?.name ??
+      booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const email = buildQuotedEmail(booking, vehicleName);
+
+  await send({
+    to: booking.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
 }
 
 function describe(error: unknown): string {

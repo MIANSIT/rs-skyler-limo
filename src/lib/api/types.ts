@@ -112,3 +112,23 @@ export type FleetVehicle = {
   photos: VehiclePhoto[];
   primaryPhoto: VehiclePhoto | null;
 };
+
+/* -------------------------------------------------------------------------- */
+/* Reviews                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type PublicReview = {
+  id: number;
+  rating: number;
+  comment: string;
+  displayName: string;
+  createdAt: string;
+};
+
+export type ReviewsResponse = {
+  reviews: PublicReview[];
+  count: number;
+  average: number | null;
+  /** Google's review form for the business, or null until a Place ID is set. */
+  googleReviewUrl: string | null;
+};

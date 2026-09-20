@@ -303,3 +303,68 @@ export async function trackBooking(
     throw error;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Reviews                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type ReviewFormState =
+  | { status: "idle" }
+  | {
+      status: "success";
+      /** Google's review form, when the business has a Place ID configured. */
+      googleReviewUrl: string | null;
+    }
+  | {
+      status: "error";
+      message: string;
+      fields?: Record<string, string>;
+      /** Echoed back so a rejected review is never retyped. */
+      values: Record<string, string>;
+      attempt: number;
+    };
+
+export async function submitReview(
+  _previous: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const text = (key: string) => String(formData.get(key) ?? "").trim();
+
+  const values = Object.fromEntries(
+    ["reference", "phone", "rating", "comment", "displayName"].map((key) => [
+      key,
+      text(key),
+    ]),
+  );
+  const attempt = (_previous.status === "error" ? _previous.attempt : 0) + 1;
+
+  try {
+    const result = await apiFetch<{ googleReviewUrl: string | null }>(
+      "/api/reviews",
+      {
+        method: "POST",
+        forwardedFor: await callerIp(),
+        body: {
+          reference: text("reference").toUpperCase(),
+          phone: text("phone"),
+          rating: text("rating") || 0,
+          comment: text("comment"),
+          displayName: text("displayName") || null,
+        },
+      },
+    );
+
+    return { status: "success", googleReviewUrl: result.googleReviewUrl };
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      return {
+        status: "error",
+        message: error.failure.message,
+        fields: error.failure.fields,
+        values,
+        attempt,
+      };
+    }
+    throw error;
+  }
+}

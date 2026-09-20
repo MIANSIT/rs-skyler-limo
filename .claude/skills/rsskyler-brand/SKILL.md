@@ -163,8 +163,36 @@ Taglines by context: *Arrive in Style* (primary — homepage, app, general marke
 *Your City, Chauffeured* (corporate/commuter) · *Precision. Privacy. Presence.* (diplomatic &
 high-discretion) · *Every Detail, Minded* (weddings & events).
 
+**The "Say" examples and the Content reference below describe the brand's aspiration, not what
+the system does.** Live driver tracking, "your driver is five minutes out", flight-tracked pickup
+and automatic delay updates are not built (the guide itself lists live tracking only as a proposed
+"enhancement"). Never put one on the site, in an email or in the terms unless the feature exists.
+Write what the system really does: the tracking page is a two-field booking lookup, a flight number
+is collected, and a person handles changes. Reword rather than copy the example.
+
 Never write marketing copy that promises exclusivity or velvet-rope distance. "Exclusive" sits
 in real tension with the accessible-luxury positioning and is not approved language.
+
+## FAQ, reviews and About
+
+The Brand Guidelines have no chapter on these, so the general rules govern: two typefaces, five
+colours, the voice table, one gold action per view. Specific to this repo:
+
+- **FAQ** (`Faq` in `src/components/site/home-sections.tsx`, copy in `faqs` in `src/lib/content.ts`).
+  Questions are H3-role: Public Sans Semibold 17px, midnight. Answers are body: Public Sans 15px,
+  charcoal. Set on a grey ground, no gold text. Every answer must restate something the terms or the
+  code already commits to (a fee, a window, a rule). Change a policy in the terms and the FAQ together.
+  Never write an answer the business has not agreed to keep, and no exclusivity language.
+- **Reviews** (`Reviews` in `home-sections.tsx`, form at `/review`). Genuine customer words only,
+  submitted after a completed trip and shown once an operator approves them in the dashboard. Quote is
+  a pull quote: Fraunces Italic, 15-17px. Name and context are Public Sans. Ratings are midnight
+  stars, never gold (a gold glyph is text on white). Gold appears only as the rule above each quote.
+  The average is Public Sans. Nothing renders while there are no approved reviews.
+- **About** (`about` in `content.ts`). Only what the business confirms: who runs it, when it began,
+  what it owns. Body in Public Sans, facts as a label/value list. `null` hides it.
+- **Demo content** (`demoReviews`, `about` in `content.ts`) exists so the layout can be reviewed. It is labelled on
+  screen and rendered only when `NODE_ENV` is not `production`. A production build never shows it.
+  Do not invent reviews, names, dates or ownership claims for a live page, ever.
 
 ## Imagery
 

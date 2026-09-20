@@ -45,6 +45,7 @@ export const nav = [
   { href: "/weddings", label: "Weddings & Events" },
   { href: "/quote", label: "Get a quote" },
   { href: "/track", label: "Track a ride" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 /**
@@ -221,4 +222,120 @@ export const bookingAirports = [
   "Newark (EWR)",
   "Teterboro (TEB)",
   "Westchester County (HPN)",
+] as const;
+
+/**
+ * Every answer here restates something the site or the terms already commits to
+ * — a fee, a window, a rule the code enforces. If a policy changes, change it
+ * in the terms and here together. Do not add an answer the business has not
+ * agreed to keep.
+ */
+export const faqs: { question: string; answer: string }[] = [
+  {
+    question: "How do I know what a trip will cost?",
+    answer:
+      "Airport transfers between the five boroughs and an airport on our rate card are priced up front, so you see the fare before you book. Anything else — point to point, hourly, or outside New York City — is quoted by a person and agreed before you travel.",
+  },
+  {
+    question: "Are tolls and gratuity included?",
+    answer:
+      "On a fixed airport fare, yes. On a quoted trip, tolls and parking are added at cost only where they were not already in the price we gave you.",
+  },
+  {
+    question: "Can I cancel?",
+    answer:
+      "Free of charge more than 6 hours before pickup. Inside 6 hours, or if you do not show, the full fare applies. If we cancel, you are refunded in full whatever the notice.",
+  },
+  {
+    question: "How long will the chauffeur wait?",
+    answer: `Complimentary waiting is 45 minutes on domestic flights, 60 on international flights and 15 on point-to-point and hourly pickups. After that, waiting is $${hourlyWaitingRate} per hour in 15-minute increments, and we call before it starts.`,
+  },
+  {
+    question: "Do you provide child seats?",
+    answer: `Yes, at $${childSeatFee} per seat. How many a vehicle takes depends on its class and is shown on the fleet page.`,
+  },
+  {
+    question: "How do I check on a booking?",
+    answer:
+      "Use Track a ride with your reference and the phone number on the booking. There is no account to create.",
+  },
+  {
+    question: "Do you offer corporate accounts?",
+    answer:
+      "Yes: monthly invoicing with every trip itemised, and a single point of contact. Send the details through the corporate page.",
+  },
+];
+
+export type Review = { quote: string; name: string; context?: string };
+
+/**
+ * Real reviews now come from customers, through the review page and the
+ * dashboard's approval queue, so there is nothing to type in here.
+ *
+ * These stand-ins exist only so the section can be designed before any real
+ * review has been approved. They are shown outside production, with a visible
+ * label, and only while there are no real reviews. A production build gets an
+ * empty list: presenting invented testimonials to real customers is deceptive.
+ */
+export const demoReviews: Review[] =
+  process.env.NODE_ENV === "production"
+    ? []
+    : [
+        {
+          quote:
+            "Sample review text for layout only. Real reviews come from customers.",
+          name: "Sample Customer",
+          context: "airport transfer",
+        },
+        {
+          quote:
+            "A second sample, to show how two or three reviews sit side by side.",
+          name: "Sample Customer",
+          context: "corporate account",
+        },
+        {
+          quote: "A third sample, kept short to show the shortest a review can be.",
+          name: "Sample Customer",
+          context: "wedding",
+        },
+      ];
+
+const showDemo = process.env.NODE_ENV !== "production";
+
+export type About = {
+  title: string;
+  paragraphs: string[];
+  facts: { label: string; value: string }[];
+};
+
+/**
+ * The company's own story. Fill in only what the business confirms: who runs
+ * it, when it started, what it owns. `null` hides the section.
+ */
+const realAbout: About | null = null;
+
+/** Stand-in copy, development only — see `demoReviews`. */
+const demoAbout: About = {
+  title: "About RSSkyler Limo (sample heading)",
+  paragraphs: [
+    "Sample paragraph for layout only. Replace with the company story in the client's own words: how it started and who runs it.",
+    "A second sample paragraph. Keep it plain and short, and say only what the business can stand behind.",
+  ],
+  facts: [
+    { label: "Founded", value: "Sample year" },
+    { label: "Based in", value: "Sample location" },
+    { label: "Fleet", value: "Sample detail" },
+  ],
+};
+
+export const about: About | null = realAbout ?? (showDemo ? demoAbout : null);
+export const aboutIsDemo = realAbout === null && showDemo;
+
+/** The one service area the business has confirmed. */
+export const boroughs = [
+  "Manhattan",
+  "Brooklyn",
+  "Queens",
+  "The Bronx",
+  "Staten Island",
 ] as const;

@@ -80,3 +80,30 @@ export async function revalidatePublicHero(): Promise<void> {
     console.warn("Hero revalidation failed:", error);
   }
 }
+
+/** Same as `revalidatePublicFleet`, for the approved-reviews cache tag. */
+export async function revalidatePublicReviews(): Promise<void> {
+  const url = process.env.WEB_REVALIDATE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+
+  if (!url || !secret) return;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ tag: "reviews" }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) {
+      console.warn(`Reviews revalidation returned ${response.status}.`);
+    }
+  } catch (error) {
+    console.warn("Reviews revalidation failed:", error);
+  }
+}

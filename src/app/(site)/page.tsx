@@ -5,6 +5,14 @@ import { Reveal } from "@/components/motion/reveal";
 import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
+import {
+  About,
+  AirportTransfers,
+  Faq,
+  Reviews,
+  ServiceAreas,
+} from "@/components/site/home-sections";
+import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { HowItWorks } from "@/components/site/how-it-works";
 import { ButtonLink } from "@/components/ui/button";
 import {
@@ -25,15 +33,17 @@ import {
 import { bookingAirports, services, values } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { getHeroMediaSafely } from "@/lib/public/hero-media";
+import { getReviewsSafely } from "@/lib/public/reviews";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
 export default async function HomePage() {
   // One fetch, shared by the booking widget and the fleet strip below.
-  const [fleet, bookingOptions, heroMedia] = await Promise.all([
+  const [fleet, bookingOptions, heroMedia, reviewsData] = await Promise.all([
     getFleetSafely(),
     getBookingOptionsSafely(),
     getHeroMediaSafely(),
+    getReviewsSafely(),
   ]);
 
   return (
@@ -175,6 +185,9 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
+      <AirportTransfers airports={bookingOptions.airports} />
+      <ServiceAreas />
+
       {/* Values + counters */}
       <Section tone="dark">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
@@ -235,6 +248,9 @@ export default async function HomePage() {
         </div>
       </Section>
 
+      <Reviews data={reviewsData} />
+      <About />
+
       {/* Positioning note, set in the guide's own rationale device */}
       <Section tone="light">
         <Reveal className="mx-auto max-w-3xl">
@@ -247,6 +263,8 @@ export default async function HomePage() {
           </div>
         </Reveal>
       </Section>
+
+      <Faq />
 
       {/* Closing CTA */}
       <section className="bg-midnight">
@@ -273,61 +291,6 @@ export default async function HomePage() {
         </Container>
       </section>
     </>
-  );
-}
-
-/**
- * What `/track` actually returns, drawn rather than described.
- *
- * It replaced `RoutePreview`, which animated a car along a route to a
- * five-minute ETA — a convincing illustration of live tracking that does not
- * exist. This shows the fields the lookup really produces. The reference is
- * obviously a sample; everything it claims the product does, the product does.
- */
-function BookingStatusPreview() {
-  return (
-    <div className="border border-white/15 bg-white/3 p-6 md:p-8">
-      <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-5">
-        <div>
-          <p className="font-sans text-[13px] font-medium tracking-[0.12em] text-gold uppercase">
-            Booking found
-          </p>
-          <p className="font-display mt-2 text-[26px] leading-none font-semibold text-white tabular-nums">
-            RS-4K2QP7
-          </p>
-        </div>
-        <span className="border border-white/25 px-3 py-1 font-sans text-[13px] tracking-[0.08em] text-white uppercase">
-          Confirmed
-        </span>
-      </div>
-
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5">
-        <Detail label="Pickup" value="JFK Airport" />
-        <Detail label="Destination" value="Midtown Manhattan" />
-        <Detail label="Date" value="14 Oct 2026" />
-        <Detail label="Time" value="6:40 p.m." />
-        <Detail label="Vehicle" value="Luxury Sedan" />
-        <Detail label="Fare" value="$145.00" />
-      </dl>
-
-      <p className="mt-6 border-t border-white/15 pt-5 text-[13px] leading-[1.6] text-white/55">
-        A sample lookup. Your own needs the reference and the phone number on
-        the booking.
-      </p>
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="font-sans text-[13px] tracking-[0.08em] text-white/50 uppercase">
-        {label}
-      </dt>
-      <dd className="font-sans mt-1 text-[15px] font-medium text-white tabular-nums">
-        {value}
-      </dd>
-    </div>
   );
 }
 

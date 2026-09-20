@@ -45,6 +45,11 @@ Things that are easy to get wrong here:
 - **Airports are data too.** The `airports` table, managed at `/airports` in the
   admin (`api/src/services/airports.ts`). There is no airport list in code;
   `decideFare` checks the table, so a hidden airport quotes.
+- **Reviews are moderated data.** `reviews` table, `api/src/services/reviews.ts`,
+  `/review` on the site, `/reviews` in the admin. Completed bookings only, one
+  per booking, `pending` until an operator publishes. `GOOGLE_PLACE_ID` (in
+  `api/.env`) only builds the "Review us on Google" link. Never invent reviews:
+  `demoReviews` in `content.ts` is development-only.
 - **The server decides the fare, never the browser.** `decideFare` in
   `api/src/services/pricing.ts` re-derives it on every submission; the form's
   figure is a preview. Airport-inside-NYC with a published rate is `fixed`,

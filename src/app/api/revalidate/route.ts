@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server";
  * fixed set of tags — never an arbitrary string from the caller, which would
  * let anyone who guessed the secret invalidate the entire site at will.
  */
-const ALLOWED_TAGS = new Set(["fleet", "hero"]);
+const ALLOWED_TAGS = new Set(["fleet", "hero", "reviews"]);
 
 function secretMatches(given: string, expected: string): boolean {
   const a = Buffer.from(given);

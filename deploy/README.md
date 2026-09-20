@@ -224,9 +224,11 @@ journalctl -u rsskyler-admin | grep COOKIE_INSECURE
 - **Google Places** — `GOOGLE_MAPS_API_KEY` is unset in `api/.env`. Address
   autocomplete is off and the booking form uses its borough-selector fallback;
   fixed airport fares work either way.
-- **Quote emails** — booking emails are live (see below), but a *quote request*
-  from `/quote`, corporate or weddings still lands in the dashboard silently.
-  The mailer takes another template when that is wanted.
+- **Quote emails** — built. A quote request from `/quote`, corporate or weddings
+  emails the customer and the desk, and pricing a trip in the dashboard emails the
+  customer their quote. Same transport, same rules as booking email: never
+  awaited, never throws. Not yet exercised against the live mailbox, so check the
+  first real one.
 - **Deliverability to Gmail is unproven.** The three operator addresses are
   Gmail; the sender is Yahoo. Mail from Yahoo to Gmail with no SPF or DKIM on
   `rsskylerlimo.com` is exactly the shape that gets filed as spam. Nothing is
