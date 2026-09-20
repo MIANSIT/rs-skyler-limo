@@ -289,3 +289,29 @@ export const heroMediaUpdateSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     error: "Nothing to update.",
   });
+
+/* -------------------------------------------------------------------------- */
+/* Reviews                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export const createReviewSchema = z.object({
+  /** Same two factors as tracking: a reference alone should not identify a trip. */
+  reference: z.string().trim().min(3).max(20),
+  phone: z.string().trim().min(4).max(40),
+  rating: z.coerce.number().int().min(1, "Choose a rating.").max(5, "Choose a rating from 1 to 5."),
+  comment: z
+    .string()
+    .trim()
+    .min(10, "Tell us a little more, at least a sentence.")
+    .max(1500),
+  /** Optional. Blank falls back to the first name and last initial. */
+  displayName: z.string().trim().max(80).optional().nullable(),
+});
+
+export const listReviewsSchema = z.object({
+  status: z.enum(["pending", "approved", "hidden"]).optional(),
+});
+
+export const updateReviewSchema = z.object({
+  status: z.enum(["pending", "approved", "hidden"]),
+});

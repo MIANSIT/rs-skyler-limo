@@ -7,6 +7,7 @@ import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import type {
   ActivityEntry,
   AdminAirport,
+  AdminReview,
   AdminUser,
   Booking,
   DashboardStats,
@@ -15,6 +16,7 @@ import type {
   Paginated,
   Quote,
   RateGrid,
+  ReviewStatus,
   Vehicle,
 } from "@/lib/api/types";
 
@@ -194,4 +196,13 @@ export async function getAirports(): Promise<AdminAirport[]> {
 export async function getRateGrid(): Promise<RateGrid> {
   const { token } = await verifySession();
   return apiFetch<RateGrid>("/api/admin/rates", { token });
+}
+
+export async function getReviews(status?: ReviewStatus): Promise<AdminReview[]> {
+  const { token } = await verifySession();
+  const { reviews } = await apiFetch<{ reviews: AdminReview[] }>(
+    `/api/admin/reviews${status ? `?status=${status}` : ""}`,
+    { token },
+  );
+  return reviews;
 }

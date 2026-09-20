@@ -7,10 +7,12 @@ import {
   airportUpdateSchema,
   listBookingsSchema,
   listQuotesSchema,
+  listReviewsSchema,
   saveRatesSchema,
   sendQuoteSchema,
   updateBookingSchema,
   updateQuoteSchema,
+  updateReviewSchema,
 } from "../schemas.js";
 import {
   getActivity,
@@ -25,6 +27,11 @@ import {
   updateAirport,
 } from "../services/airports.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
+import {
+  deleteReview,
+  listReviewsForAdmin,
+  setReviewStatus,
+} from "../services/reviews.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
 
@@ -125,6 +132,26 @@ adminRouter.patch("/airports/:code", async (req, res) => {
 
 adminRouter.delete("/airports/:code", async (req, res) => {
   await deleteAirport(parseCode(req.params.code));
+  res.status(204).end();
+});
+
+/* -------------------------------------------------------------------------- */
+/* Reviews                                                                    */
+/* -------------------------------------------------------------------------- */
+
+adminRouter.get("/reviews", async (req, res) => {
+  const { status } = listReviewsSchema.parse(req.query);
+  res.json({ reviews: await listReviewsForAdmin(status) });
+});
+
+adminRouter.patch("/reviews/:id", async (req, res) => {
+  const { status } = updateReviewSchema.parse(req.body);
+  await setReviewStatus(parseId(req.params.id), status, req.admin!.id);
+  res.json({ ok: true });
+});
+
+adminRouter.delete("/reviews/:id", async (req, res) => {
+  await deleteReview(parseId(req.params.id));
   res.status(204).end();
 });
 

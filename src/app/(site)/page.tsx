@@ -5,6 +5,13 @@ import { Reveal } from "@/components/motion/reveal";
 import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
+import {
+  About,
+  AirportTransfers,
+  Faq,
+  Reviews,
+  ServiceAreas,
+} from "@/components/site/home-sections";
 import { HowItWorks } from "@/components/site/how-it-works";
 import { ButtonLink } from "@/components/ui/button";
 import {
@@ -25,15 +32,17 @@ import {
 import { bookingAirports, services, values } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { getHeroMediaSafely } from "@/lib/public/hero-media";
+import { getReviewsSafely } from "@/lib/public/reviews";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
 export default async function HomePage() {
   // One fetch, shared by the booking widget and the fleet strip below.
-  const [fleet, bookingOptions, heroMedia] = await Promise.all([
+  const [fleet, bookingOptions, heroMedia, reviewsData] = await Promise.all([
     getFleetSafely(),
     getBookingOptionsSafely(),
     getHeroMediaSafely(),
+    getReviewsSafely(),
   ]);
 
   return (
@@ -175,6 +184,9 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
+      <AirportTransfers airports={bookingOptions.airports} />
+      <ServiceAreas />
+
       {/* Values + counters */}
       <Section tone="dark">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
@@ -235,6 +247,9 @@ export default async function HomePage() {
         </div>
       </Section>
 
+      <Reviews data={reviewsData} />
+      <About />
+
       {/* Positioning note, set in the guide's own rationale device */}
       <Section tone="light">
         <Reveal className="mx-auto max-w-3xl">
@@ -247,6 +262,8 @@ export default async function HomePage() {
           </div>
         </Reveal>
       </Section>
+
+      <Faq />
 
       {/* Closing CTA */}
       <section className="bg-midnight">

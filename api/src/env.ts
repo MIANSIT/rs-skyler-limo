@@ -63,6 +63,15 @@ const schema = z.object({
    */
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 
+  /**
+   * The business's Google Place ID. When set, the review page offers a "Review
+   * us on Google" button that opens Google's own review form for that place.
+   * Not a secret (it is visible in the link), but it belongs to whichever
+   * Google Business Profile the client hands over, so it is configuration and
+   * not code. Unset, the button simply does not appear.
+   */
+  GOOGLE_PLACE_ID: z.string().min(1).optional(),
+
   /* ---------------------------------------------------------------- mail */
 
   /**

@@ -291,3 +291,28 @@ CREATE TABLE IF NOT EXISTS activity_log (
   CONSTRAINT fk_activity_admin_user
     FOREIGN KEY (admin_user_id) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Customer reviews, left on the website after a trip is completed.
+--
+-- One per booking (the unique key), and only for a booking whose status is
+-- completed; the API enforces that, not the schema. A review starts pending and
+-- reaches the public site only once an operator approves it, so abuse and spam
+-- never appear. Hiding is reversible; the row is kept.
+CREATE TABLE IF NOT EXISTS reviews (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  booking_id    BIGINT UNSIGNED NOT NULL,
+  rating        TINYINT UNSIGNED NOT NULL,
+  comment       TEXT NOT NULL,
+  display_name  VARCHAR(80) NOT NULL,
+  status        ENUM('pending','approved','hidden') NOT NULL DEFAULT 'pending',
+  moderated_by  BIGINT UNSIGNED NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_reviews_booking (booking_id),
+  KEY ix_reviews_status_created (status, created_at),
+  CONSTRAINT fk_reviews_booking
+    FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
+  CONSTRAINT fk_reviews_admin
+    FOREIGN KEY (moderated_by) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

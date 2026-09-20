@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -115,6 +116,19 @@ export function TrackForm({ vehicleNames }: { vehicleNames: Record<string, strin
               We are still pricing this trip. A reservations agent will come back
               to you by phone or email — the fare will appear here as soon as it
               is set.
+            </p>
+          ) : null}
+
+          {state.booking.status === "completed" ? (
+            <p className="mt-6 border-t border-midnight/10 pt-6 text-[15px] leading-[1.7] text-charcoal">
+              How was the trip?{" "}
+              <Link
+                href={`/review?reference=${encodeURIComponent(state.booking.reference)}`}
+                className="font-medium text-midnight underline underline-offset-4"
+              >
+                Leave a review
+              </Link>
+              .
             </p>
           ) : null}
 

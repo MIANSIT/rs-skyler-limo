@@ -7,11 +7,17 @@ import { rateLimit } from "../middleware.js";
 import {
   createBookingSchema,
   createQuoteSchema,
+  createReviewSchema,
   placesAutocompleteSchema,
   trackSchema,
 } from "../schemas.js";
 import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
+import {
+  createReview,
+  googleReviewUrl,
+  listApprovedReviews,
+} from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
 import { listActiveHeroMedia } from "../services/hero.js";
 import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
@@ -201,4 +207,16 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     quoteNote: booking.quoteNote,
     quotedAt: booking.quotedAt,
   });
+});
+
+/** Approved reviews, plus where to send a customer who wants to review on Google. */
+publicRouter.get("/reviews", async (_req, res) => {
+  res.json({ ...(await listApprovedReviews()), googleReviewUrl: googleReviewUrl() });
+});
+
+publicRouter.post("/reviews", submitLimit, async (req, res) => {
+  const input = createReviewSchema.parse(req.body);
+  await createReview(input);
+
+  res.status(201).json({ received: true, googleReviewUrl: googleReviewUrl() });
 });

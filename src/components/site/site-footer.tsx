@@ -66,6 +66,7 @@ export async function SiteFooter() {
                 {contact.email}
               </span>
             </FooterLink>
+            <FooterLink href="/contact">Contact us</FooterLink>
             <FooterLink href="/corporate">Corporate accounts</FooterLink>
             <FooterLink href="/track">Track a ride</FooterLink>
           </FooterColumn>

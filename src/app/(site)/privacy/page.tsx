@@ -46,6 +46,11 @@ const collected = [
     detail: "Only when you provide it. It is optional on every form.",
   },
   {
+    term: "A review, if you choose to leave one",
+    detail:
+      "Your rating, what you write, and the name you want shown (or your first name and last initial if you leave it blank). It is tied to your booking so only a real customer can review, and it is published only after a member of our team approves it.",
+  },
+  {
     term: "Payment details",
     detail:
       "Card details are entered with our payment processor and are never stored on our systems. We keep the authorisation reference and the last four digits, which is what appears on your invoice.",
@@ -65,6 +70,12 @@ const thirdParties = [
     what: "Address autocomplete in the booking form.",
     detail:
       "What you type into an address box is sent to Google to return suggestions. It is proxied through our own server, so Google does not receive your IP address or a cookie from this site. Nothing else on the form is sent.",
+  },
+  {
+    name: "Google, if you choose to review us there",
+    what: "An optional review on Google.",
+    detail:
+      "After you send a review to us we may offer a link to Google's own review form. Following it takes you to Google, where its terms and privacy policy apply. We send Google nothing about you or your booking.",
   },
   {
     name: "Our payment processor",
@@ -90,6 +101,11 @@ const retention = [
     what: "Notes you write on a booking",
     how: "With the booking",
     why: "They are part of the record of what was arranged.",
+  },
+  {
+    what: "Reviews",
+    how: "With the booking",
+    why: "A review belongs to the trip it describes. A published review can be removed if you ask us to.",
   },
   {
     what: "Staff sign-in sessions",
