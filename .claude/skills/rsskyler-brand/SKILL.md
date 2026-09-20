@@ -163,6 +163,13 @@ Taglines by context: *Arrive in Style* (primary — homepage, app, general marke
 *Your City, Chauffeured* (corporate/commuter) · *Precision. Privacy. Presence.* (diplomatic &
 high-discretion) · *Every Detail, Minded* (weddings & events).
 
+**The "Say" examples and the Content reference below describe the brand's aspiration, not what
+the system does.** Live driver tracking, "your driver is five minutes out", flight-tracked pickup
+and automatic delay updates are not built (the guide itself lists live tracking only as a proposed
+"enhancement"). Never put one on the site, in an email or in the terms unless the feature exists.
+Write what the system really does: the tracking page is a two-field booking lookup, a flight number
+is collected, and a person handles changes. Reword rather than copy the example.
+
 Never write marketing copy that promises exclusivity or velvet-rope distance. "Exclusive" sits
 in real tension with the accessible-luxury positioning and is not approved language.
 
