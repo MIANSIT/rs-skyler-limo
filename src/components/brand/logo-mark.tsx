@@ -28,7 +28,10 @@ export function LogoMark({
       aria-hidden
       priority={priority}
       sizes="(max-width: 768px) 40px, 56px"
-      className={clsx("h-auto w-auto object-contain", className)}
+      /* No `h-auto` here. `clsx` is a plain join, so it would sit beside the
+         caller's `h-8` at equal specificity, win on stylesheet order, and render
+         the mark at its natural pixel size — which took over a phone screen. */
+      className={clsx("w-auto object-contain", className)}
     />
   );
 }
