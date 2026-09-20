@@ -10,6 +10,7 @@ import type {
   Booking,
   DashboardStats,
   FleetMeta,
+  HeroMediaItem,
   Paginated,
   Quote,
   RateGrid,
@@ -130,6 +131,15 @@ export async function getQuote(
 /* -------------------------------------------------------------------------- */
 /* Fleet                                                                      */
 /* -------------------------------------------------------------------------- */
+
+export async function getHeroMedia(): Promise<HeroMediaItem[]> {
+  const { token } = await verifySession();
+  const { media } = await apiFetch<{ media: HeroMediaItem[] }>(
+    "/api/admin/hero",
+    { token },
+  );
+  return media;
+}
 
 export async function getVehicles(q?: string): Promise<Vehicle[]> {
   const { token } = await verifySession();

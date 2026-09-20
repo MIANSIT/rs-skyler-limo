@@ -13,6 +13,11 @@ export const UPLOADS_ROOT = resolve(env.UPLOADS_DIR);
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
+// Generous for a short, compressed hero clip. Still buffered whole-body in
+// memory like the image path below — acceptable for a single authenticated
+// operator uploading occasionally, not a public upload surface.
+const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
+
 /**
  * Accepted formats, identified by magic bytes rather than by the `Content-Type`
  * the client claims or the extension it picked. A caller can say anything; the
@@ -132,15 +137,53 @@ function readDimensions(bytes: Buffer, ext: string): { width: number; height: nu
 }
 
 /**
- * Writes an uploaded image under `UPLOADS_ROOT` and returns what to store.
+ * Writes bytes under `UPLOADS_ROOT/<folder>/<safeScope>/` with a generated
+ * name and returns the relative path. Shared by `storeImage` and
+ * `storeVideo`.
  *
  * The filename is generated, never taken from the client: an attacker-supplied
- * name is how `../../etc/something` and `photo.php` get written. Extension
- * comes from the verified signature.
+ * name is how `../../etc/something` and `photo.php` get written.
+ */
+async function writeUnderRoot(
+  folder: string,
+  scope: string,
+  ext: string,
+  bytes: Buffer,
+): Promise<string> {
+  // `scope` is caller-controlled, so it is reduced to a safe slug rather than
+  // trusted as a path fragment.
+  const safeScope = scope.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "item";
+  // Joined with `/` explicitly, not `path.join`: this value is stored in the
+  // database and turned into a URL, and `path.join` on Windows would use `\`,
+  // which then gets percent-encoded into the URL as a literal backslash.
+  const filePath = [
+    folder,
+    safeScope,
+    `${Date.now()}-${randomBytes(6).toString("hex")}.${ext}`,
+  ].join("/");
+
+  const absolute = join(UPLOADS_ROOT, filePath);
+
+  // Defence in depth: even with a generated name, confirm the resolved path did
+  // not escape the uploads root before writing anything.
+  if (!absolute.startsWith(UPLOADS_ROOT)) {
+    throw ApiError.badRequest("Invalid upload path.");
+  }
+
+  await mkdir(dirname(absolute), { recursive: true });
+  await writeFile(absolute, bytes);
+
+  return filePath;
+}
+
+/**
+ * Writes an uploaded image under `UPLOADS_ROOT` and returns what to store.
+ * Extension comes from the verified signature, never the client's claim.
  */
 export async function storeImage(
   bytes: Buffer,
   scope: string,
+  folder = "vehicles",
 ): Promise<StoredFile> {
   if (bytes.length === 0) throw ApiError.badRequest("That file is empty.");
 
@@ -154,26 +197,7 @@ export async function storeImage(
   }
 
   const dimensions = readDimensions(bytes, signature.ext);
-
-  // `scope` is caller-controlled, so it is reduced to a safe slug rather than
-  // trusted as a path fragment.
-  const safeScope = scope.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "vehicle";
-  const filePath = join(
-    "vehicles",
-    safeScope,
-    `${Date.now()}-${randomBytes(6).toString("hex")}.${signature.ext}`,
-  );
-
-  const absolute = join(UPLOADS_ROOT, filePath);
-
-  // Defence in depth: even with a generated name, confirm the resolved path did
-  // not escape the uploads root before writing anything.
-  if (!absolute.startsWith(UPLOADS_ROOT)) {
-    throw ApiError.badRequest("Invalid upload path.");
-  }
-
-  await mkdir(dirname(absolute), { recursive: true });
-  await writeFile(absolute, bytes);
+  const filePath = await writeUnderRoot(folder, scope, signature.ext, bytes);
 
   return {
     filePath,
@@ -181,6 +205,39 @@ export async function storeImage(
     byteSize: bytes.length,
     width: dimensions?.width ?? null,
     height: dimensions?.height ?? null,
+  };
+}
+
+/**
+ * Writes an uploaded MP4 under `UPLOADS_ROOT`. No dimension probing — the
+ * browser reads a video's own metadata, so unlike `storeImage` this never
+ * fills `width`/`height`.
+ */
+export async function storeVideo(
+  bytes: Buffer,
+  scope: string,
+  folder = "hero",
+): Promise<StoredFile> {
+  if (bytes.length === 0) throw ApiError.badRequest("That file is empty.");
+
+  if (bytes.length > MAX_VIDEO_BYTES) {
+    throw ApiError.badRequest("Videos must be 25 MB or smaller.");
+  }
+
+  const isMp4 =
+    bytes.length > 12 && bytes.subarray(4, 8).toString("latin1") === "ftyp";
+  if (!isMp4) {
+    throw ApiError.badRequest("Upload an MP4 video.");
+  }
+
+  const filePath = await writeUnderRoot(folder, scope, "mp4", bytes);
+
+  return {
+    filePath,
+    mime: "video/mp4",
+    byteSize: bytes.length,
+    width: null,
+    height: null,
   };
 }
 

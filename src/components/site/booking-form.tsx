@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useMemo, useState } from "react";
+import { useActionState, useCallback, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
@@ -43,6 +43,20 @@ const BOROUGHS = [
   "Staten Island",
 ] as const;
 
+/**
+ * The form as three short screens rather than one long one, so the hero card
+ * never dwarfs the copy beside it. All ~18 fields stay mounted at once — only
+ * `hidden` toggles — so nothing entered is lost moving back and forth, and
+ * the single `<form>` still posts everything together on final submit.
+ */
+type Step = 1 | 2 | 3;
+
+const STEPS: { id: Step; label: string }[] = [
+  { id: 1, label: "Trip" },
+  { id: 2, label: "Details" },
+  { id: 3, label: "You" },
+];
+
 function SubmitButton({ fixed }: { fixed: boolean }) {
   const { pending } = useFormStatus();
 
@@ -67,19 +81,40 @@ export function BookingForm({
   options: BookingOptions;
 }) {
   const [trip, setTrip] = useState<TripType>("airport");
-  const [vehicle, setVehicle] = useState(fleet[0]?.slug ?? "");
+  // Airport and vehicle class start unset rather than defaulting to the
+  // first item in each list: silently pre-picking one is how a customer
+  // ends up booked from the wrong airport without ever having chosen it.
+  // Direction and borough keep their defaults below — those are genuinely
+  // meaningful defaults (the more common direction; "no borough assumed"),
+  // not just "first in a list".
+  const [vehicle, setVehicle] = useState("");
   const [childSeats, setChildSeats] = useState(0);
-  const [airport, setAirport] = useState(options.airports[0]?.code ?? "");
+  const [airport, setAirport] = useState("");
   const [direction, setDirection] = useState<"from-airport" | "to-airport">(
     "from-airport",
   );
   const [borough, setBorough] = useState<string>("");
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
 
+  const [step, setStep] = useState<Step>(1);
+  const step1Ref = useRef<HTMLDivElement>(null);
+  const step2Ref = useRef<HTMLDivElement>(null);
+
   const [state, formAction] = useActionState<BookingFormState, FormData>(
     submitBooking,
     { status: "idle" },
   );
+
+  // A server-side error can flag a field on step 1 or 2 while the customer is
+  // sitting on step 3 — send them back to the top so the flagged field is
+  // visible, rather than leaving an error nobody can see. Adjusted during
+  // render (React's endorsed pattern for resetting state on a prop change)
+  // rather than in an effect, so there is no extra cascading render.
+  const [lastErrorAttempt, setLastErrorAttempt] = useState(0);
+  if (state.status === "error" && state.attempt !== lastErrorAttempt) {
+    setLastErrorAttempt(state.attempt);
+    setStep(1);
+  }
 
   /**
    * One token for the whole run of keystrokes plus the details lookup. Google
@@ -173,6 +208,26 @@ export function BookingForm({
 
   const formKey = state.status === "error" ? state.attempt : 0;
 
+  /**
+   * Advances past the given step only if everything required in it is
+   * filled — reusing the `required`/`type="email"` constraints already on
+   * the inputs rather than a parallel set of rules. The first invalid field
+   * gets the browser's own validation bubble and focus.
+   */
+  const goNext = (containerRef: React.RefObject<HTMLDivElement | null>, next: Step) => {
+    const invalid = containerRef.current?.querySelector<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >(":invalid");
+
+    if (invalid) {
+      invalid.reportValidity();
+      invalid.focus();
+      return;
+    }
+
+    setStep(next);
+  };
+
   if (state.status === "success") {
     return (
       <div className="bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
@@ -242,6 +297,48 @@ export function BookingForm({
         })}
       </div>
 
+      {/* Step progress. A completed step is clickable to go back; the
+          current and coming steps are not, so nobody can skip ahead of
+          validation. Gold marks the active step as a border, never as this
+          label's text colour. */}
+      <div
+        role="tablist"
+        aria-label="Booking step"
+        className="mt-5 flex items-center gap-2"
+      >
+        {STEPS.map((item, index) => {
+          const active = step === item.id;
+          const complete = step > item.id;
+          return (
+            <div key={item.id} className="flex flex-1 items-center gap-2">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                disabled={!complete}
+                onClick={() => complete && setStep(item.id)}
+                className={clsx(
+                  "flex w-full items-center gap-2 border-b-2 pb-2 font-sans text-[13px] font-medium tracking-[0.06em] uppercase transition-colors",
+                  active
+                    ? "border-gold text-midnight"
+                    : complete
+                      ? "border-midnight/20 text-midnight/70 hover:border-midnight/40"
+                      : "cursor-default border-midnight/10 text-charcoal/40",
+                )}
+              >
+                <span className="tabular-nums">{item.id}</span>
+                {item.label}
+              </button>
+              {index < STEPS.length - 1 ? (
+                <span aria-hidden className="text-charcoal/20">
+                  /
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
       <form
         key={formKey}
         action={formAction}
@@ -256,15 +353,21 @@ export function BookingForm({
           </>
         ) : null}
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        {/* Step 1 — Trip */}
+        <div className={clsx("flex flex-col gap-5", step !== 1 && "hidden")}>
+        <div ref={step1Ref} className="grid gap-5 sm:grid-cols-2">
           {trip === "airport" ? (
             <>
               <Field label="Airport" id="airport">
                 <Select
                   id="airport"
+                  required
                   value={airport}
                   onChange={(event) => setAirport(event.target.value)}
                 >
+                  <option value="" disabled>
+                    Select airport
+                  </option>
                   {options.airports.map((item) => (
                     <option key={item.code} value={item.code}>
                       {item.name}
@@ -367,9 +470,13 @@ export function BookingForm({
             <Select
               id="vehicle"
               name="vehicle"
+              required
               value={vehicle}
               onChange={(event) => setVehicle(event.target.value)}
             >
+              <option value="" disabled>
+                Select vehicle class
+              </option>
               {fleet.map((item) => (
                 <option key={item.slug} value={item.slug}>
                   {item.name} · up to {item.passengerCapacity}
@@ -377,7 +484,18 @@ export function BookingForm({
               ))}
             </Select>
           </Field>
+        </div>
 
+          <div className="flex justify-end border-t border-midnight/10 pt-5">
+            <Button type="button" variant="primary" onClick={() => goNext(step1Ref, 2)}>
+              Continue
+            </Button>
+          </div>
+        </div>
+
+        {/* Step 2 — Details */}
+        <div className={clsx("flex flex-col gap-5", step !== 2 && "hidden")}>
+        <div ref={step2Ref} className="grid gap-5 sm:grid-cols-2">
           {/*
             The occasion, not the shape of the journey — trip type above already
             covers that. It decides who in the business picks the booking up, so
@@ -478,23 +596,6 @@ export function BookingForm({
             </Field>
           ) : null}
 
-          <Field label="Name" id="name" error={fieldError("customerName")}>
-            <Input id="name" name="name" autoComplete="name" required maxLength={160} {...restore("name")} />
-          </Field>
-
-          <Field
-            label="Phone"
-            id="phone"
-            error={fieldError("customerPhone")}
-            hint="You will need this to track the booking."
-          >
-            <Input id="phone" name="phone" type="tel" autoComplete="tel" required {...restore("phone")} />
-          </Field>
-
-          <Field label="Email" id="email" error={fieldError("customerEmail")} className="sm:col-span-2">
-            <Input id="email" name="email" type="email" autoComplete="email" required {...restore("email")} />
-          </Field>
-
           <div className="sm:col-span-2">
             <Field
               label="Anything we should know"
@@ -506,59 +607,101 @@ export function BookingForm({
           </div>
         </div>
 
-        <div className="border-t border-midnight/10 pt-5">
-          <Checkbox
-            id="terms"
-            name="terms"
-            required
-            error={fieldError("terms")}
-            label={
-              <>
-                I accept the{" "}
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  className="font-medium text-midnight underline underline-offset-4"
-                >
-                  terms and conditions
-                </Link>
-                , including the cancellation window and how the final fare is
-                calculated.
-              </>
-            }
-          />
+          <div className="flex items-center justify-between border-t border-midnight/10 pt-5">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setStep(1)}
+            >
+              Back
+            </Button>
+            <Button type="button" variant="primary" onClick={() => goNext(step2Ref, 3)}>
+              Continue
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-midnight/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {isFixed && fareTotal !== null ? (
-              <>
-                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
-                  Fixed fare · {selected?.name}
-                </p>
-                <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
-                  ${fareTotal}
-                </p>
-                <p className="mt-2 text-[13px] text-charcoal/70">
-                  Tolls and gratuity included. Not an estimate.
-                  {seatFee > 0 ? ` Includes $${seatFee} for child seats.` : ""}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
-                  Priced by a person
-                </p>
-                <p className="mt-1 max-w-sm text-[15px] leading-[1.6] text-charcoal">
-                  {trip === "airport"
-                    ? "Fixed fares cover the five boroughs. We will price this one and come back to you."
-                    : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
-                </p>
-              </>
-            )}
+        {/* Step 3 — You */}
+        <div className={clsx("flex flex-col gap-5", step !== 3 && "hidden")}>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Name" id="name" error={fieldError("customerName")}>
+              <Input id="name" name="name" autoComplete="name" required maxLength={160} {...restore("name")} />
+            </Field>
+
+            <Field
+              label="Phone"
+              id="phone"
+              error={fieldError("customerPhone")}
+              hint="You will need this to track the booking."
+            >
+              <Input id="phone" name="phone" type="tel" autoComplete="tel" required {...restore("phone")} />
+            </Field>
+
+            <Field label="Email" id="email" error={fieldError("customerEmail")} className="sm:col-span-2">
+              <Input id="email" name="email" type="email" autoComplete="email" required {...restore("email")} />
+            </Field>
           </div>
 
-          <SubmitButton fixed={isFixed} />
+          <div className="border-t border-midnight/10 pt-5">
+            <Checkbox
+              id="terms"
+              name="terms"
+              required
+              error={fieldError("terms")}
+              label={
+                <>
+                  I accept the{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="font-medium text-midnight underline underline-offset-4"
+                  >
+                    terms and conditions
+                  </Link>
+                  , including the cancellation window and how the final fare is
+                  calculated.
+                </>
+              }
+            />
+          </div>
+
+          <div className="flex justify-start">
+            <Button type="button" variant="secondary" onClick={() => setStep(2)}>
+              Back
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-midnight/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {isFixed && fareTotal !== null ? (
+                <>
+                  <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                    Fixed fare · {selected?.name}
+                  </p>
+                  <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+                    ${fareTotal}
+                  </p>
+                  <p className="mt-2 text-[13px] text-charcoal/70">
+                    Tolls and gratuity included. Not an estimate.
+                    {seatFee > 0 ? ` Includes $${seatFee} for child seats.` : ""}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                    Priced by a person
+                  </p>
+                  <p className="mt-1 max-w-sm text-[15px] leading-[1.6] text-charcoal">
+                    {trip === "airport"
+                      ? "Fixed fares cover the five boroughs. We will price this one and come back to you."
+                      : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <SubmitButton fixed={isFixed} />
+          </div>
         </div>
 
         {state.status === "error" ? (

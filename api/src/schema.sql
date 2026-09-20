@@ -204,6 +204,25 @@ CREATE TABLE IF NOT EXISTS vehicle_photos (
     FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- The homepage hero's background media, managed from the dashboard. Page-level
+-- rather than per-vehicle, so no foreign key to `vehicles`.
+CREATE TABLE IF NOT EXISTS hero_media (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  kind          ENUM('image','video') NOT NULL DEFAULT 'image',
+  file_path     VARCHAR(255) NOT NULL,
+  -- Still frame for a video, shown before/while it loads. NULL for images.
+  poster_path   VARCHAR(255) NULL,
+  alt_text      VARCHAR(255) NOT NULL,
+  width         SMALLINT UNSIGNED NULL,
+  height        SMALLINT UNSIGNED NULL,
+  byte_size     INT UNSIGNED NULL,
+  is_active     TINYINT(1) NOT NULL DEFAULT 1,
+  display_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_hero_media_active_order (is_active, display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- The fixed-price card for airport transfers inside New York City.
 --
 -- One price per airport per vehicle class, covering all five boroughs. A row

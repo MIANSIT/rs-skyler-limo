@@ -141,6 +141,19 @@ export type VehiclePhoto = {
   displayOrder: number;
 };
 
+/** A slide in the homepage hero's background media. */
+export type HeroMediaItem = {
+  id: number;
+  kind: "image" | "video";
+  url: string;
+  posterUrl: string | null;
+  altText: string;
+  width: number | null;
+  height: number | null;
+  isActive: boolean;
+  displayOrder: number;
+};
+
 export type Amenity = { key: string; label: string; hint?: string };
 
 export type Vehicle = {

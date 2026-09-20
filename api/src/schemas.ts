@@ -253,3 +253,18 @@ export const reorderSchema = z.object({
   /** Vehicle ids in the order they should appear. */
   ids: z.array(z.coerce.number().int().positive()).min(1).max(200),
 });
+
+export const heroMediaMetaSchema = z.object({
+  kind: z.enum(["image", "video"]).default("image"),
+  altText: trimmed(255),
+});
+
+export const heroMediaUpdateSchema = z
+  .object({
+    altText: trimmed(255).optional(),
+    isActive: z.coerce.boolean().optional(),
+    displayOrder: z.coerce.number().int().min(0).max(9999).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    error: "Nothing to update.",
+  });

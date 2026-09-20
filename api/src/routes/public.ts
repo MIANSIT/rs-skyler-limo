@@ -13,6 +13,7 @@ import {
 import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
 import { listVehicles } from "../services/vehicles.js";
+import { listActiveHeroMedia } from "../services/hero.js";
 import { decideFare, getPublicRates, AIRPORTS } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
 import { sendBookingEmails } from "../services/mail.js";
@@ -55,6 +56,27 @@ publicRouter.get("/fleet", async (_req, res) => {
       amenities: vehicle.amenityLabels,
       photos: vehicle.photos,
       primaryPhoto: vehicle.primaryPhoto,
+    })),
+  });
+});
+
+/**
+ * The homepage hero's background media, active slides only, in the
+ * operator's chosen order. Empty when nothing has been uploaded yet — the
+ * hero falls back to its plain midnight background in that case.
+ */
+publicRouter.get("/hero", async (_req, res) => {
+  const media = await listActiveHeroMedia();
+
+  res.json({
+    media: media.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      url: item.url,
+      posterUrl: item.posterUrl,
+      altText: item.altText,
+      width: item.width,
+      height: item.height,
     })),
   });
 });

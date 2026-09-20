@@ -71,13 +71,13 @@ export const services: Service[] = [
     name: "Airport Transfers",
     description:
       "JFK, LaGuardia, Newark, Teterboro and Westchester. Fixed fares within the five boroughs, published before you book.",
-    href: "/#book",
+    href: "/book",
   },
   {
     name: "Hourly Charters",
     description:
       "A car and driver on standby for meetings, appointments, or a day that will not hold still.",
-    href: "/#book",
+    href: "/book",
   },
   {
     name: "Corporate Accounts",

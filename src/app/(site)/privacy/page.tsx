@@ -325,7 +325,7 @@ export default function PrivacyPage() {
             </p>
 
             <div data-reveal className="mt-10 flex flex-wrap items-center gap-6">
-              <ButtonLink href="/#book" variant="cta">
+              <ButtonLink href="/book" variant="cta">
                 Book a car
               </ButtonLink>
               <a

@@ -178,7 +178,7 @@ export function FleetCard({
         <div aria-hidden className="flex-1" />
 
         <ButtonLink
-          href="/#book"
+          href="/book"
           variant="secondary"
           className={clsx("w-full", compact ? "mt-5" : "mt-6")}
         >

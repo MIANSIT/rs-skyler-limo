@@ -133,7 +133,7 @@ export function SiteHeader() {
             the gold action belongs to the page the client is actually on.
           */}
           <span className="hidden xl:block">
-            <ButtonLinkOnDark href="/#book">Book a car</ButtonLinkOnDark>
+            <ButtonLinkOnDark href="/book">Book a car</ButtonLinkOnDark>
           </span>
 
           <button
@@ -199,7 +199,7 @@ export function SiteHeader() {
           </a>
 
           <ButtonLinkOnDark
-            href="/#book"
+            href="/book"
             className="mt-5 w-full"
             onClick={() => setOpen(false)}
           >

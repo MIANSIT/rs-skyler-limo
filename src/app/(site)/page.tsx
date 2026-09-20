@@ -24,19 +24,21 @@ import {
 } from "@/components/ui/section";
 import { bookingAirports, services, values } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
+import { getHeroMediaSafely } from "@/lib/public/hero-media";
 
 const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
 export default async function HomePage() {
   // One fetch, shared by the booking widget and the fleet strip below.
-  const [fleet, bookingOptions] = await Promise.all([
+  const [fleet, bookingOptions, heroMedia] = await Promise.all([
     getFleetSafely(),
     getBookingOptionsSafely(),
+    getHeroMediaSafely(),
   ]);
 
   return (
     <>
-      <Hero fleet={fleet} bookingOptions={bookingOptions} />
+      <Hero fleet={fleet} bookingOptions={bookingOptions} media={heroMedia} />
       <BoroughMarquee />
 
       {/* Services — light ground, so gold appears only as icons and rules. */}
@@ -58,15 +60,19 @@ export default async function HomePage() {
                 key={service.name}
                 href={service.href}
                 data-reveal
-                className="group border-t border-midnight/10 pt-6"
+                className="group flex flex-col border-t border-midnight/10 pt-6"
               >
                 <Icon className="h-6 w-6 text-gold" />
-                <h3 className="font-sans mt-5 text-[17px] font-semibold text-midnight underline-offset-4 group-hover:underline">
+                <h3 className="font-sans mt-5 text-[17px] font-semibold text-midnight">
                   {service.name}
                 </h3>
-                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
+                <p className="mt-3 flex-1 text-[15px] leading-[1.7] text-charcoal">
                   {service.description}
                 </p>
+                <span className="mt-4 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-midnight underline-offset-4 group-hover:underline">
+                  Learn more
+                  <span aria-hidden>→</span>
+                </span>
               </Link>
             );
           })}
@@ -148,12 +154,17 @@ export default async function HomePage() {
         </Reveal>
 
         {/*
-          Four across only from `xl`. At `lg` the content column is 1024px, which
-          leaves each of four cards about 220px — narrower than the spec labels
-          inside them.
+          Two from `sm`, three from `lg`, four only from `xl`. Two columns held
+          all the way to `xl` left each compact card ~400–470px on a typical
+          laptop window — nearly double its ~270px design width, with the small
+          text and specs stranded in the extra space. Four straight from `lg`
+          overcorrects the other way: the content column is 1024px there, which
+          leaves each card ~220px — narrower than the spec labels inside it.
+          Three at `lg` lands close to the design width (~300px) without either
+          problem.
         */}
         <Reveal
-          className="mt-14 grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
+          className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           y={30}
         >
           {fleet.map((vehicle) => (
@@ -248,7 +259,7 @@ export default async function HomePage() {
               </p>
             </div>
             <div data-reveal className="flex flex-wrap gap-4">
-              <ButtonLink href="/#book" variant="cta" size="lg">
+              <ButtonLink href="/book" variant="cta" size="lg">
                 Book a car
               </ButtonLink>
               <Link

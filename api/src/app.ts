@@ -7,6 +7,7 @@ import { env, isProduction } from "./env.js";
 import { UPLOADS_ROOT } from "./lib/uploads.js";
 import { errorHandler, notFound } from "./middleware.js";
 import { adminRouter } from "./routes/admin.js";
+import { adminHeroRouter } from "./routes/hero.js";
 import { adminVehiclesRouter } from "./routes/vehicles.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
@@ -50,6 +51,7 @@ export function createApp(): Express {
   app.use("/api", publicRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/admin/vehicles", adminVehiclesRouter);
+  app.use("/api/admin/hero", adminHeroRouter);
   app.use("/api/admin", adminRouter);
 
   /**

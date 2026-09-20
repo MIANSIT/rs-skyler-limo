@@ -1,13 +1,94 @@
 "use client";
 
-import { useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { MaskedWords } from "@/components/motion/masked-words";
 import { BookingForm } from "@/components/site/booking-form";
-import { ButtonLinkOnDark } from "@/components/ui/button";
-import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
+import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
+import type { BookingOptions, FleetVehicle, HeroMediaItem } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
 import { bookingAirports, contact } from "@/lib/content";
+
+/**
+ * The hero's background slides, when the dashboard has uploaded any.
+ *
+ * Absent entirely (`media.length === 0`) the hero renders exactly as it
+ * always has — a plain midnight ground — so a fresh install with nothing
+ * uploaded yet is not a regression. A midnight scrim sits between the media
+ * and the text layer, because the brand guide's "gold on white fails
+ * contrast, midnight ground keeps white text at AAA" logic applies here too:
+ * an arbitrary photo cannot be trusted to carry white text on its own.
+ */
+function HeroMedia({ media }: { media: HeroMediaItem[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (media.length < 2) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    const timer = setInterval(() => {
+      setIndex((current) => (current + 1) % media.length);
+    }, 7000);
+
+    return () => clearInterval(timer);
+  }, [media.length]);
+
+  if (media.length === 0) return null;
+
+  return (
+    <>
+      {/*
+        Plain full-bleed at every width. This used to need a capped height
+        below `lg`, because the multi-step booking form stacked directly
+        under the copy made the section balloon well past what a background
+        image could cover sensibly. Below `lg` the hero card is a CTA now,
+        not the form (see the `data-hero-card` block below), so the section
+        is back to a normal, copy-driven height and `inset-0` covers it
+        properly at every width without cropping a landscape image or video
+        down to a sliver.
+      */}
+      <div aria-hidden className="absolute inset-0 z-0 overflow-hidden bg-midnight">
+        {media.map((item, itemIndex) => (
+          <div
+            key={item.id}
+            className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+            style={{ opacity: itemIndex === index ? 1 : 0 }}
+          >
+            {item.kind === "video" ? (
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster={item.posterUrl ?? undefined}
+                className="h-full w-full object-cover"
+              >
+                <source src={item.url} type="video/mp4" />
+              </video>
+            ) : (
+              <Image
+                src={item.url}
+                alt=""
+                fill
+                sizes="100vw"
+                priority={itemIndex === 0}
+                className="object-cover"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 bg-gradient-to-r from-midnight/90 via-midnight/75 to-midnight/50"
+      />
+    </>
+  );
+}
 
 /**
  * The one set piece on the site. Everything below it uses the quieter `Reveal`.
@@ -21,9 +102,11 @@ import { bookingAirports, contact } from "@/lib/content";
 export function Hero({
   fleet,
   bookingOptions,
+  media,
 }: {
   fleet: FleetVehicle[];
   bookingOptions: BookingOptions;
+  media: HeroMediaItem[];
 }) {
   const scope = useRef<HTMLElement>(null);
 
@@ -95,6 +178,8 @@ export function Hero({
       className="relative overflow-hidden bg-midnight"
       id="book"
     >
+      <HeroMedia media={media} />
+
       {/* Gold is a graphic wash here at 12%, not a field colour — the 60/30/10
           ratio holds because midnight still carries the section. */}
       <div
@@ -107,7 +192,7 @@ export function Hero({
         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"
       />
 
-      <div className="relative mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
         <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-6">
             <p
@@ -169,10 +254,53 @@ export function Hero({
           </div>
 
           <div data-hero-card className="lg:col-span-6">
-            <BookingForm fleet={fleet} options={bookingOptions} />
-            <p className="mt-4 text-center text-[13px] text-white/55">
-              A fare and a confirmed pickup in under a minute.
-            </p>
+            {/*
+              Below `lg` this is a CTA, not the multi-step form. The form's
+              own height is what was forcing the mobile hero section so tall
+              that the background media had to be capped short of it — and a
+              five-field-per-screen form stacked under a full hero is a lot
+              to scroll past before a customer even sees "Airport". The full
+              form lives at `/book`; this is one tap away from it, matching
+              how fiveborolimo.com's own hero works (a quote button, not an
+              embedded form). Desktop keeps the form inline — there it sits
+              beside the copy rather than under it, so it never dominates the
+              section the way it does stacked on a phone.
+            */}
+            <div className="lg:hidden">
+              <div className="bg-white p-6 text-center shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
+                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                  Get a fare in under a minute
+                </p>
+                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
+                  Airport, point to point or hourly. Fixed fares within the
+                  five boroughs are shown before you book.
+                </p>
+                <ButtonLink href="/book" variant="cta" size="lg" className="mt-6 w-full">
+                  Book a car
+                </ButtonLink>
+                {/*
+                  A second path, not a second gold action: `/book` is for
+                  the trip types above (airport, point to point, hourly).
+                  Weddings, corporate accounts and events go through `/quote`
+                  instead — a genuinely different, simpler form. Plain text
+                  link, same weight as the "Or call…" link beside the
+                  headline, so the one gold action above stays the only one.
+                */}
+                <Link
+                  href="/quote"
+                  className="mt-4 inline-block font-sans text-[14px] text-midnight underline-offset-4 hover:underline"
+                >
+                  Need a custom quote instead?
+                </Link>
+              </div>
+            </div>
+
+            <div className="hidden lg:block">
+              <BookingForm fleet={fleet} options={bookingOptions} />
+              <p className="mt-4 text-center text-[13px] text-white/55">
+                A fare and a confirmed pickup in under a minute.
+              </p>
+            </div>
           </div>
         </div>
       </div>

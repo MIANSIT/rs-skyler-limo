@@ -71,6 +71,17 @@ export type TrackedBooking = {
 /* Fleet                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/** The homepage hero's background media, as `/api/hero` exposes it. */
+export type HeroMediaItem = {
+  id: number;
+  kind: "image" | "video";
+  url: string;
+  posterUrl: string | null;
+  altText: string;
+  width: number | null;
+  height: number | null;
+};
+
 export type VehiclePhoto = {
   id: number;
   url: string;

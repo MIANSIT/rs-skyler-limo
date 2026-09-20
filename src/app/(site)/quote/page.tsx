@@ -50,7 +50,7 @@ export default function QuotePage() {
                   rate card. You will see the fare before you book.
                 </p>
                 <div className="mt-5">
-                  <ButtonLink href="/#book" variant="secondary">
+                  <ButtonLink href="/book" variant="secondary">
                     Book an airport transfer
                   </ButtonLink>
                 </div>

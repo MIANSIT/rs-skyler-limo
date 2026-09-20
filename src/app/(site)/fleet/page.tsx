@@ -140,7 +140,7 @@ export default async function FleetPage() {
             </RationaleNote>
           </div>
           <div data-reveal className="mt-10 text-center">
-            <ButtonLink href="/#book" variant="cta" size="lg">
+            <ButtonLink href="/book" variant="cta" size="lg">
               Get a fixed fare
             </ButtonLink>
           </div>
