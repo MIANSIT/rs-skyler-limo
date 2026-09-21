@@ -88,6 +88,15 @@ sends a price — it is re-derived on every submission against the live rate car
 so a stale tab or an edited request cannot book a Sprinter at a sedan fare. The
 form's on-screen figure is a preview of the same calculation.
 
+A pick-up in the past cannot be booked. The date field locks earlier days and the
+time field refuses an earlier time today, judged in New York time, and the API
+rejects a past `pickupAt` too (with two minutes of grace, so booking for "now"
+is not refused by a few seconds). The optional event date on the quote and
+wedding forms follows the same rule.
+Pick-ups are always New York time, never the customer's device time. For someone
+booking from another time zone the form shows New York's current time and, once
+a time is chosen, what it is on their own device (a hint only, never sent).
+
 The rate card is `admin.rsskylerlimo.com/rates`: one price per airport per
 vehicle, covering all five boroughs. An empty cell is not an error — that
 combination quotes instead, which is the safe direction to be unsure in.

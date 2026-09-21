@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { todayInNewYork } from "./lib/new-york.js";
+
 import { AMENITY_KEYS, VEHICLE_CATEGORIES } from "./vehicles/amenities.js";
 
 /**
@@ -85,7 +87,12 @@ export const createBookingSchema = z.object({
   pickup: trimmed(255),
   destination: trimmed(255),
   /** ISO 8601. The site sends a local date and time; it is converted before send. */
-  pickupAt: z.iso.datetime({ offset: true }),
+  pickupAt: z.iso.datetime({ offset: true }).refine(
+    // Two minutes of grace: the form sends a time to the minute, so a customer
+    // who books for "now" would otherwise be rejected by a few seconds.
+    (value) => Date.parse(value) > Date.now() - 2 * 60_000,
+    { error: "That pick-up time has passed. Choose today or a later date." },
+  ),
   passengers: z.coerce.number().int().min(1).max(60).default(1),
   bags: z.coerce.number().int().min(0).max(60).default(0),
   /** Capped against the chosen vehicle's `maxChildSeats` by the booking form. */
@@ -118,7 +125,13 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
 export const createQuoteSchema = z.object({
   serviceType: z.enum(serviceTypes),
-  eventDate: z.iso.date().optional().nullable(),
+  eventDate: z.iso
+    .date()
+    .refine((value) => value >= todayInNewYork(), {
+      error: "That date has passed. Choose today or a later date.",
+    })
+    .optional()
+    .nullable(),
   passengers: z.coerce.number().int().min(1).max(500).optional().nullable(),
   company: z.string().trim().max(160).optional().nullable(),
   customerName: trimmed(160),

@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
 import { submitQuote, type QuoteFormState } from "@/lib/public/actions";
+import {
+  pickupProblems,
+  shortDay,
+  useNewYorkClock,
+} from "@/lib/public/use-new-york-clock";
 
 /**
  * The public end of the quote pipeline.
@@ -85,6 +90,20 @@ export function QuoteForm({
     submitQuote,
     { status: "idle" },
   );
+
+  const dateRef = useRef<HTMLInputElement>(null);
+
+  // New York's date, known in the browser only. Empty until then.
+  const { today } = useNewYorkClock();
+
+  // Controlled, so the reason a past date is refused is shown as soon as it is
+  // chosen. The same message is set on the input so the form will not send.
+  const [eventDate, setEventDate] = useState("");
+  const dateProblem = pickupProblems(eventDate, "", today, "").date;
+
+  useEffect(() => {
+    dateRef.current?.setCustomValidity(dateProblem);
+  }, [dateProblem]);
 
   const fieldError = (name: string) =>
     state.status === "error" ? state.fields?.[name] : undefined;
@@ -232,14 +251,23 @@ export function QuoteForm({
           <Field
             label="Date"
             id="quote-date"
-            hint="Optional if it is not fixed yet."
-            error={fieldError("eventDate")}
+            hint={
+              today
+                ? `Optional. Today is ${shortDay(today)} in New York.`
+                : "Optional if it is not fixed yet."
+            }
+            error={fieldError("eventDate") ?? (dateProblem || undefined)}
           >
             <Input
               id="quote-date"
               name="eventDate"
               type="date"
-              {...restore("eventDate")}
+              ref={dateRef}
+              min={today || undefined}
+              value={eventDate}
+              onChange={(event) => setEventDate(event.target.value)}
+              aria-invalid={dateProblem ? true : undefined}
+              aria-describedby={dateProblem ? "quote-date-error" : undefined}
             />
           </Field>
         ) : null}

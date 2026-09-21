@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useMemo, useRef, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
@@ -10,6 +17,13 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field"
 import { clsx } from "@/lib/clsx";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
+import {
+  clockLabel,
+  deviceEquivalent,
+  pickupProblems,
+  shortDay,
+  useNewYorkClock,
+} from "@/lib/public/use-new-york-clock";
 
 type TripType = "airport" | "point-to-point" | "hourly";
 
@@ -97,6 +111,25 @@ export function BookingForm({
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>(1);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
+
+  // New York's date and time, known in the browser only. Empty until then.
+  const { today, now } = useNewYorkClock();
+
+  // Controlled, so the reason a pick-up is refused can be shown as soon as it
+  // is chosen instead of only when the customer presses Continue.
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const problem = pickupProblems(pickupDate, pickupTime, today, now);
+
+  // For someone booking from another time zone: what the chosen New York time
+  // is on their own device. Empty when the device is on New York time already.
+  const onYourDevice =
+    pickupDate && pickupTime && !problem.date && !problem.time
+      ? deviceEquivalent(pickupDate, pickupTime)
+      : "";
+
   const step1Ref = useRef<HTMLDivElement>(null);
   const step2Ref = useRef<HTMLDivElement>(null);
 
@@ -209,6 +242,17 @@ export function BookingForm({
   const formKey = state.status === "error" ? state.attempt : 0;
 
   /**
+   * A past pick-up cannot be booked. The message is shown under the field, and
+   * also set on the input itself so the step's existing `:invalid` check will
+   * not move on until it clears. The server applies the same rule; this only
+   * saves the round trip.
+   */
+  useEffect(() => {
+    dateRef.current?.setCustomValidity(problem.date);
+    timeRef.current?.setCustomValidity(problem.time);
+  }, [problem.date, problem.time]);
+
+  /**
    * Advances past the given step only if everything required in it is
    * filled — reusing the `required`/`type="email"` constraints already on
    * the inputs rather than a parallel set of rules. The first invalid field
@@ -253,6 +297,10 @@ export function BookingForm({
             email, usually within the hour.
           </p>
         )}
+
+        <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+          Pick-up times are New York time.
+        </p>
 
         <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
           Keep this reference. You can check it any time on the{" "}
@@ -458,13 +506,60 @@ export function BookingForm({
             </Field>
           ) : null}
 
-          <Field label="Date" id="date" error={fieldError("pickupAt")}>
-            <Input id="date" name="date" type="date" required {...restore("date")} />
+          <Field
+            label="Date"
+            id="date"
+            error={fieldError("pickupAt") ?? (problem.date || undefined)}
+            hint={today ? `Today is ${shortDay(today)} in New York.` : undefined}
+          >
+            <Input
+              id="date"
+              name="date"
+              type="date"
+              required
+              ref={dateRef}
+              min={today || undefined}
+              value={pickupDate}
+              onChange={(event) => setPickupDate(event.target.value)}
+              aria-invalid={problem.date ? true : undefined}
+              aria-describedby={problem.date ? "date-error" : undefined}
+            />
           </Field>
 
-          <Field label="Time" id="time">
-            <Input id="time" name="time" type="time" required {...restore("time")} />
+          <Field
+            label="Time"
+            id="time"
+            error={problem.time || undefined}
+            hint="New York time."
+          >
+            <Input
+              id="time"
+              name="time"
+              type="time"
+              required
+              ref={timeRef}
+              value={pickupTime}
+              onChange={(event) => setPickupTime(event.target.value)}
+              aria-invalid={problem.time ? true : undefined}
+              aria-describedby={problem.time ? "time-error" : undefined}
+            />
           </Field>
+
+          {today && now ? (
+            <div className="flex flex-col gap-1 text-[13px] leading-[1.6] text-charcoal/70 sm:col-span-2">
+              <p>
+                It is <span className="tabular-nums">{clockLabel(now)}</span> on{" "}
+                {shortDay(today)} in New York now.
+              </p>
+              {onYourDevice ? (
+                <p>
+                  That is{" "}
+                  <span className="tabular-nums">{onYourDevice}</span> on your
+                  device.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <Field label="Vehicle class" id="vehicle">
             <Select

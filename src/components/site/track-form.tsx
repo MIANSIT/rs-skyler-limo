@@ -11,7 +11,7 @@ import { trackBooking, type TrackState } from "@/lib/public/actions";
 const statusCopy: Record<string, string> = {
   new: "Received. A reservations agent is looking at it now.",
   quoted: "Quoted. The fare below is yours — call us to confirm the booking.",
-  confirmed: "Confirmed. Your car is booked and assigned.",
+  confirmed: "Confirmed. Your car is booked.",
   completed: "Completed. Thank you for riding with us.",
   cancelled: "Cancelled. Call dispatch if that is not right.",
   pending: "On hold while we confirm a detail with you.",
