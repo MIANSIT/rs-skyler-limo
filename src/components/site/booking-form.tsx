@@ -403,7 +403,7 @@ export function BookingForm({
 
         {/* Step 1 — Trip */}
         <div className={clsx("flex flex-col gap-5", step !== 1 && "hidden")}>
-        <div ref={step1Ref} className="grid gap-5 sm:grid-cols-2">
+        <div ref={step1Ref} className="grid gap-5 grid-cols-2">
           {trip === "airport" ? (
             <>
               <Field label="Airport" id="airport">
@@ -432,8 +432,8 @@ export function BookingForm({
                     setDirection(event.target.value as typeof direction)
                   }
                 >
-                  <option value="from-airport">Picking up at the airport</option>
-                  <option value="to-airport">Going to the airport</option>
+                  <option value="from-airport">From the airport</option>
+                  <option value="to-airport">To the airport</option>
                 </Select>
               </Field>
             </>
@@ -448,7 +448,7 @@ export function BookingForm({
                 ? "Start typing and pick your address from the list."
                 : undefined
             }
-            className="sm:col-span-2"
+            className="col-span-2"
           >
             <AddressField
               id="cityAddress"
@@ -463,35 +463,12 @@ export function BookingForm({
             />
           </Field>
 
-          {trip === "airport" && !options.placesEnabled ? (
-            <Field
-              label="Borough"
-              id="statedBorough"
-              hint="Fixed airport fares cover the five boroughs. Anywhere else, we quote."
-              className="sm:col-span-2"
-            >
-              <Select
-                id="statedBorough"
-                name="statedBorough"
-                value={borough}
-                onChange={(event) => setBorough(event.target.value)}
-              >
-                <option value="">Outside New York City</option>
-                {BOROUGHS.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
-
           {trip !== "airport" ? (
             <Field
               label={trip === "hourly" ? "Where to, roughly" : "Destination"}
               id="otherEnd"
               error={fieldError("destination")}
-              className="sm:col-span-2"
+              className="col-span-2"
             >
               <AddressField
                 id="otherEnd"
@@ -579,6 +556,27 @@ export function BookingForm({
               ))}
             </Select>
           </Field>
+
+          {trip === "airport" && !options.placesEnabled ? (
+            <Field
+              label="Borough"
+              id="statedBorough"
+            >
+              <Select
+                id="statedBorough"
+                name="statedBorough"
+                value={borough}
+                onChange={(event) => setBorough(event.target.value)}
+              >
+                <option value="">Outside NYC (quoted)</option>
+                {BOROUGHS.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
         </div>
 
           <div className="flex justify-end border-t border-midnight/10 pt-5">
