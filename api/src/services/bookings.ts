@@ -245,8 +245,17 @@ export async function listBookings(
   const perPage = filters.perPage;
   const offset = (filters.page - 1) * perPage;
 
-  const rows = await query<BookingRow>(
-    `SELECT ${SELECT_COLUMNS} FROM bookings ${where}
+  const rows = await query<BookingRow & { clash_count: number }>(
+    `SELECT ${SELECT_COLUMNS},
+        CASE WHEN status IN ('new','quoted','confirmed','pending') THEN (
+          SELECT COUNT(*) FROM bookings other
+           WHERE other.id <> bookings.id
+             AND other.vehicle_class = bookings.vehicle_class
+             AND other.status IN ('new','quoted','confirmed','pending')
+             AND other.pickup_at > bookings.pickup_at - INTERVAL 180 MINUTE
+             AND other.pickup_at < bookings.pickup_at + INTERVAL 180 MINUTE
+        ) ELSE 0 END AS clash_count
+       FROM bookings ${where}
       ORDER BY
         -- New requests first regardless of date; then soonest pickup.
         CASE WHEN status = 'new' THEN 0 ELSE 1 END,
@@ -256,7 +265,10 @@ export async function listBookings(
   );
 
   return {
-    bookings: rows.map(toBooking),
+    bookings: rows.map((row) => ({
+      ...toBooking(row),
+      possibleClashes: Number(row.clash_count ?? 0),
+    })),
     total: countRow?.total ?? 0,
     page: filters.page,
     perPage,
@@ -375,5 +387,97 @@ export async function getActivity(
     note: row.note,
     actor: row.actor,
     createdAt: row.created_at.toISOString(),
+  }));
+}
+
+/**
+ * A booking the same person already sent in the last ten minutes, if any.
+ *
+ * Catches a double click, a retried request and a script replaying one payload,
+ * none of which should produce a second reference and a second pair of emails.
+ * Deliberately narrow (same email, same pick-up instant, same vehicle class) so
+ * it can never refuse a real second trip.
+ */
+export async function findRecentDuplicate(input: {
+  customerEmail: string;
+  pickupAt: string;
+  vehicleClass: string;
+}): Promise<string | null> {
+  const row = await queryOne<RowDataPacket & { reference: string }>(
+    `SELECT reference FROM bookings
+      WHERE customer_email = :email
+        AND pickup_at = :pickupAt
+        AND vehicle_class = :vehicleClass
+        AND created_at > (NOW() - INTERVAL 10 MINUTE)
+      ORDER BY id DESC LIMIT 1`,
+    {
+      email: input.customerEmail.toLowerCase(),
+      pickupAt: new Date(input.pickupAt),
+      vehicleClass: input.vehicleClass,
+    },
+  );
+
+  return row?.reference ?? null;
+}
+
+/**
+ * How close two pick-ups of the same vehicle class have to be for the dashboard
+ * to warn that one car may be asked to do both. An operator aid, not a rule:
+ * nothing is blocked, because how many cars of a class the business owns is a
+ * fact this system does not hold. Three hours is a working assumption for a
+ * trip plus a turnaround; change it here and in `listBookings` together.
+ */
+export const CLASH_WINDOW_MINUTES = 180;
+
+/** Statuses that still need a car. A cancelled or completed trip does not. */
+const LIVE_STATUSES = ["new", "quoted", "confirmed", "pending"] as const;
+
+export type PossibleClash = {
+  id: number;
+  reference: string;
+  status: string;
+  pickupAt: string;
+  customerName: string;
+};
+
+/** Other bookings for the same vehicle class close to this one's pick-up. */
+export async function findClashes(
+  booking: Pick<Booking, "id" | "status" | "vehicleClass" | "pickupAt">,
+): Promise<PossibleClash[]> {
+  if (!(LIVE_STATUSES as readonly string[]).includes(booking.status)) return [];
+
+  const centre = new Date(booking.pickupAt).getTime();
+  const span = CLASH_WINDOW_MINUTES * 60_000;
+
+  const rows = await query<
+    RowDataPacket & {
+      id: number;
+      reference: string;
+      status: string;
+      pickup_at: Date;
+      customer_name: string;
+    }
+  >(
+    `SELECT id, reference, status, pickup_at, customer_name
+       FROM bookings
+      WHERE id <> :id
+        AND vehicle_class = :vehicleClass
+        AND status IN ('new','quoted','confirmed','pending')
+        AND pickup_at > :from AND pickup_at < :to
+      ORDER BY pickup_at ASC`,
+    {
+      id: booking.id,
+      vehicleClass: booking.vehicleClass,
+      from: new Date(centre - span),
+      to: new Date(centre + span),
+    },
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    reference: row.reference,
+    status: row.status,
+    pickupAt: row.pickup_at.toISOString(),
+    customerName: row.customer_name,
   }));
 }

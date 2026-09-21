@@ -101,7 +101,17 @@ export function BookingsTable({
                 {formatMoney(booking.quotedTotalCents)}
               </td>
               <td className="px-4 py-4">
-                <StatusBadge status={booking.status} />
+                <div className="flex flex-col items-start gap-1.5">
+                  <StatusBadge status={booking.status} />
+                  {booking.possibleClashes ? (
+                    <span
+                      title="Another booking for this vehicle class is within 3 hours"
+                      className="rounded-sm border border-midnight/30 px-2 py-0.5 font-sans text-[12px] font-medium tracking-[0.06em] whitespace-nowrap text-midnight uppercase"
+                    >
+                      Possible clash
+                    </span>
+                  ) : null}
+                </div>
               </td>
             </tr>
           ))}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
-import { RoutePreview } from "@/components/site/route-preview";
+import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { TrackForm } from "@/components/site/track-form";
 import { getFleetSafely } from "@/lib/public/fleet";
 import { Section, SectionHeading } from "@/components/ui/section";
@@ -11,7 +11,7 @@ import { contact } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Track a ride",
   description:
-    "Enter a booking reference to see your driver's live position, vehicle and ETA. No app required.",
+    "Enter your booking reference and the phone number on it to see its status, pickup, vehicle and fare. No account or app required.",
 };
 
 export default async function TrackPage() {
@@ -24,8 +24,8 @@ export default async function TrackPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Live tracking"
-        title="Where is my car"
+        eyebrow="Track a ride"
+        title="Check your booking"
         intro="Enter your reference and the phone number on the booking. Nothing to install, and it works on any phone."
       />
 
@@ -58,8 +58,10 @@ export default async function TrackPage() {
               <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
                 What you will see
               </p>
-              <div className="mt-5">
-                <RoutePreview />
+              {/* The preview is drawn for a midnight ground (white text, gold
+                  label), so it brings its own on this light section. */}
+              <div className="mt-5 bg-midnight">
+                <BookingStatusPreview />
               </div>
             </div>
           </Reveal>

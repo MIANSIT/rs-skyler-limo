@@ -16,6 +16,7 @@ import {
 } from "../schemas.js";
 import {
   getActivity,
+  findClashes,
   getBookingById,
   listBookings,
   updateBooking,
@@ -60,7 +61,11 @@ adminRouter.get("/bookings/:id", async (req, res) => {
   const booking = await getBookingById(id);
   if (!booking) throw ApiError.notFound("That booking no longer exists.");
 
-  res.json({ booking, activity: await getActivity("booking", id) });
+  res.json({
+    booking,
+    activity: await getActivity("booking", id),
+    clashes: await findClashes(booking),
+  });
 });
 
 adminRouter.patch("/bookings/:id", async (req, res) => {
@@ -68,7 +73,11 @@ adminRouter.patch("/bookings/:id", async (req, res) => {
   const patch = updateBookingSchema.parse(req.body);
   const booking = await updateBooking(id, patch, req.admin!.id);
 
-  res.json({ booking, activity: await getActivity("booking", id) });
+  res.json({
+    booking,
+    activity: await getActivity("booking", id),
+    clashes: await findClashes(booking),
+  });
 });
 
 adminRouter.get("/quotes", async (req, res) => {

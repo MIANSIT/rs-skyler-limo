@@ -62,6 +62,20 @@ export type Booking = {
   source: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Other live bookings for the same vehicle class within three hours. Only on
+   * the list endpoint; the detail page gets the bookings themselves.
+   */
+  possibleClashes?: number;
+};
+
+/** Another booking that may need the same car. An operator aid, never a block. */
+export type PossibleClash = {
+  id: number;
+  reference: string;
+  status: string;
+  pickupAt: string;
+  customerName: string;
 };
 
 export type Quote = {

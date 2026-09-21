@@ -88,6 +88,15 @@ sends a price — it is re-derived on every submission against the live rate car
 so a stale tab or an edited request cannot book a Sprinter at a sedan fare. The
 form's on-screen figure is a preview of the same calculation.
 
+A pick-up in the past cannot be booked. The date field locks earlier days and the
+time field refuses an earlier time today, judged in New York time, and the API
+rejects a past `pickupAt` too (with two minutes of grace, so booking for "now"
+is not refused by a few seconds). The optional event date on the quote and
+wedding forms follows the same rule.
+Pick-ups are always New York time, never the customer's device time. For someone
+booking from another time zone the form shows New York's current time and, once
+a time is chosen, what it is on their own device (a hint only, never sent).
+
 The rate card is `admin.rsskylerlimo.com/rates`: one price per airport per
 vehicle, covering all five boroughs. An empty cell is not an error — that
 combination quotes instead, which is the safe direction to be unsure in.
@@ -118,6 +127,28 @@ reason spelled out in `deploy/README.md`.
 alone travels in email and on paper and would otherwise expose a customer's name
 and route to anyone who read one. Numbers are compared on their last ten digits,
 so `+1 (212) 555-0123` and `212-555-0123` are the same line.
+
+## Spam protection and double bookings
+
+The public forms (booking, quote, review) are protected by rate limiting plus two
+invisible checks that need no third-party service, so the privacy policy gains no
+new vendor. Each form carries a hidden trap field called `website` and a signed
+token fetched from `GET /api/form-token` when the page loads. The API
+(`api/src/lib/form-guard.ts`) refuses a submission that fills the trap, has no
+valid token, or arrives within three seconds of the page loading. Tokens last six
+hours. Set `FORM_TOKEN_SECRET` in `api/.env` to keep them valid across an API
+restart; unset, a random secret is used and a form opened before a restart needs
+one reload. This stops cheap scripts. It does not stop one that drives a real
+browser, which only a CAPTCHA would, and it is meant to sit behind the rate limit,
+not replace it. An identical booking (same email, pick-up time and vehicle class)
+sent twice within ten minutes is refused as a duplicate.
+
+Double bookings are flagged for the operator, not blocked. The dashboard shows a
+"Possible clash" badge in the bookings list, and the booking page names the other
+bookings, when another live booking for the same vehicle class is within three
+hours (`CLASH_WINDOW_MINUTES` in `api/src/services/bookings.ts`, plus the matching
+`180` in `listBookings`). Blocking a customer would need the number of cars per
+class, which this system does not hold.
 
 ## Google Places
 

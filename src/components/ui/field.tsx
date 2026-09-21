@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ComponentProps, ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { clsx } from "@/lib/clsx";
 
@@ -57,7 +57,7 @@ export function Field({
 export function Input({
   className,
   ...props
-}: ComponentPropsWithoutRef<"input">) {
+}: ComponentProps<"input">) {
   return <input className={clsx(control, className)} {...props} />;
 }
 

@@ -14,6 +14,7 @@ import type {
   FleetMeta,
   HeroMediaItem,
   Paginated,
+  PossibleClash,
   Quote,
   RateGrid,
   ReviewStatus,
@@ -87,11 +88,19 @@ export async function getBookings(
 
 export async function getBooking(
   id: number,
-): Promise<{ booking: Booking; activity: ActivityEntry[] } | null> {
+): Promise<{
+  booking: Booking;
+  activity: ActivityEntry[];
+  clashes: PossibleClash[];
+} | null> {
   const { token } = await verifySession();
 
   try {
-    return await apiFetch<{ booking: Booking; activity: ActivityEntry[] }>(
+    return await apiFetch<{
+      booking: Booking;
+      activity: ActivityEntry[];
+      clashes: PossibleClash[];
+    }>(
       `/api/admin/bookings/${id}`,
       { token },
     );
