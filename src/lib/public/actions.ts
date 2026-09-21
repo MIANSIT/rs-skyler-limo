@@ -47,6 +47,25 @@ async function callerIp(): Promise<string | undefined> {
   return forwarded?.split(",")[0]?.trim() || undefined;
 }
 
+/**
+ * The anti-spam fields every public form carries (see `FormGuard`). Passed on to
+ * the API untouched: this layer neither judges them nor can be trusted to.
+ */
+function guardFields(formData: FormData) {
+  return {
+    formToken: String(formData.get("formToken") ?? ""),
+    website: String(formData.get("website") ?? ""),
+  };
+}
+
+/** Asked for by a form when it loads, so the API can tell how long it was open. */
+export async function issueFormToken(): Promise<string> {
+  const { token } = await apiFetch<{ token: string }>("/api/form-token", {
+    forwardedFor: await callerIp(),
+  });
+  return token;
+}
+
 export async function submitBooking(
   _previous: BookingFormState,
   formData: FormData,
@@ -138,6 +157,7 @@ export async function submitBooking(
       forwardedFor: await callerIp(),
       body: {
         tripType,
+        ...guardFields(formData),
         pickup,
         destination,
         pickupAt,
@@ -236,6 +256,7 @@ export async function submitQuote(
         forwardedFor: await callerIp(),
         body: {
           serviceType: text("serviceType") || "other",
+        ...guardFields(formData),
           // Empty strings would fail the API's date and integer parsing, so an
           // untouched optional field is sent as an absent one.
           eventDate: text("eventDate") || null,
@@ -348,6 +369,7 @@ export async function submitReview(
           reference: text("reference").toUpperCase(),
           phone: text("phone"),
           rating: text("rating") || 0,
+        ...guardFields(formData),
           comment: text("comment"),
           displayName: text("displayName") || null,
         },

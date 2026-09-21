@@ -3,6 +3,7 @@ import { Router } from "express";
 import { ApiError } from "../lib/http.js";
 import { samePhone } from "../lib/phone.js";
 import { isReference } from "../lib/reference.js";
+import { issueFormToken, requireFormGuard } from "../lib/form-guard.js";
 import { rateLimit } from "../middleware.js";
 import {
   createBookingSchema,
@@ -11,7 +12,11 @@ import {
   placesAutocompleteSchema,
   trackSchema,
 } from "../schemas.js";
-import { createBooking, getBookingByReference } from "../services/bookings.js";
+import {
+  createBooking,
+  findRecentDuplicate,
+  getBookingByReference,
+} from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
 import {
   createReview,
@@ -31,6 +36,14 @@ export const publicRouter: Router = Router();
 // enough that a script cannot fill the dashboard with noise overnight.
 const submitLimit = rateLimit({ windowMs: 60_000, max: 8 });
 const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+
+/**
+ * A token the forms send back with the submission. Issued when a form loads, so
+ * how long the page was open can be told from the token itself.
+ */
+publicRouter.get("/form-token", lookupLimit, (_req, res) => {
+  res.json({ token: issueFormToken() });
+});
 
 /**
  * Kept beside the fare logic rather than in the site's content file: this
@@ -112,8 +125,16 @@ publicRouter.get("/places/autocomplete", placesLimit, async (req, res) => {
   res.json({ suggestions: await autocomplete(q, session), available: true });
 });
 
-publicRouter.post("/bookings", submitLimit, async (req, res) => {
+publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) => {
   const input = createBookingSchema.parse(req.body);
+
+  // The same trip sent twice in ten minutes is one trip. Say so plainly rather
+  // than creating a second reference and a second pair of emails.
+  if (await findRecentDuplicate(input)) {
+    throw ApiError.conflict(
+      "We already have this booking request from you. Check your email for the reference, or call us if you did not get one.",
+    );
+  }
 
   /**
    * The fare is decided here, not accepted from the request.
@@ -161,7 +182,7 @@ publicRouter.post("/bookings", submitLimit, async (req, res) => {
   });
 });
 
-publicRouter.post("/quotes", submitLimit, async (req, res) => {
+publicRouter.post("/quotes", submitLimit, requireFormGuard, async (req, res) => {
   const input = createQuoteSchema.parse(req.body);
   const quote = await createQuote(input, "website");
 
@@ -223,7 +244,7 @@ publicRouter.get("/reviews", async (_req, res) => {
   res.json({ ...(await listApprovedReviews()), googleReviewUrl: googleReviewUrl() });
 });
 
-publicRouter.post("/reviews", submitLimit, async (req, res) => {
+publicRouter.post("/reviews", submitLimit, requireFormGuard, async (req, res) => {
   const input = createReviewSchema.parse(req.body);
   await createReview(input);
 

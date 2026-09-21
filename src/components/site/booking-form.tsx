@@ -12,6 +12,7 @@ import {
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
+import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
@@ -392,6 +393,7 @@ export function BookingForm({
         action={formAction}
         className="mt-6 flex flex-col gap-5"
       >
+        <FormGuard />
         <input type="hidden" name="tripType" value={trip} />
         <input type="hidden" name="placesSessionToken" value={sessionToken} />
         {trip === "airport" ? (

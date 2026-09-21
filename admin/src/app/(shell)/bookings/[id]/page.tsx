@@ -41,7 +41,7 @@ export default async function BookingDetailPage({
   const result = await getBooking(numericId);
   if (!result) notFound();
 
-  const { booking, activity } = result;
+  const { booking, activity, clashes } = result;
 
   return (
     <div className="flex flex-col gap-8">
@@ -65,6 +65,42 @@ export default async function BookingDetailPage({
           {formatDay(booking.createdAt)} · {booking.source}
         </p>
       </div>
+
+      {clashes.length > 0 ? (
+        <section className="border-l-2 border-gold bg-white px-6 py-5">
+          <h2 className="font-sans text-[13px] font-semibold tracking-[0.08em] text-midnight uppercase">
+            Possible clash
+          </h2>
+          <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/80">
+            {clashes.length === 1
+              ? "Another booking for the same vehicle class is"
+              : `${clashes.length} other bookings for the same vehicle class are`}{" "}
+            within three hours of this pickup. Check a second car is free
+            before you confirm.
+          </p>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {clashes.map((clash) => (
+              <li
+                key={clash.id}
+                className="font-sans text-[14px] text-charcoal/80 tabular-nums"
+              >
+                <Link
+                  href={`/bookings/${clash.id}`}
+                  className="font-semibold text-midnight underline underline-offset-4"
+                >
+                  {clash.reference}
+                </Link>
+                {" · "}
+                {formatPickup(clash.pickupAt)}
+                {" · "}
+                {clash.customerName}
+                {" · "}
+                <span className="capitalize">{clash.status}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-8">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
@@ -157,6 +158,7 @@ export function QuoteForm({
       className="flex flex-col gap-5"
       noValidate={false}
     >
+      <FormGuard />
       {lockService ? (
         <input type="hidden" name="serviceType" value={defaultServiceType} />
       ) : null}

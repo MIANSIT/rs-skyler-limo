@@ -72,6 +72,13 @@ const schema = z.object({
    */
   GOOGLE_PLACE_ID: z.string().min(1).optional(),
 
+  /**
+   * Signs the anti-spam tokens the public forms carry. Optional: unset, a random
+   * secret is generated on each start, so a form opened before a restart fails
+   * once and works after a reload. Set it to keep tokens valid across restarts.
+   */
+  FORM_TOKEN_SECRET: z.string().min(16).optional(),
+
   /* ---------------------------------------------------------------- mail */
 
   /**
