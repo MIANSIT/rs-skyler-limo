@@ -274,6 +274,37 @@ CREATE TABLE IF NOT EXISTS airport_rates (
     FOREIGN KEY (updated_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Regional reference rates: what the business actually charges for airport
+-- transfers to places `decideFare` will never call `fixed` — Nassau, Suffolk
+-- and Westchester counties in NY, and the NJ/CT counties reachable from
+-- Teterboro, Westchester County and the Long Island/Newark-area airports.
+--
+-- Unlike `airport_rates`, nothing here is read by the booking engine. It
+-- exists so staff pricing a quote by hand have the client's own numbers in
+-- front of them instead of guessing. `zone_key` is a stable slug (see
+-- `ZONES` in `services/zone-rates.ts`); `zone_label` is a display copy of
+-- that zone's name at the time the price was entered, kept alongside it so a
+-- future rename of the label does not need a migration.
+CREATE TABLE IF NOT EXISTS zone_rates (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  airport_code  VARCHAR(8) NOT NULL,
+  zone_key      VARCHAR(60) NOT NULL,
+  zone_label    VARCHAR(120) NOT NULL,
+  vehicle_id    BIGINT UNSIGNED NOT NULL,
+  price_cents   INT UNSIGNED NOT NULL,
+  is_active     TINYINT(1) NOT NULL DEFAULT 1,
+  updated_by    BIGINT UNSIGNED NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_zone_rates (airport_code, zone_key, vehicle_id),
+  KEY ix_zone_rates_airport (airport_code),
+  CONSTRAINT fk_zone_rates_vehicle
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE CASCADE,
+  CONSTRAINT fk_zone_rates_admin
+    FOREIGN KEY (updated_by) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Who changed what. The dashboard holds customer names, phone numbers and home
 -- addresses; every status change is attributable.
 CREATE TABLE IF NOT EXISTS activity_log (

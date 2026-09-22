@@ -116,6 +116,9 @@ export async function deleteAirport(code: string): Promise<void> {
 
   await transaction(async (connection) => {
     await connection.execute(`DELETE FROM airport_rates WHERE airport_code = ?`, [code]);
+    // Reference-only rates (see `services/zone-rates.ts`) have no FK to this
+    // table, matching `airport_rates`, so they are cleaned up by hand too.
+    await connection.execute(`DELETE FROM zone_rates WHERE airport_code = ?`, [code]);
     await connection.execute(`DELETE FROM airports WHERE code = ?`, [code]);
   });
 }

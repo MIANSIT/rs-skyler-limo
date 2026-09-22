@@ -19,6 +19,7 @@ import type {
   RateGrid,
   ReviewStatus,
   Vehicle,
+  ZoneRateGrid,
 } from "@/lib/api/types";
 
 import { getSessionToken } from "./session";
@@ -205,6 +206,12 @@ export async function getAirports(): Promise<AdminAirport[]> {
 export async function getRateGrid(): Promise<RateGrid> {
   const { token } = await verifySession();
   return apiFetch<RateGrid>("/api/admin/rates", { token });
+}
+
+/** The regional reference card — see the note on `saveZoneRates`. */
+export async function getZoneRateGrid(): Promise<ZoneRateGrid> {
+  const { token } = await verifySession();
+  return apiFetch<ZoneRateGrid>("/api/admin/zone-rates", { token });
 }
 
 export async function getReviews(status?: ReviewStatus): Promise<AdminReview[]> {

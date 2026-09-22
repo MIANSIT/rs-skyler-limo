@@ -95,6 +95,23 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               NOT NULL DEFAULT 'new'`,
     },
     {
+      // The client's rate sheet prices transfers from Islip/MacArthur, which
+      // the airports table has never had a row for. `INSERT IGNORE` keeps this
+      // idempotent even if an operator adds ISP by hand first.
+      description: "airports += ISP (Long Island MacArthur)",
+      check: async () => !(await airportExists(connection, "ISP")),
+      sql: `INSERT IGNORE INTO airports (code, name, display_order)
+              SELECT 'ISP', 'Long Island MacArthur (ISP)', COALESCE(MAX(display_order), 0) + 1
+                FROM airports`,
+    },
+    {
+      description: "airports += MMU (Morristown)",
+      check: async () => !(await airportExists(connection, "MMU")),
+      sql: `INSERT IGNORE INTO airports (code, name, display_order)
+              SELECT 'MMU', 'Morristown (MMU)', COALESCE(MAX(display_order), 0) + 1
+                FROM airports`,
+    },
+    {
       // Widening an ENUM is safe to repeat, but only run it when needed so the
       // table is not rebuilt on every deploy.
       description: "activity_log.subject_type += 'vehicle'",
@@ -132,6 +149,14 @@ async function columnMissing(
     [env.DB_NAME, table, column],
   );
   return rows.length === 0;
+}
+
+async function airportExists(connection: mysql.Connection, code: string): Promise<boolean> {
+  const [rows] = await connection.query<mysql.RowDataPacket[]>(
+    `SELECT 1 FROM airports WHERE code = ?`,
+    [code],
+  );
+  return rows.length > 0;
 }
 
 main().catch((error) => {

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 /** Reviewed with the terms; change both together. */
-const LAST_UPDATED = "9 September 2026";
+const LAST_UPDATED = "23 September 2026";
 
 const cancellation = [
   {
@@ -34,7 +34,7 @@ const cancellation = [
   {
     when: "No-show",
     fee: "100%",
-    note: "Treated as a late cancellation. Tell us you are delayed and we will wait — see below.",
+    note: "You left the pickup location, or never came to it, without telling the driver or dispatch you were delayed. Call or text the moment you are running behind and this does not apply — see waiting, below.",
   },
 ];
 
@@ -239,6 +239,10 @@ export default function TermsPage() {
               {
                 title: "Tolls and parking",
                 body: "Added at cost, and only where they were not already included in your quoted fare. We do not mark them up.",
+              },
+              {
+                title: "Damage and cleaning",
+                body: "Smoking is not permitted in any vehicle. Excessive mess, spillage or smoking is billed at the cost of professional cleaning, charged to the card on file.",
               },
               {
                 title: "Your receipt",

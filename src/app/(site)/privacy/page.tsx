@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Reviewed alongside the terms; change both together. */
-const LAST_UPDATED = "17 September 2026";
+const LAST_UPDATED = "23 September 2026";
 
 /**
  * Written against what the system actually does.
@@ -175,6 +175,47 @@ export default function PrivacyPage() {
               <li key={item} className="flex gap-3 text-[15px] leading-[1.7] text-white/75">
                 <span aria-hidden className="mt-2.5 h-px w-4 shrink-0 bg-gold" />
                 {item}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </Section>
+
+      <Section tone="light">
+        <Reveal>
+          <SectionHeading
+            eyebrow="How we protect it"
+            title="Encrypted in transit, restricted at rest"
+            intro="Security is a practice, not a promise, so this describes what actually runs rather than a general assurance."
+            data-reveal
+          />
+
+          <ul data-reveal className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-2">
+            {[
+              {
+                title: "Every connection is encrypted",
+                body: "The site, the booking form and the reservations dashboard are only ever served over HTTPS. A browser that tries plain HTTP is redirected before any data leaves it.",
+              },
+              {
+                title: "Passwords are never stored in the clear",
+                body: "A staff member's password is one-way hashed before it touches the database. Nobody on our team, including us, can read it back.",
+              },
+              {
+                title: "The database is not reachable from the internet",
+                body: "It sits behind the reservations API on a private connection, with no public address of its own, and only that API can query it.",
+              },
+              {
+                title: "Access is by named staff account",
+                body: "Every login is tied to one person, expires automatically, and every change to a booking is recorded against whoever made it.",
+              },
+            ].map((item) => (
+              <li key={item.title} className="border-t border-midnight/10 pt-6">
+                <h3 className="font-sans text-[17px] font-semibold text-midnight">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
+                  {item.body}
+                </p>
               </li>
             ))}
           </ul>

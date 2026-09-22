@@ -9,6 +9,7 @@ import {
   listQuotesSchema,
   listReviewsSchema,
   saveRatesSchema,
+  saveZoneRatesSchema,
   sendQuoteSchema,
   updateBookingSchema,
   updateQuoteSchema,
@@ -36,6 +37,7 @@ import {
 } from "../services/reviews.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
+import { getZoneRateGrid, saveZoneRates } from "../services/zone-rates.js";
 
 export const adminRouter: Router = Router();
 
@@ -114,6 +116,21 @@ adminRouter.put("/rates", async (req, res) => {
   await saveRates(rates, req.admin!.id);
 
   res.json(await getRateGrid());
+});
+
+/* -------------------------------------------------------------------------- */
+/* Regional reference rates — not read by `decideFare`, see zone-rates.ts     */
+/* -------------------------------------------------------------------------- */
+
+adminRouter.get("/zone-rates", async (_req, res) => {
+  res.json(await getZoneRateGrid());
+});
+
+adminRouter.put("/zone-rates", async (req, res) => {
+  const { rates } = saveZoneRatesSchema.parse(req.body);
+  await saveZoneRates(rates, req.admin!.id);
+
+  res.json(await getZoneRateGrid());
 });
 
 /* -------------------------------------------------------------------------- */

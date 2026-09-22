@@ -199,6 +199,24 @@ export const saveRatesSchema = z.object({
     .max(200),
 });
 
+/**
+ * The regional reference card (`services/zone-rates.ts`). Purely informational
+ * — never read by `decideFare` — so the shape only needs to be safe to store,
+ * not to price a trip with.
+ */
+export const saveZoneRatesSchema = z.object({
+  rates: z
+    .array(
+      z.object({
+        airportCode: airportCodeField,
+        zoneKey: z.string().trim().min(1).max(60),
+        vehicleId: z.coerce.number().int().positive(),
+        priceCents: z.coerce.number().int().min(0).max(100_000_00).nullable(),
+      }),
+    )
+    .max(1000),
+});
+
 export const trackSchema = z.object({
   reference: z.string().trim().min(3).max(20),
   /** Second factor: a reference alone should not reveal a trip. */

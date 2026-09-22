@@ -228,6 +228,29 @@ export type RateGrid = {
 };
 
 /* -------------------------------------------------------------------------- */
+/* Regional reference rates — not read by the booking engine, see AGENTS.md   */
+/* -------------------------------------------------------------------------- */
+
+export type Zone = { key: string; label: string };
+
+export type ZoneRate = {
+  airportCode: string;
+  zoneKey: string;
+  vehicleId: number;
+  vehicleSlug: string;
+  vehicleName: string;
+  priceCents: number;
+  updatedAt: string | null;
+};
+
+export type ZoneRateGrid = {
+  airports: Airport[];
+  vehicles: { id: number; slug: string; name: string }[];
+  zones: Zone[];
+  rates: ZoneRate[];
+};
+
+/* -------------------------------------------------------------------------- */
 /* Reviews                                                                    */
 /* -------------------------------------------------------------------------- */
 
