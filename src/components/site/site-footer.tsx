@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
+import { CookiePreferencesLink } from "@/components/site/cookie-consent";
 import { contact, services } from "@/lib/content";
 import { getFleetSafely } from "@/lib/public/fleet";
 
@@ -93,6 +94,13 @@ export async function SiteFooter() {
             >
               Privacy Policy
             </Link>
+            <Link
+              href="/accessibility"
+              className="inline-block py-1.5 text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Accessibility
+            </Link>
+            <CookiePreferencesLink className="inline-block py-1.5 text-[13px] text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline" />
           </div>
         </div>
       </div>

@@ -315,7 +315,7 @@ export default function PrivacyPage() {
             <SectionHeading
               eyebrow="Cookies"
               title="None that follow you"
-              intro="The public site sets no analytics or advertising cookies. The only cookie in the system is the one that keeps a member of staff signed in to the reservations dashboard, which is a different site you will never see."
+              intro="The public site sets no tracking or advertising cookies. The only cookie in the system is the one that keeps a member of staff signed in to the reservations dashboard, which is a different site you will never see. If we ever add analytics here, it will only run once you have said yes on the cookie banner — your choice is remembered in your browser, not sent to us, and you can change it any time from Cookie Preferences in the footer."
               data-reveal
             />
           </Reveal>
