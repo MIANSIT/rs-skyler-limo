@@ -38,7 +38,7 @@ export const control =
  *  ground `date-time-field.tsx` uses for its calendar and time list. */
 export const popupByTone: Record<Tone, string> = {
   light: "border-midnight/20 bg-white",
-  dark: "border-white/15 bg-charcoal/95 backdrop-blur-xl",
+  dark: "border-white/15 bg-midnight-deep/95 backdrop-blur-xl",
 };
 
 /**

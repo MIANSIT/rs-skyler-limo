@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { clsx } from "@/lib/clsx";
 
-export type SectionTone = "light" | "grey" | "dark" | "charcoal";
+export type SectionTone = "light" | "grey" | "dark" | "deep";
 
 export function Container({
   children,
@@ -21,13 +21,15 @@ export function Container({
 /**
  * Sections alternate ground to hold a page's own ratio across a long scroll.
  * `grey` breaks up consecutive light sections without introducing a sixth
- * colour; `charcoal` does the identical job for a dark-first page (the
+ * colour; `deep` does the identical job for a dark-first page (the
  * homepage, at the client's request) — it alternates against `dark`
- * (midnight) the way `grey` alternates against `light` (white), using only
- * tokens the brand guide already names. Every one of the five tokens still
- * appears; a dark-first page simply spends more of its 100% on midnight and
- * charcoal than on white, which is a deliberate brand decision recorded in
- * `AGENTS.md`, not a silent departure from the guide's 60/30/10 note.
+ * (midnight) the way `grey` alternates against `light` (white). `deep` is
+ * `midnight-deep`, a darker shade of midnight in the same hue, not a new
+ * colour. It replaced `charcoal` here: a neutral grey beside a saturated navy
+ * read as two temperatures, not two depths of one ground. A dark-first page
+ * spends more of its 100% on midnight than on white, which is a deliberate
+ * brand decision recorded in `AGENTS.md`, not a silent departure from the
+ * guide's 60/30/10 note.
  */
 export function Section({
   tone = "light",
@@ -46,7 +48,7 @@ export function Section({
       className={clsx(
         "py-20 md:py-28",
         tone === "dark" && "bg-midnight text-white",
-        tone === "charcoal" && "bg-charcoal text-white",
+        tone === "deep" && "bg-midnight-deep text-white",
         tone === "grey" && "bg-grey",
         tone === "light" && "bg-white",
         className,

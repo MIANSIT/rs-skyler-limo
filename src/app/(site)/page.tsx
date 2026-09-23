@@ -51,10 +51,10 @@ export default async function HomePage() {
       <Hero fleet={fleet} bookingOptions={bookingOptions} media={heroMedia} />
       <BoroughMarquee />
 
-      {/* Services — charcoal ground, at the client's request for a dark-first
-          homepage (see the note on `Section`'s `charcoal` tone). Gold still
+      {/* Services — deep-midnight ground, at the client's request for a dark-first
+          homepage (see the note on `Section`'s `deep` tone). Gold still
           appears only as icons and rules, never as a sentence of text. */}
-      <Section tone="charcoal">
+      <Section tone="deep">
         <Reveal>
           <SectionHeading
             tone="dark"
@@ -140,7 +140,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Booking flow */}
-      <Section tone="charcoal">
+      <Section tone="deep">
         <Reveal>
           <SectionHeading
             tone="dark"
@@ -190,11 +190,11 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
-      <AirportTransfers airports={bookingOptions.airports} tone="charcoal" />
+      <AirportTransfers airports={bookingOptions.airports} tone="deep" />
       <ServiceAreas tone="dark" />
 
       {/* Values + counters */}
-      <Section tone="charcoal">
+      <Section tone="deep">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
           <Reveal className="lg:col-span-5">
             <SectionHeading
@@ -254,7 +254,7 @@ export default async function HomePage() {
       </Section>
 
       <Reviews data={reviewsData} tone="dark" />
-      <About tone="charcoal" />
+      <About tone="deep" />
 
       {/* Positioning note, set in the guide's own rationale device */}
       <Section tone="dark">
@@ -269,7 +269,7 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
-      <Faq tone="charcoal" />
+      <Faq tone="deep" />
 
       {/* Closing CTA */}
       <section className="bg-midnight">

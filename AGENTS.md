@@ -87,14 +87,16 @@ there. Fonts are loaded once in `src/app/layout.tsx`; colour tokens live in the
 `@theme` block in `src/app/globals.css`.
 
 **The homepage is dark-first, at the client's request (Sept 2026), inspired by
-fiveborolimo.com.** Its sections alternate `midnight` and `charcoal` — a
-`charcoal` tone was added to `Section` in `ui/section.tsx` for this — rather
-than the `white`/`grey` alternation every other page still uses. This is a
-deliberate, page-scoped exception to the 60/30/10 ratio, not a departure from
-it everywhere: white still carries every other page, and the homepage itself
-keeps `midnight` as its dominant ground with `charcoal` as the secondary one,
-so no sixth colour was introduced. The hero's `BookingForm` gained a
-`tone="dark"` prop (a frosted-glass card: `bg-charcoal/55 backdrop-blur-2xl`)
+fiveborolimo.com.** Its sections alternate `midnight` and `midnight-deep` — the
+`deep` tone on `Section` in `ui/section.tsx` — rather than the `white`/`grey`
+alternation every other page still uses. `midnight-deep` (`#07152B`) is a
+darker shade of midnight in the same hue, not a sixth colour. It replaced
+`charcoal` as the secondary ground because the neutral grey clashed with the
+saturated navy, so don't put charcoal back as a background on a midnight page.
+This is a deliberate, page-scoped exception to the 60/30/10 ratio, not a
+departure from it everywhere: white still carries every other page. The hero's
+`BookingForm` gained a `tone="dark"` prop (a frosted-glass card:
+`bg-midnight-deep/55 backdrop-blur-2xl`)
 threaded down through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in
 `ui/field.tsx`; the standalone `/book` page keeps the original light card, so
 only pass `tone="dark"` where the client has actually approved the look.
