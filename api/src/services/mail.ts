@@ -2,6 +2,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 
 import { buildBookingEmail } from "../emails/booking.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
+import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
 import { env } from "../env.js";
 import type { Booking } from "./bookings.js";
 import type { Quote } from "./quotes.js";
@@ -212,6 +213,42 @@ export async function sendQuotedEmail(booking: Booking): Promise<void> {
 
   await send({
     to: booking.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/**
+ * Tells the customer their booking moved on — confirmed, cancelled, completed
+ * or on hold — with the link to their booking. Customer only: the office made
+ * the change. Same rules as every other send.
+ */
+export async function sendBookingUpdateEmail(booking: Booking): Promise<void> {
+  let vehicleName: string;
+  try {
+    vehicleName =
+      (await getVehicleBySlug(booking.vehicleClass))?.name ?? booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const email = buildBookingUpdateEmail(booking, vehicleName);
+  await send({
+    to: booking.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/** The same for a quote request. */
+export async function sendQuoteUpdateEmail(quote: Quote): Promise<void> {
+  const email = buildQuoteUpdateEmail(quote);
+  await send({
+    to: quote.customerEmail,
     replyTo: env.MAIL_OPS_RECIPIENTS,
     subject: email.subject,
     html: email.html,

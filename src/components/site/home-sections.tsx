@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Reveal } from "@/components/motion/reveal";
 import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   demoReviews,
   faqs,
 } from "@/lib/content";
+import { airportPageHref } from "@/lib/airport-pages";
 import type { Airport, ReviewsResponse } from "@/lib/api/types";
 
 /** Whether a given `Section` tone is one of the two dark grounds. Text,
@@ -33,8 +35,10 @@ export function AirportTransfers({
   tone?: SectionTone;
 }) {
   const dark = isDarkTone(tone);
-  const names =
-    airports.length > 0 ? airports.map((a) => a.name) : [...bookingAirports];
+  const entries =
+    airports.length > 0
+      ? airports.map((a) => ({ name: a.name, href: airportPageHref(a.code) }))
+      : bookingAirports.map((name) => ({ name, href: null }));
 
   return (
     <Section tone={tone}>
@@ -60,25 +64,31 @@ export function AirportTransfers({
 
         <Reveal className="lg:col-span-6">
           <ul data-reveal className="grid gap-x-8 sm:grid-cols-2">
-            {names.map((name) => (
-              <li
-                key={name}
-                className={clsx(
-                  "flex items-center gap-3 border-t py-4",
-                  dark ? "border-white/15" : "border-midnight/10",
-                )}
-              >
-                <PlaneIcon className="h-5 w-5 shrink-0 text-gold" />
-                <span
+            {entries.map(({ name, href }) => {
+              const label = clsx(
+                "font-sans text-[16px] font-medium",
+                dark ? "text-white" : "text-midnight",
+                href && "underline-offset-4 hover:underline",
+              );
+              return (
+                <li
+                  key={name}
                   className={clsx(
-                    "font-sans text-[16px] font-medium",
-                    dark ? "text-white" : "text-midnight",
+                    "flex items-center gap-3 border-t py-4",
+                    dark ? "border-white/15" : "border-midnight/10",
                   )}
                 >
-                  {name}
-                </span>
-              </li>
-            ))}
+                  <PlaneIcon className="h-5 w-5 shrink-0 text-gold" />
+                  {href ? (
+                    <Link href={href} className={label}>
+                      {name}
+                    </Link>
+                  ) : (
+                    <span className={label}>{name}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           <p
             data-reveal
@@ -139,7 +149,7 @@ export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
             </li>
           ))}
         </ul>
-        <div data-reveal className="mt-8">
+        <div data-reveal className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
           {dark ? (
             <ButtonLinkOnDark href="/quote">Get a quote</ButtonLinkOnDark>
           ) : (
@@ -147,6 +157,15 @@ export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
               Get a quote
             </ButtonLink>
           )}
+          <Link
+            href="/service-areas"
+            className={clsx(
+              "py-2 font-sans text-[15px] font-medium underline underline-offset-4",
+              dark ? "text-white" : "text-midnight",
+            )}
+          >
+            Where we drive, borough by borough
+          </Link>
         </div>
       </Reveal>
     </Section>
@@ -257,7 +276,18 @@ export function Reviews({
           ))}
         </div>
 
-        <div data-reveal className="mt-10 flex flex-wrap gap-4">
+        <div data-reveal className="mt-10 flex flex-wrap items-center gap-4">
+          {!demo && data.count > items.length ? (
+            <Link
+              href="/reviews"
+              className={clsx(
+                "py-2 font-sans text-[15px] font-medium underline underline-offset-4",
+                dark ? "text-white" : "text-midnight",
+              )}
+            >
+              Read all {data.count} reviews
+            </Link>
+          ) : null}
           {dark ? (
             <>
               <ButtonLinkOnDark href="/review">Review a completed trip</ButtonLinkOnDark>
@@ -290,53 +320,95 @@ export function Reviews({
   );
 }
 
-export function Faq({ tone = "grey" }: { tone?: SectionTone }) {
-  const dark = isDarkTone(tone);
-
-  // Structured data so the answers can appear in search results. `<` is
-  // escaped so a stray tag in an answer can never close the script element.
-  const jsonLd = JSON.stringify({
+/**
+ * FAQPage structured data, so the answers can appear in search results. `<` is
+ * escaped so a stray tag in an answer can never close the script element.
+ */
+export function faqJsonLd(items: { question: string; answer: string }[]) {
+  return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqs.map((item) => ({
+    mainEntity: items.map((item) => ({
       "@type": "Question",
       name: item.question,
       acceptedAnswer: { "@type": "Answer", text: item.answer },
     })),
   }).replace(/</g, "\\u003c");
+}
+
+/**
+ * The site-wide questions by default. An airport page passes its own, so its
+ * FAQPage data describes that airport rather than repeating the homepage's.
+ *
+ * `structuredData={false}` is for a page that stacks several of these: one
+ * page should carry one FAQPage, so /faq emits a single combined block itself.
+ */
+export function Faq({
+  tone = "grey",
+  items = faqs,
+  eyebrow = "Questions",
+  title = "Before you book",
+  intro = "The answers people ask for most, matching our terms.",
+  structuredData = true,
+  id,
+  aside,
+}: {
+  tone?: SectionTone;
+  items?: { question: string; answer: string }[];
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  structuredData?: boolean;
+  id?: string;
+  /** Replaces the default "see the contact page" line under the heading. */
+  aside?: ReactNode;
+}) {
+  const dark = isDarkTone(tone);
 
   return (
-    <Section tone={tone}>
+    <Section tone={tone} id={id}>
       <div className="grid gap-12 lg:grid-cols-12 lg:gap-20">
         <Reveal className="lg:col-span-4">
           <SectionHeading
             tone={dark ? "dark" : "light"}
-            eyebrow="Questions"
-            title="Before you book"
-            intro="The answers people ask for most, matching our terms."
+            eyebrow={eyebrow}
+            title={title}
+            intro={intro}
             data-reveal
           />
-          <p
-            data-reveal
-            className={clsx("mt-6 text-[15px] leading-[1.7]", dark ? "text-white/75" : "text-charcoal")}
-          >
-            Something else? See the{" "}
-            <Link
-              href="/contact"
-              className={clsx(
-                "font-medium underline underline-offset-4",
-                dark ? "text-white" : "text-midnight",
-              )}
+          {aside ?? (
+            <p
+              data-reveal
+              className={clsx("mt-6 text-[15px] leading-[1.7]", dark ? "text-white/75" : "text-charcoal")}
             >
-              contact page
-            </Link>
-            .
-          </p>
+              Something else? See{" "}
+              <Link
+                href="/faq"
+                className={clsx(
+                  "font-medium underline underline-offset-4",
+                  dark ? "text-white" : "text-midnight",
+                )}
+              >
+                every question
+              </Link>{" "}
+              or the{" "}
+              <Link
+                href="/contact"
+                className={clsx(
+                  "font-medium underline underline-offset-4",
+                  dark ? "text-white" : "text-midnight",
+                )}
+              >
+                contact page
+              </Link>
+              .
+            </p>
+          )}
         </Reveal>
 
         <Reveal className="lg:col-span-8">
           <div data-reveal className={clsx("border-b", dark ? "border-white/15" : "border-midnight/15")}>
-            {faqs.map((item) => (
+            {items.map((item) => (
               <details
                 key={item.question}
                 className={clsx("group border-t", dark ? "border-white/15" : "border-midnight/15")}
@@ -367,10 +439,12 @@ export function Faq({ tone = "grey" }: { tone?: SectionTone }) {
         </Reveal>
       </div>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd }}
-      />
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: faqJsonLd(items) }}
+        />
+      ) : null}
     </Section>
   );
 }

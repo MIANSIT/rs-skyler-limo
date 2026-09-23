@@ -133,6 +133,26 @@ const schema = z.object({
    * Where a "track this booking" link should point. Used only in email bodies.
    */
   SITE_BASE_URL: z.string().min(1).default("http://localhost:3000"),
+
+  /**
+   * Stripe, for card payment on a priced booking. Optional: unset, the card
+   * option is still offered and the office takes payment when it confirms, as
+   * before. Server-side only — the browser is sent to Stripe's own hosted page,
+   * so no key of any kind reaches the public site.
+   *
+   * Use an `sk_test_` key everywhere but production.
+   */
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/, "Expected a Stripe secret key.")
+    .optional(),
+
+  /**
+   * Signs the webhook that marks a booking paid even when the customer closes
+   * the tab before returning from Stripe. Optional: without it, payment is
+   * still recorded when the customer lands back on the site.
+   */
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
 });
 
 const parsed = schema.safeParse(process.env);

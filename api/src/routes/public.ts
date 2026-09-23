@@ -9,6 +9,7 @@ import {
   createBookingSchema,
   createQuoteSchema,
   createReviewSchema,
+  paymentConfirmSchema,
   placesAutocompleteSchema,
   trackSchema,
 } from "../schemas.js";
@@ -17,7 +18,7 @@ import {
   findRecentDuplicate,
   getBookingByReference,
 } from "../services/bookings.js";
-import { createQuote } from "../services/quotes.js";
+import { createQuote, getQuoteByReference } from "../services/quotes.js";
 import {
   createReview,
   googleReviewUrl,
@@ -28,6 +29,7 @@ import { listActiveHeroMedia } from "../services/hero.js";
 import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
 import { sendBookingEmails, sendQuoteRequestEmails } from "../services/mail.js";
+import { canPayOnline, createCheckout, recordCheckout } from "../services/payments.js";
 import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
@@ -174,11 +176,30 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     );
   });
 
+  /**
+   * A fixed fare paid by card goes straight to Stripe. The booking is already
+   * saved, so if Stripe is down the customer still has their reference and can
+   * pay later from the tracking page — a payment failure is logged, never
+   * returned as a failed booking.
+   */
+  let checkoutUrl: string | null = null;
+  if (canPayOnline(booking)) {
+    try {
+      checkoutUrl = await createCheckout(booking);
+    } catch (error) {
+      console.error(
+        `[stripe] could not open checkout for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   res.status(201).json({
     reference: booking.reference,
     pricingMode: booking.pricingMode,
     quotedTotalCents: booking.quotedTotalCents,
     fareReason: fare.reason,
+    checkoutUrl,
   });
 });
 
@@ -217,6 +238,28 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     throw ApiError.notFound("No booking matches those details.");
   }
 
+  /*
+   * A quote request (`RQ-…`) is looked up the same way, so every email the
+   * customer gets — booking or request — can point at the one tracking page.
+   * It carries no route or fare, so the response is short.
+   */
+  if (reference.toUpperCase().startsWith("RQ-")) {
+    const quote = await getQuoteByReference(reference);
+    if (!quote || !samePhone(quote.customerPhone, phone)) {
+      throw ApiError.notFound("No booking matches those details.");
+    }
+    res.json({
+      kind: "quote",
+      reference: quote.reference,
+      status: quote.status,
+      serviceType: quote.serviceType,
+      eventDate: quote.eventDate,
+      agreedPriceCents: quote.agreedPriceCents,
+      createdAt: quote.createdAt,
+    });
+    return;
+  }
+
   const booking = await getBookingByReference(reference);
 
   const matches = booking && samePhone(booking.customerPhone, phone);
@@ -226,6 +269,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
   if (!matches) throw ApiError.notFound("No booking matches those details.");
 
   res.json({
+    kind: "booking",
     reference: booking.reference,
     status: booking.status,
     pricingMode: booking.pricingMode,
@@ -236,6 +280,43 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     quotedTotalCents: booking.quotedTotalCents,
     quoteNote: booking.quoteNote,
     quotedAt: booking.quotedAt,
+    paymentMethod: booking.paymentMethod,
+    paymentStatus: booking.paymentStatus,
+    canPayOnline: canPayOnline(booking),
+  });
+});
+
+/**
+ * Opens a Stripe payment page for a priced, unpaid card booking. The same two
+ * factors as /track, so nobody can open a payment page — or learn a fare — for
+ * someone else's trip from a reference alone.
+ */
+publicRouter.post("/payments/checkout", lookupLimit, async (req, res) => {
+  const { reference, phone } = trackSchema.parse(req.body);
+
+  const booking = isReference(reference.toUpperCase())
+    ? await getBookingByReference(reference)
+    : null;
+  if (!booking || !samePhone(booking.customerPhone, phone)) {
+    throw ApiError.notFound("No booking matches those details.");
+  }
+
+  res.json({ url: await createCheckout(booking) });
+});
+
+/**
+ * Where Stripe's success page lands. The session id is looked up with Stripe,
+ * not trusted, so this can only ever record a payment that really happened.
+ * Returns no customer details beyond what the returning customer just paid.
+ */
+publicRouter.post("/payments/confirm", lookupLimit, async (req, res) => {
+  const { sessionId } = paymentConfirmSchema.parse(req.body);
+  const booking = await recordCheckout(sessionId);
+
+  res.json({
+    reference: booking.reference,
+    paymentStatus: booking.paymentStatus,
+    amountCents: booking.quotedTotalCents,
   });
 });
 

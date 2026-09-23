@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Reviewed alongside the terms; change both together. */
-const LAST_UPDATED = "23 September 2026";
+const LAST_UPDATED = "24 September 2026";
 
 /**
  * Written against what the system actually does.
@@ -53,7 +53,7 @@ const collected = [
   {
     term: "Payment details",
     detail:
-      "Card details are entered with our payment processor and are never stored on our systems. We keep the authorisation reference and the last four digits, which is what appears on your invoice.",
+      "Whether you chose to pay by card or cash on delivery, and whether the trip has been paid. Card details are entered on Stripe's page and never reach our systems. We keep only Stripe's reference for the payment, so we can find it if you ask.",
   },
 ];
 
@@ -78,10 +78,10 @@ const thirdParties = [
       "After you send a review to us we may offer a link to Google's own review form. Following it takes you to Google, where its terms and privacy policy apply. We send Google nothing about you or your booking.",
   },
   {
-    name: "Our payment processor",
-    what: "Taking payment.",
+    name: "Stripe",
+    what: "Taking card payment, if you choose to pay by card.",
     detail:
-      "Card details go directly to the processor and never touch our servers. We receive only a reference and the last four digits.",
+      "You pay on Stripe's own page, so card details go directly to Stripe and never touch our servers. We send Stripe your email address, the amount, the vehicle and your booking reference — not your addresses. Stripe's privacy policy applies to what you enter there.",
   },
   {
     name: "Our hosting provider",
@@ -261,8 +261,8 @@ export default function PrivacyPage() {
             data-reveal
           />
 
-          <div data-reveal className="relative mt-10 overflow-x-auto">
-            <table className="w-full min-w-[36rem] border-collapse text-left">
+          <div tabIndex={0} role="region" aria-label="Retention table" data-reveal className="relative mt-10 overflow-x-auto">
+            <table className="w-full min-w-xl border-collapse text-left">
               <caption className="sr-only">Retention periods</caption>
               <thead>
                 <tr className="border-b border-midnight/15">

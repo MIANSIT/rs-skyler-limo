@@ -34,6 +34,10 @@ type BookingRow = RowDataPacket & {
   pricing_mode: "fixed" | "quote";
   quoted_at: Date | null;
   quote_note: string | null;
+  payment_method: "card" | "cash";
+  payment_status: "unpaid" | "paid";
+  paid_at: Date | null;
+  stripe_payment_intent_id: string | null;
   pickup_locality: string | null;
   pickup_region: string | null;
   destination_locality: string | null;
@@ -71,6 +75,10 @@ function toBooking(row: BookingRow) {
     pricingMode: row.pricing_mode,
     quotedAt: row.quoted_at ? row.quoted_at.toISOString() : null,
     quoteNote: row.quote_note,
+    paymentMethod: row.payment_method,
+    paymentStatus: row.payment_status,
+    paidAt: row.paid_at ? row.paid_at.toISOString() : null,
+    stripePaymentIntentId: row.stripe_payment_intent_id,
     pickupLocality: row.pickup_locality,
     pickupRegion: row.pickup_region,
     destinationLocality: row.destination_locality,
@@ -94,6 +102,7 @@ const SELECT_COLUMNS = `id, reference, status, trip_type, pricing_mode, pickup,
   destination, pickup_at, passengers, bags, child_seats, vehicle_class,
   service_type, airline, flight_number, customer_name, customer_email, customer_phone, notes,
   quoted_total_cents, quoted_at, quote_note,
+  payment_method, payment_status, paid_at, stripe_payment_intent_id,
   pickup_locality, pickup_region, destination_locality, destination_region,
   airport_code, airport_direction,
   source, created_at, updated_at`;
@@ -115,15 +124,15 @@ export async function createBooking(
       const result = await execute(
         `INSERT INTO bookings
            (reference, trip_type, pricing_mode, pickup, destination, pickup_at,
-            passengers, bags, child_seats, vehicle_class, service_type, airline, flight_number,
-            customer_name, customer_email, customer_phone, notes,
+            passengers, bags, child_seats, vehicle_class, service_type, payment_method,
+            airline, flight_number, customer_name, customer_email, customer_phone, notes,
             quoted_total_cents, pickup_place_id, pickup_locality, pickup_region,
             destination_place_id, destination_locality, destination_region,
             airport_code, airport_direction, source)
          VALUES
            (:reference, :tripType, :pricingMode, :pickup, :destination, :pickupAt,
-            :passengers, :bags, :childSeats, :vehicleClass, :serviceType, :airline, :flightNumber,
-            :customerName, :customerEmail, :customerPhone, :notes,
+            :passengers, :bags, :childSeats, :vehicleClass, :serviceType, :paymentMethod,
+            :airline, :flightNumber, :customerName, :customerEmail, :customerPhone, :notes,
             :quotedTotalCents, :pickupPlaceId, :pickupLocality, :pickupRegion,
             :destinationPlaceId, :destinationLocality, :destinationRegion,
             :airportCode, :airportDirection, :source)`,
@@ -138,6 +147,7 @@ export async function createBooking(
           childSeats: input.childSeats,
           vehicleClass: input.vehicleClass,
           serviceType: input.serviceType,
+          paymentMethod: input.paymentMethod,
           airline: input.airline ?? null,
           flightNumber: input.flightNumber ?? null,
           customerName: input.customerName,
@@ -204,9 +214,16 @@ export type BookingList = {
   perPage: number;
 };
 
-export async function listBookings(
-  filters: z.infer<typeof listBookingsSchema>,
-): Promise<BookingList> {
+/**
+ * The WHERE clause for the bookings list, shared with the Excel export so a
+ * download holds exactly what the operator was looking at.
+ */
+function bookingFilters(filters: {
+  status?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+}): { where: string; params: Record<string, unknown> } {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
 
@@ -232,7 +249,16 @@ export async function listBookings(
     params.to = `${filters.to} 23:59:59`;
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  return {
+    where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+    params,
+  };
+}
+
+export async function listBookings(
+  filters: z.infer<typeof listBookingsSchema>,
+): Promise<BookingList> {
+  const { where, params } = bookingFilters(filters);
 
   const countRow = await queryOne<RowDataPacket & { total: number }>(
     `SELECT COUNT(*) AS total FROM bookings ${where}`,
@@ -275,8 +301,54 @@ export async function listBookings(
   };
 }
 
+/** Every booking matching the filters, newest pickup first, capped for sanity. */
+export async function listBookingsForExport(filters: {
+  status?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+}): Promise<Booking[]> {
+  const { where, params } = bookingFilters(filters);
+  const rows = await query<BookingRow>(
+    `SELECT ${SELECT_COLUMNS} FROM bookings ${where}
+      ORDER BY pickup_at DESC LIMIT 20000`,
+    params,
+  );
+  return rows.map(toBooking);
+}
+
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
+/**
+ * Booking fields the dashboard's edit page may change, with their column and
+ * the name the history uses. Kept as data so a new editable field is one line,
+ * and so what the history reports is exactly what was written.
+ */
+const EDITABLE_FIELDS = [
+  { key: "customerName", column: "customer_name", label: "customer name" },
+  { key: "customerEmail", column: "customer_email", label: "email" },
+  { key: "customerPhone", column: "customer_phone", label: "phone" },
+  { key: "tripType", column: "trip_type", label: "trip type" },
+  { key: "pickup", column: "pickup", label: "pick-up" },
+  { key: "destination", column: "destination", label: "drop-off" },
+  { key: "passengers", column: "passengers", label: "passengers" },
+  { key: "bags", column: "bags", label: "bags" },
+  { key: "childSeats", column: "child_seats", label: "child seats" },
+  { key: "serviceType", column: "service_type", label: "service" },
+  { key: "airportCode", column: "airport_code", label: "airport" },
+  { key: "airportDirection", column: "airport_direction", label: "airport direction" },
+  { key: "airline", column: "airline", label: "airline" },
+  { key: "flightNumber", column: "flight_number", label: "flight number" },
+  { key: "customerNotes", column: "notes", label: "customer instructions" },
+] as const;
+
+type EditableKey = (typeof EDITABLE_FIELDS)[number]["key"];
+
+/** The booking's current value for an editable field, for change detection. */
+function currentValue(booking: Booking, key: EditableKey): unknown {
+  return key === "customerNotes" ? booking.notes : booking[key];
 }
 
 export async function updateBooking(
@@ -295,17 +367,60 @@ export async function updateBooking(
       assignments.push("status = :status");
       params.status = patch.status;
     }
-    if (patch.pickupAt !== undefined) {
+    if (patch.pickupAt !== undefined && Date.parse(patch.pickupAt) !== Date.parse(existing.pickupAt)) {
       assignments.push("pickup_at = :pickupAt");
       params.pickupAt = new Date(patch.pickupAt);
     }
-    if (patch.vehicleClass !== undefined) {
+    if (patch.vehicleClass !== undefined && patch.vehicleClass !== existing.vehicleClass) {
       assignments.push("vehicle_class = :vehicleClass");
       params.vehicleClass = patch.vehicleClass;
     }
-    if (patch.quotedTotalCents !== undefined) {
+    // Only what actually changed is written and reported, so saving the edit
+    // page untouched leaves no noise in the history.
+    const changed: string[] = [];
+
+    if (patch.pickupAt !== undefined && Date.parse(patch.pickupAt) !== Date.parse(existing.pickupAt)) {
+      changed.push("pick-up time");
+    }
+    if (patch.vehicleClass !== undefined && patch.vehicleClass !== existing.vehicleClass) {
+      changed.push("vehicle");
+    }
+
+    for (const field of EDITABLE_FIELDS) {
+      const next = patch[field.key];
+      if (next === undefined) continue;
+      const value =
+        field.key === "customerEmail" && typeof next === "string" ? next.toLowerCase() : next;
+      if (value === currentValue(existing, field.key)) continue;
+      assignments.push(`${field.column} = :${field.key}`);
+      params[field.key] = value;
+      changed.push(field.label);
+    }
+
+    const paymentChanged =
+      (patch.paymentMethod !== undefined && patch.paymentMethod !== existing.paymentMethod) ||
+      (patch.paymentStatus !== undefined && patch.paymentStatus !== existing.paymentStatus);
+
+    if (
+      patch.quotedTotalCents !== undefined &&
+      patch.quotedTotalCents !== existing.quotedTotalCents
+    ) {
       assignments.push("quoted_total_cents = :quotedTotalCents");
       params.quotedTotalCents = patch.quotedTotalCents;
+      changed.push("fare");
+    }
+    if (patch.paymentMethod !== undefined && patch.paymentMethod !== existing.paymentMethod) {
+      assignments.push("payment_method = :paymentMethod");
+      params.paymentMethod = patch.paymentMethod;
+    }
+    // `paid_at` follows the status rather than being sent, so it is always
+    // the moment an operator recorded the money, never a typed date.
+    if (patch.paymentStatus !== undefined && patch.paymentStatus !== existing.paymentStatus) {
+      assignments.push("payment_status = :paymentStatus");
+      assignments.push(
+        patch.paymentStatus === "paid" ? "paid_at = UTC_TIMESTAMP()" : "paid_at = NULL",
+      );
+      params.paymentStatus = patch.paymentStatus;
     }
 
     if (assignments.length) {
@@ -317,8 +432,9 @@ export async function updateBooking(
     }
 
     // A note with no field change is still worth recording — it is how an
-    // operator leaves "customer called, flight delayed" on the record.
-    await executeOn(
+    // operator leaves "customer called, flight delayed" on the record. A save
+    // that changed nothing and says nothing is not.
+    if (assignments.length > 0 || patch.note) await executeOn(
       connection,
       `INSERT INTO activity_log
          (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
@@ -326,10 +442,29 @@ export async function updateBooking(
       {
         id,
         adminUserId,
-        action: patch.status ? "status_changed" : "updated",
+        // A details edit that also moved the payment reads as one edit, with
+        // the payment named among its changes; a payment button on its own
+        // keeps its specific label.
+        action: patch.status
+          ? "status_changed"
+          : changed.length > 0
+            ? "details_updated"
+            : patch.paymentStatus && patch.paymentStatus !== existing.paymentStatus
+              ? `payment_${patch.paymentStatus}`
+              : patch.paymentMethod && patch.paymentMethod !== existing.paymentMethod
+                ? `payment_method_${patch.paymentMethod}`
+                : "updated",
         fromStatus: patch.status ? existing.status : null,
         toStatus: patch.status ?? null,
-        note: patch.note ?? null,
+        note:
+          [
+            changed.length > 0
+              ? `Changed: ${[...changed, ...(paymentChanged ? ["payment"] : [])].join(", ")}.`
+              : "",
+            patch.note ?? "",
+          ]
+            .filter(Boolean)
+            .join(" ") || null,
       },
     );
 

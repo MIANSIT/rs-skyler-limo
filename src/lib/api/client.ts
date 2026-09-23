@@ -8,7 +8,7 @@ import "server-only";
  * and is not routable from a browser, so every call is made here, server side,
  * and the browser only ever sees this app's own origin.
  */
-const BASE_URL = (process.env.API_URL ?? "http://127.0.0.1:4000").replace(
+export const BASE_URL = (process.env.API_URL ?? "http://127.0.0.1:4000").replace(
   /\/+$/,
   "",
 );

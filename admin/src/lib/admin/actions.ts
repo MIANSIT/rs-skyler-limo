@@ -91,7 +91,12 @@ export async function updateBookingStatus(
     await apiFetch(`/api/admin/bookings/${id}`, {
       method: "PATCH",
       token,
-      body: { status, ...(note ? { note } : {}) },
+      body: {
+        status,
+        ...(note ? { note } : {}),
+        // The box on the status form. Unticked, the change is silent.
+        notifyCustomer: formData.get("notify") === "on",
+      },
     });
   } catch (error) {
     if (error instanceof ApiRequestError) return { error: error.failure.message };
@@ -101,6 +106,44 @@ export async function updateBookingStatus(
   revalidatePath(`/bookings/${id}`);
   revalidatePath("/bookings");
   revalidatePath("/");
+
+  return undefined;
+}
+
+/**
+ * Payment method and paid/unpaid, one field per submit — the panel's buttons
+ * each send exactly the change they name. `paid_at` is stamped by the API.
+ */
+export async function updateBookingPayment(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const { token } = await verifySession();
+
+  const id = Number(formData.get("id"));
+  const paymentMethod = String(formData.get("paymentMethod") ?? "");
+  const paymentStatus = String(formData.get("paymentStatus") ?? "");
+
+  if (!Number.isInteger(id) || id < 1) return { error: "Unknown booking." };
+
+  const body: Record<string, string> = {};
+  if (paymentMethod === "card" || paymentMethod === "cash") {
+    body.paymentMethod = paymentMethod;
+  }
+  if (paymentStatus === "paid" || paymentStatus === "unpaid") {
+    body.paymentStatus = paymentStatus;
+  }
+  if (Object.keys(body).length === 0) return { error: "Nothing to change." };
+
+  try {
+    await apiFetch(`/api/admin/bookings/${id}`, { method: "PATCH", token, body });
+  } catch (error) {
+    if (error instanceof ApiRequestError) return { error: error.failure.message };
+    throw error;
+  }
+
+  revalidatePath(`/bookings/${id}`);
+  revalidatePath("/bookings");
 
   return undefined;
 }
@@ -148,7 +191,12 @@ export async function updateQuoteStatus(
     await apiFetch(`/api/admin/quotes/${id}`, {
       method: "PATCH",
       token,
-      body: { status, ...(note ? { note } : {}) },
+      body: {
+        status,
+        ...(note ? { note } : {}),
+        // The box on the status form. Unticked, the change is silent.
+        notifyCustomer: formData.get("notify") === "on",
+      },
     });
   } catch (error) {
     if (error instanceof ApiRequestError) return { error: error.failure.message };

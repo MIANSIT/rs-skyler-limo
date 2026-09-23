@@ -102,7 +102,7 @@ export function FleetCard({
           <p
             className={clsx(
               "mt-1 truncate font-sans text-[12px] tracking-[0.06em] uppercase",
-              dark ? "text-white/50" : "text-charcoal/60",
+              dark ? "text-white/50" : "text-charcoal/70",
             )}
           >
             {vehicle.model}
@@ -174,7 +174,7 @@ export function FleetCard({
             ))}
 
             {hiddenAmenityCount > 0 ? (
-              <li className={clsx("self-center font-sans text-[12px]", dark ? "text-white/50" : "text-charcoal/60")}>
+              <li className={clsx("self-center font-sans text-[12px]", dark ? "text-white/50" : "text-charcoal/70")}>
                 +{hiddenAmenityCount} more
               </li>
             ) : null}
@@ -225,7 +225,7 @@ function Spec({ label, value, dark }: { label: string; value: string; dark: bool
       <dt
         className={clsx(
           "font-medium tracking-[0.06em] uppercase",
-          dark ? "text-white/50" : "text-charcoal/60",
+          dark ? "text-white/50" : "text-charcoal/70",
         )}
       >
         {label}

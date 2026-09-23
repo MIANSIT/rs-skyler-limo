@@ -6,6 +6,7 @@ import { QuoteForm } from "@/components/site/quote-form";
 import { BriefcaseIcon, ShieldIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
 import { corporateFeatures } from "@/lib/content";
+import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
   title: "Corporate Accounts",
@@ -108,7 +109,8 @@ export default function CorporatePage() {
         </Reveal>
       </Section>
 
-      <Section tone="grey">
+      {/* `#enquire` is where the closing band's Get a quote lands. */}
+      <Section tone="grey" id="enquire">
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <SectionHeading
@@ -173,6 +175,8 @@ export default function CorporatePage() {
           </Reveal>
         </div>
       </Section>
+
+      <CtaBand eyebrow="Your city, chauffeured" title="Open an account, or book a single trip today." primary="none" quoteHref="#enquire" />
     </>
   );
 }

@@ -16,7 +16,7 @@ export default async function AdminLoginPage({
   const { expired } = await searchParams;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-midnight px-6 py-16">
+    <main className="flex flex-1 flex-col items-center justify-center bg-midnight px-6 py-16">
       <div className="w-full max-w-sm">
         <Logo tone="dark" priority className="mb-10" />
 
@@ -38,6 +38,6 @@ export default async function AdminLoginPage({
 
         <LoginForm />
       </div>
-    </div>
+    </main>
   );
 }

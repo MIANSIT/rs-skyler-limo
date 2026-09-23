@@ -81,6 +81,19 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- What the operator wants the customer to read beside the number.
   quote_note        TEXT NULL,
 
+  -- How the customer means to pay, chosen on the booking form: `card` is
+  -- settled with the office, `cash` is paid to the chauffeur at the end of the
+  -- trip. `payment_status` is recorded by an operator; nothing sets it
+  -- automatically, because nothing here takes money.
+  payment_method    ENUM('card','cash') NOT NULL DEFAULT 'card',
+  payment_status    ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  paid_at           DATETIME NULL,
+  -- The Stripe objects behind a card payment: the latest Checkout Session
+  -- opened for this booking, and the PaymentIntent once it succeeded. Kept so
+  -- an operator can find the payment in the Stripe Dashboard.
+  stripe_checkout_session_id VARCHAR(255) NULL,
+  stripe_payment_intent_id   VARCHAR(255) NULL,
+
   -- Resolved from the address by the Places lookup, so "is this inside New
   -- York" is answered by Google rather than by trusting typed text. NULL when
   -- the lookup was unavailable and the customer typed a plain address.
@@ -122,6 +135,10 @@ CREATE TABLE IF NOT EXISTS quotes (
   customer_email    VARCHAR(255) NOT NULL,
   customer_phone    VARCHAR(40) NOT NULL,
   details           TEXT NOT NULL,
+  -- The price agreed with the customer, in cents, once an operator sets it.
+  -- NULL until then. `priced_at` is when it was last set.
+  agreed_price_cents INT UNSIGNED NULL,
+  priced_at         DATETIME NULL,
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

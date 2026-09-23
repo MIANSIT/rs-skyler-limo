@@ -92,7 +92,7 @@ export function PhotoManager({ vehicle }: { vehicle: Vehicle }) {
                   ) : null}
                 </div>
 
-                <p className="flex-1 font-sans text-[13px] leading-[1.5] text-charcoal/80">
+                <p className="flex-1 font-sans text-[13px] leading-normal text-charcoal/80">
                   {photo.altText}
                 </p>
 

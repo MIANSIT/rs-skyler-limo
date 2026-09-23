@@ -79,6 +79,15 @@ export function formatService(type: string): string {
   return serviceLabels[type] ?? type;
 }
 
+const paymentLabels: Record<string, string> = {
+  card: "Card (Stripe)",
+  cash: "Cash on delivery",
+};
+
+export function formatPayment(method: string): string {
+  return paymentLabels[method] ?? method;
+}
+
 /**
  * The operator's greeting, on New York's clock rather than the server's — a
  * dispatcher on a night shift should not be wished good morning at 11 p.m.

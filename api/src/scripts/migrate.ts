@@ -95,6 +95,28 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               NOT NULL DEFAULT 'new'`,
     },
     {
+      description: "bookings.payment_method, payment_status, paid_at",
+      check: () => columnMissing(connection, "bookings", "payment_method"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN payment_method ENUM('card','cash') NOT NULL DEFAULT 'card' AFTER quote_note,
+              ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid' AFTER payment_method,
+              ADD COLUMN paid_at DATETIME NULL AFTER payment_status`,
+    },
+    {
+      description: "bookings.stripe_checkout_session_id, stripe_payment_intent_id",
+      check: () => columnMissing(connection, "bookings", "stripe_checkout_session_id"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN stripe_checkout_session_id VARCHAR(255) NULL AFTER paid_at,
+              ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_checkout_session_id`,
+    },
+    {
+      description: "quotes.agreed_price_cents, priced_at",
+      check: () => columnMissing(connection, "quotes", "agreed_price_cents"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN agreed_price_cents INT UNSIGNED NULL AFTER details,
+              ADD COLUMN priced_at DATETIME NULL AFTER agreed_price_cents`,
+    },
+    {
       // The client's rate sheet prices transfers from Islip/MacArthur, which
       // the airports table has never had a row for. `INSERT IGNORE` keeps this
       // idempotent even if an operator adds ISP by hand first.

@@ -122,3 +122,31 @@ export async function apiFetch<T>(
 
   return payload as T;
 }
+
+/**
+ * A file from the API — the Excel export — as raw bytes rather than JSON.
+ * Same address and bearer token as `apiFetch`; throws an `ApiRequestError` on
+ * a non-2xx so callers handle failure the same way.
+ */
+export async function apiFetchFile(
+  path: string,
+  token: string,
+): Promise<{ bytes: ArrayBuffer; contentType: string }> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new ApiRequestError({
+      status: response.status,
+      code: "export_failed",
+      message: "The export could not be produced.",
+    });
+  }
+
+  return {
+    bytes: await response.arrayBuffer(),
+    contentType: response.headers.get("content-type") ?? "application/octet-stream",
+  };
+}

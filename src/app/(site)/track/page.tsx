@@ -14,7 +14,21 @@ export const metadata: Metadata = {
     "Enter your booking reference and the phone number on it to see its status, pickup, vehicle and fare. No account or app required.",
 };
 
-export default async function TrackPage() {
+/**
+ * `?reference=` fills in the reference, so a link from an email or from the
+ * confirmation screen leaves only the phone number to type. Accepted only in
+ * the shape of one of our references; anything else is ignored rather than
+ * echoed into the page.
+ */
+export default async function TrackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const raw = (await searchParams).reference;
+  const candidate = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  const initialReference = /^R[SQ]-[0-9A-Z]{7}$/.test(candidate) ? candidate : "";
+
   // Vehicle names come from the fleet the operator maintains, not a copy.
   const fleet = await getFleetSafely();
   const vehicleNames = Object.fromEntries(
@@ -38,14 +52,14 @@ export default async function TrackPage() {
               data-reveal
             />
             <div data-reveal>
-              <TrackForm vehicleNames={vehicleNames} />
+              <TrackForm vehicleNames={vehicleNames} initialReference={initialReference} />
             </div>
 
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">
               No reference to hand? Call dispatch on{" "}
               <a
                 href={contact.phoneHref}
-                className="text-midnight underline-offset-4 tabular-nums hover:underline"
+                className="text-midnight underline underline-offset-4 tabular-nums"
               >
                 {contact.phone}
               </a>{" "}

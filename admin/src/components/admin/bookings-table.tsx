@@ -98,7 +98,15 @@ export function BookingsTable({
                 </span>
               </td>
               <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">
-                {formatMoney(booking.quotedTotalCents)}
+                <span className="block">
+                  {formatMoney(booking.quotedTotalCents)}
+                </span>
+                {/* Cash is the one the driver has to act on, so it is named;
+                    paid is shown for either method. */}
+                <span className="block whitespace-nowrap text-charcoal/55">
+                  {booking.paymentMethod === "cash" ? "Cash" : "Card"}
+                  {booking.paymentStatus === "paid" ? " · paid" : ""}
+                </span>
               </td>
               <td className="px-4 py-4">
                 <div className="flex flex-col items-start gap-1.5">

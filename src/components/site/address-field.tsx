@@ -200,7 +200,7 @@ export function AddressField({
                   {suggestion.primary}
                 </span>
                 {suggestion.secondary ? (
-                  <span className="block text-[13px] text-charcoal/60">
+                  <span className="block text-[13px] text-charcoal/70">
                     {suggestion.secondary}
                   </span>
                 ) : null}

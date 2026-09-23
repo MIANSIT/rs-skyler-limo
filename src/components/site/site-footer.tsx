@@ -3,16 +3,9 @@ import Link from "next/link";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Wordmark } from "@/components/brand/wordmark";
 import { CookiePreferencesLink } from "@/components/site/cookie-consent";
-import { contact, services } from "@/lib/content";
+import { airportPages } from "@/lib/airport-pages";
+import { boroughs, contact, services } from "@/lib/content";
 import { getFleetSafely } from "@/lib/public/fleet";
-
-const boroughs = [
-  "Manhattan",
-  "Brooklyn",
-  "Queens",
-  "The Bronx",
-  "Staten Island",
-];
 
 export async function SiteFooter() {
   // The same cached read the fleet page uses, so hiding a class removes it from
@@ -22,7 +15,7 @@ export async function SiteFooter() {
   return (
     <footer className="bg-midnight text-white">
       <div className="mx-auto w-full max-w-6xl px-6 py-16 lg:px-8">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-1">
             <LogoMark className="h-14" />
             <div className="mt-5">
@@ -42,6 +35,15 @@ export async function SiteFooter() {
                 {service.name}
               </FooterLink>
             ))}
+          </FooterColumn>
+
+          <FooterColumn title="Airports">
+            {airportPages.map((page) => (
+              <FooterLink key={page.code} href={`/${page.slug}`}>
+                {page.eyebrow}
+              </FooterLink>
+            ))}
+            <FooterLink href="/airport-transportation">All airports</FooterLink>
           </FooterColumn>
 
           <FooterColumn title="Fleet">
@@ -68,6 +70,10 @@ export async function SiteFooter() {
               </span>
             </FooterLink>
             <FooterLink href="/contact">Contact us</FooterLink>
+            <FooterLink href="/service-areas">Service areas</FooterLink>
+            <FooterLink href="/about">About</FooterLink>
+            <FooterLink href="/faq">FAQ</FooterLink>
+            <FooterLink href="/reviews">Reviews</FooterLink>
             <FooterLink href="/corporate">Corporate accounts</FooterLink>
             <FooterLink href="/track">Track a ride</FooterLink>
           </FooterColumn>
@@ -117,9 +123,9 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="font-sans text-[13px] font-semibold tracking-[0.12em] text-gold uppercase">
+      <h2 className="font-sans text-[13px] font-semibold tracking-[0.12em] text-gold uppercase">
         {title}
-      </h3>
+      </h2>
       {/* The row gap moved onto the links themselves as padding. A 15px line of
           text is a 17px tap target, which is an unkind thing to aim a thumb at;
           padding makes each row ~33px without changing how the column looks. */}

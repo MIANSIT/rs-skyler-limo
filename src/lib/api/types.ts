@@ -26,6 +26,13 @@ export type TripType = "airport" | "point-to-point" | "hourly";
  */
 export type PricingMode = "fixed" | "quote";
 
+/**
+ * How the customer means to pay. `card` is settled with the office; `cash` is
+ * paid to the chauffeur at the end of the trip. Mirrors `paymentMethods` in
+ * `api/src/schemas.ts`.
+ */
+export type PaymentMethod = "card" | "cash";
+
 /* -------------------------------------------------------------------------- */
 /* Booking                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -53,8 +60,9 @@ export type BookingOptions = {
   childSeatFeeCents: number;
 };
 
-/** What /track returns. Still no customer contact details. */
+/** What /track returns for a booking. Still no customer contact details. */
 export type TrackedBooking = {
+  kind: "booking";
   reference: string;
   status: BookingStatus;
   pricingMode: PricingMode;
@@ -65,6 +73,23 @@ export type TrackedBooking = {
   quotedTotalCents: number | null;
   quoteNote: string | null;
   quotedAt: string | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: "unpaid" | "paid";
+  /** True when the customer can pay this booking by card on Stripe now. */
+  canPayOnline: boolean;
+};
+
+/** What /track returns for a quote request (`RQ-…`): status, nothing more. */
+export type TrackedQuote = {
+  kind: "quote";
+  reference: string;
+  status: "new" | "quoted" | "won" | "lost" | "pending";
+  serviceType: string;
+  /** `YYYY-MM-DD`, or null when the customer gave no date. */
+  eventDate: string | null;
+  /** Set by an operator once a price is agreed; null until then. */
+  agreedPriceCents: number | null;
+  createdAt: string;
 };
 
 /* -------------------------------------------------------------------------- */

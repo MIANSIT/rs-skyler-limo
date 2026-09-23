@@ -384,7 +384,7 @@ export function Select({
           className,
         )}
       >
-        <span className={clsx("truncate", !selected && "opacity-60")}>
+        <span className={clsx("truncate", !selected && "opacity-70")}>
           {selected?.label ?? options[0]?.label ?? ""}
         </span>
         <ChevronDownIcon
@@ -503,6 +503,82 @@ export function Checkbox({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * A short, exclusive choice shown in full — two or three options, each with a
+ * line of explanation, where a select would hide the explanation. Native
+ * radios underneath, so arrow keys and form submission behave as the browser
+ * intends. The checked card is marked by its border, in midnight or white by
+ * tone, never gold — the same reasoning as `Checkbox`.
+ */
+export function RadioCards({
+  name,
+  legend,
+  options,
+  defaultValue,
+  tone = "light",
+}: {
+  name: string;
+  legend: string;
+  options: { value: string; label: string; description: string }[];
+  defaultValue: string;
+  tone?: Tone;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend
+        className={clsx(
+          "mb-2 font-sans text-[13px] font-medium tracking-[0.08em] uppercase",
+          labelByTone[tone],
+        )}
+      >
+        {legend}
+      </legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map((option) => {
+          const id = `${name}-${option.value}`;
+          return (
+            <label
+              key={option.value}
+              htmlFor={id}
+              className={clsx(
+                "flex cursor-pointer items-start gap-3 rounded-sm border px-4 py-3 transition-colors",
+                tone === "dark"
+                  ? "border-white/25 bg-white/5 hover:border-white/45 has-checked:border-white has-checked:bg-white/15"
+                  : "border-midnight/20 bg-white hover:border-midnight/40 has-checked:border-midnight has-checked:bg-grey",
+              )}
+            >
+              <input
+                id={id}
+                type="radio"
+                name={name}
+                value={option.value}
+                defaultChecked={option.value === defaultValue}
+                className={clsx(
+                  "mt-1 h-4 w-4 shrink-0 cursor-pointer",
+                  tone === "dark" ? "accent-white" : "accent-midnight",
+                )}
+              />
+              <span className="flex flex-col gap-0.5">
+                <span
+                  className={clsx(
+                    "font-sans text-[15px] font-semibold",
+                    tone === "dark" ? "text-white" : "text-midnight",
+                  )}
+                >
+                  {option.label}
+                </span>
+                <span className={clsx("text-[13px] leading-normal", hintByTone[tone])}>
+                  {option.description}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

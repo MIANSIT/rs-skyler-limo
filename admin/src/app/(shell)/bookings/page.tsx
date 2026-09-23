@@ -24,6 +24,11 @@ export default async function BookingsPage({
   const query = single("q");
   const page = Number(single("page") ?? 1);
 
+  const exportParams = new URLSearchParams();
+  if (status && bookingStatuses.includes(status as never)) exportParams.set("status", status);
+  if (query) exportParams.set("q", query);
+  const exportQuery = exportParams.size > 0 ? `?${exportParams}` : "";
+
   const { bookings, total, perPage } = await getBookings({
     // Anything not a known status is dropped rather than passed to the API.
     status: bookingStatuses.includes(status as never) ? status : undefined,
@@ -37,9 +42,19 @@ export default async function BookingsPage({
         <h1 className="font-display text-[34px] leading-tight font-semibold text-midnight">
           Bookings
         </h1>
-        <p className="font-sans text-[14px] text-charcoal/60 tabular-nums">
-          {total} {total === 1 ? "request" : "requests"}
-        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <p className="font-sans text-[14px] text-charcoal/60 tabular-nums">
+            {total} {total === 1 ? "request" : "requests"}
+          </p>
+          {/* A plain link, not <Link>: it is a file download, not a page. It
+              carries the current filter, so the file matches the screen. */}
+          <a
+            href={`/bookings/export${exportQuery}`}
+            className="rounded-sm border border-midnight/25 bg-white px-4 py-2 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey"
+          >
+            Export to Excel
+          </a>
+        </div>
       </div>
 
       <FilterBar

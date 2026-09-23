@@ -321,14 +321,15 @@ export function Hero({
 
 function HeroStat({ value, label }: { value: string; label: string }) {
   return (
-    <div data-hero-stat>
-      <dt className="sr-only">{label}</dt>
+    // The label is the <dt> and comes first in the DOM, as a definition list
+    // requires; `flex-col-reverse` keeps the number above it on screen.
+    <div data-hero-stat className="flex flex-col-reverse">
+      <dt className="mt-2 font-sans text-[13px] tracking-widest text-white/55 uppercase">
+        {label}
+      </dt>
       <dd className="font-display text-[28px] leading-none font-semibold text-white tabular-nums">
         {value}
       </dd>
-      <p className="mt-2 font-sans text-[13px] tracking-widest text-white/55 uppercase">
-        {label}
-      </p>
     </div>
   );
 }
