@@ -82,17 +82,16 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
           </div>
         ))}
       </div>
-      {/* Charcoal blended in at the bottom — the client's own ask, and it
-          reads closer to the reference's near-black fade than a pure
-          midnight tint does, without a sixth colour: charcoal is already
-          one of the five tokens. */}
+      {/* A deeper midnight blended in at the bottom — the near-black fade the
+          client asked for, kept in the navy's own hue so it does not turn
+          grey against the midnight above it. */}
       <div
         aria-hidden
-        className="absolute inset-0 z-0 bg-gradient-to-r from-midnight/92 via-midnight/78 to-midnight/55"
+        className="absolute inset-0 z-0 bg-linear-to-r from-midnight/92 via-midnight/78 to-midnight/55"
       />
       <div
         aria-hidden
-        className="absolute inset-0 z-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent"
+        className="absolute inset-0 z-0 bg-linear-to-t from-midnight-deep/80 via-transparent to-transparent"
       />
     </>
   );
@@ -197,7 +196,7 @@ export function Hero({
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-gold/40 to-transparent"
       />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
@@ -279,7 +278,7 @@ export function Hero({
                   rather than the full multi-step form — see the note above
                   `BookingForm`'s `tone` prop for why this stays a summary
                   card rather than the embedded form on a small screen. */}
-              <div className="border border-white/10 bg-charcoal/55 p-6 text-center shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)] backdrop-blur-2xl md:p-8">
+              <div className="border border-white/10 bg-midnight-deep/55 p-6 text-center shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)] backdrop-blur-2xl md:p-8">
                 <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                   Get a fare in under a minute
                 </p>

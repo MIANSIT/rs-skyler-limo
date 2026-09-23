@@ -16,9 +16,9 @@ import {
 import type { Airport, ReviewsResponse } from "@/lib/api/types";
 
 /** Whether a given `Section` tone is one of the two dark grounds. Text,
- *  border and button treatment is identical on `dark` and `charcoal` — only
+ *  border and button treatment is identical on `dark` and `deep` — only
  *  `Section` itself needs to know which literal token paints the background. */
-const isDarkTone = (tone: SectionTone) => tone === "dark" || tone === "charcoal";
+const isDarkTone = (tone: SectionTone) => tone === "dark" || tone === "deep";
 
 /**
  * The airports come from the dashboard, so a name added or hidden there shows

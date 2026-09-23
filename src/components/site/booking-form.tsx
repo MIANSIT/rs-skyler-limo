@@ -291,7 +291,7 @@ export function BookingForm({
      `ui/section.tsx` already follows. */
   const divider = dark ? "border-white/15" : "border-midnight/10";
   const cardChrome = dark
-    ? "border border-white/10 bg-charcoal/55 backdrop-blur-2xl shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)]"
+    ? "border border-white/10 bg-midnight-deep/55 backdrop-blur-2xl shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)]"
     : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
   const heading = dark ? "text-white" : "text-midnight";
   const body = dark ? "text-white/75" : "text-charcoal";

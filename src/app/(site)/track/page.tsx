@@ -59,9 +59,10 @@ export default async function TrackPage() {
                 What you will see
               </p>
               {/* The preview is drawn for a midnight ground (white text, gold
-                  label), so it brings its own on this light section. */}
-              <div className="mt-5 bg-midnight">
-                <BookingStatusPreview />
+                  label), so on this light section it becomes a solid midnight
+                  panel itself — no outlined card inside a midnight box. */}
+              <div className="mt-5">
+                <BookingStatusPreview ground="light" />
               </div>
             </div>
           </Reveal>

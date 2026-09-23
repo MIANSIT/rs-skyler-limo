@@ -5,16 +5,30 @@
  * "five minutes out" ETA, which illustrated live tracking that does not exist.
  * This shows only fields the lookup really produces. The reference is
  * obviously a sample; everything it claims the product does, the product does.
+ *
+ * `ground` is the section it sits on. On a dark section it is an outlined
+ * panel; on a light one it becomes a solid midnight panel with no outline,
+ * rather than an outlined card inside a midnight box — a frame in a frame.
  */
-export function BookingStatusPreview() {
+export function BookingStatusPreview({
+  ground = "dark",
+}: {
+  ground?: "dark" | "light";
+}) {
   return (
-    <div className="border border-white/15 bg-white/3 p-6 md:p-8">
-      <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-5">
+    <div
+      className={
+        ground === "dark"
+          ? "border border-white/15 bg-white/3 p-6 md:p-8"
+          : "bg-midnight p-6 sm:p-10"
+      }
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 border-b border-white/15 pb-5">
         <div>
           <p className="font-sans text-[13px] font-medium tracking-[0.12em] text-gold uppercase">
             Booking found
           </p>
-          <p className="font-display mt-2 text-[26px] leading-none font-semibold text-white tabular-nums">
+          <p className="font-display mt-2 text-[26px] leading-none font-semibold whitespace-nowrap text-white tabular-nums">
             RS-4K2QP7
           </p>
         </div>

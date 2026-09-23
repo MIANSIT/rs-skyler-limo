@@ -93,11 +93,11 @@ export function HowItWorks({ tone = "light" }: { tone?: "light" | "dark" }) {
       where the rail passes it, which is what the numeral and the line were
       both trying to say separately.
     */
-    <div ref={scope} className="relative mt-14 pl-[70px] md:pl-24">
+    <div ref={scope} className="relative mt-14 pl-17.5 md:pl-24">
       <div
         aria-hidden
         className={clsx(
-          "absolute top-2 bottom-2 left-[48px] w-px md:left-[64px]",
+          "absolute top-2 bottom-2 left-12 w-px md:left-16",
           dark ? "bg-white/15" : "bg-midnight/10",
         )}
       >
@@ -111,7 +111,7 @@ export function HowItWorks({ tone = "light" }: { tone?: "light" | "dark" }) {
                 decorative numeral — it is a graphic element, not text. */}
             <span
               aria-hidden
-              className="font-display absolute top-0 -left-[70px] text-[26px] leading-none font-semibold text-gold tabular-nums md:-left-24 md:text-[34px]"
+              className="font-display absolute top-0 -left-17.5 text-[26px] leading-none font-semibold text-gold tabular-nums md:-left-24 md:text-[34px]"
             >
               {String(index + 1).padStart(2, "0")}
             </span>
@@ -126,8 +126,8 @@ export function HowItWorks({ tone = "light" }: { tone?: "light" | "dark" }) {
             <span
               aria-hidden
               className={clsx(
-                "absolute top-2 -left-[27px] h-2.5 w-2.5 rounded-full bg-gold ring-4 md:top-3 md:-left-[37px]",
-                dark ? "ring-charcoal" : "ring-white",
+                "absolute top-2 -left-6.75 h-2.5 w-2.5 rounded-full bg-gold ring-4 md:top-3 md:-left-9.25",
+                dark ? "ring-midnight-deep" : "ring-white",
               )}
             />
 

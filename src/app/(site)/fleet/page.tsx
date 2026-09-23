@@ -63,7 +63,7 @@ export default async function FleetPage() {
               data-reveal
             />
             <div data-reveal className="relative mt-10 overflow-x-auto">
-              <table className="w-full min-w-[44rem] border-collapse text-left">
+              <table className="w-full min-w-176 border-collapse text-left">
                 <caption className="sr-only">
                   Fleet comparison by passengers, luggage, child seats and
                   starting fare
