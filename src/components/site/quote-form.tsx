@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
+import { DateField } from "@/components/ui/date-time-field";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
 import { submitQuote, type QuoteFormState } from "@/lib/public/actions";
@@ -260,10 +261,9 @@ export function QuoteForm({
             }
             error={fieldError("eventDate") ?? (dateProblem || undefined)}
           >
-            <Input
+            <DateField
               id="quote-date"
               name="eventDate"
-              type="date"
               ref={dateRef}
               min={today || undefined}
               value={eventDate}

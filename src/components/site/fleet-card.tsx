@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import { LogoMark } from "@/components/brand/logo-mark";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
 import { Rule } from "@/components/ui/section";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
@@ -28,11 +28,16 @@ type Variant = "compact" | "full";
 export function FleetCard({
   vehicle,
   variant = "full",
+  tone = "light",
 }: {
   vehicle: FleetVehicle;
   variant?: Variant;
+  /** `full` (the `/fleet` page) stays light; `compact` on the homepage's
+   *  now-dark strip passes `tone="dark"`. */
+  tone?: "light" | "dark";
 }) {
   const compact = variant === "compact";
+  const dark = tone === "dark";
   const photo = vehicle.primaryPhoto;
 
   const interiors = compact
@@ -49,7 +54,12 @@ export function FleetCard({
   return (
     <article
       id={vehicle.slug}
-      className="flex w-full min-w-0 scroll-mt-24 flex-col border border-midnight/10 bg-white"
+      className={clsx(
+        "flex w-full min-w-0 scroll-mt-24 flex-col border",
+        dark
+          ? "border-white/15 bg-white/5 backdrop-blur-sm"
+          : "border-midnight/10 bg-white",
+      )}
     >
       <div className="relative flex aspect-[16/10] items-end overflow-hidden bg-midnight p-6">
         {photo ? (
@@ -80,7 +90,8 @@ export function FleetCard({
       <div className={clsx("flex flex-1 flex-col", compact ? "p-5" : "p-6")}>
         <h3
           className={clsx(
-            "font-display font-semibold text-midnight",
+            "font-display font-semibold",
+            dark ? "text-white" : "text-midnight",
             compact ? "text-[19px]" : "text-[22px]",
           )}
         >
@@ -88,14 +99,20 @@ export function FleetCard({
         </h3>
 
         {vehicle.model ? (
-          <p className="mt-1 truncate font-sans text-[12px] tracking-[0.06em] text-charcoal/60 uppercase">
+          <p
+            className={clsx(
+              "mt-1 truncate font-sans text-[12px] tracking-[0.06em] uppercase",
+              dark ? "text-white/50" : "text-charcoal/60",
+            )}
+          >
             {vehicle.model}
           </p>
         ) : null}
 
         <p
           className={clsx(
-            "mt-3 text-[15px] leading-[1.6] text-charcoal",
+            "mt-3 text-[15px] leading-[1.6]",
+            dark ? "text-white/75" : "text-charcoal",
             // Keeps four cards in a row the same height whatever the copy.
             compact && "line-clamp-3",
           )}
@@ -114,23 +131,24 @@ export function FleetCard({
             compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4",
           )}
         >
-          <Spec label="Passengers" value={`Up to ${vehicle.passengerCapacity}`} />
-          <Spec label="Luggage" value={`${vehicle.luggageCapacity} cases`} />
+          <Spec label="Passengers" value={`Up to ${vehicle.passengerCapacity}`} dark={dark} />
+          <Spec label="Luggage" value={`${vehicle.luggageCapacity} cases`} dark={dark} />
           <Spec
             label="Child seats"
             value={
               vehicle.maxChildSeats === 0 ? "—" : `Up to ${vehicle.maxChildSeats}`
             }
+            dark={dark}
           />
-          <Spec label="From" value={fareFrom(vehicle.baseFareCents)} />
+          <Spec label="From" value={fareFrom(vehicle.baseFareCents)} dark={dark} />
         </dl>
 
         {compact ? null : (
           <>
             <div className="mt-6">
-              <Rule />
+              <Rule tone={tone} />
             </div>
-            <p className="mt-6 text-[15px] leading-[1.7] text-charcoal/85">
+            <p className={clsx("mt-6 text-[15px] leading-[1.7]", dark ? "text-white/70" : "text-charcoal/85")}>
               {vehicle.detail}
             </p>
           </>
@@ -142,15 +160,21 @@ export function FleetCard({
               <li
                 key={amenity.key}
                 title={amenity.hint}
-                /* Gold as a border on a light ground — never as text. */
-                className="rounded-sm border border-gold/45 bg-gold/5 px-2.5 py-1 font-sans text-[12px] font-medium tracking-[0.04em] text-midnight"
+                /* Gold as a border, never as text — approved on both a light
+                   ground and a dark one (6.8:1 on midnight/charcoal). */
+                className={clsx(
+                  "rounded-sm border px-2.5 py-1 font-sans text-[12px] font-medium tracking-[0.04em]",
+                  dark
+                    ? "border-gold/50 bg-gold/10 text-white"
+                    : "border-gold/45 bg-gold/5 text-midnight",
+                )}
               >
                 {amenity.label}
               </li>
             ))}
 
             {hiddenAmenityCount > 0 ? (
-              <li className="self-center font-sans text-[12px] text-charcoal/60">
+              <li className={clsx("self-center font-sans text-[12px]", dark ? "text-white/50" : "text-charcoal/60")}>
                 +{hiddenAmenityCount} more
               </li>
             ) : null}
@@ -177,25 +201,41 @@ export function FleetCard({
             one class has more amenities or photos than its neighbour. */}
         <div aria-hidden className="flex-1" />
 
-        <ButtonLink
-          href="/book"
-          variant="secondary"
-          className={clsx("w-full", compact ? "mt-5" : "mt-6")}
-        >
-          Book this class
-        </ButtonLink>
+        {dark ? (
+          <ButtonLinkOnDark href="/book" className={clsx("w-full", compact ? "mt-5" : "mt-6")}>
+            Book this class
+          </ButtonLinkOnDark>
+        ) : (
+          <ButtonLink
+            href="/book"
+            variant="secondary"
+            className={clsx("w-full", compact ? "mt-5" : "mt-6")}
+          >
+            Book this class
+          </ButtonLink>
+        )}
       </div>
     </article>
   );
 }
 
-function Spec({ label, value }: { label: string; value: string }) {
+function Spec({ label, value, dark }: { label: string; value: string; dark: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="font-medium tracking-[0.06em] text-charcoal/60 uppercase">
+      <dt
+        className={clsx(
+          "font-medium tracking-[0.06em] uppercase",
+          dark ? "text-white/50" : "text-charcoal/60",
+        )}
+      >
         {label}
       </dt>
-      <dd className="mt-1 font-sans text-[14px] font-semibold text-midnight tabular-nums">
+      <dd
+        className={clsx(
+          "mt-1 font-sans text-[14px] font-semibold tabular-nums",
+          dark ? "text-white" : "text-midnight",
+        )}
+      >
         {value}
       </dd>
     </div>

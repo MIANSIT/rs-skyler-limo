@@ -84,3 +84,29 @@ export function ButtonLinkOnDark({
     />
   );
 }
+
+/**
+ * `ButtonLinkOnDark`'s native-`<button>` counterpart, for step controls inside
+ * a form rather than a navigation link — the multi-step booking form's own
+ * "Continue"/"Back" on its dark variant, say. A midnight-filled `primary`
+ * button reads as a near-invisible dark blob against a charcoal glass card;
+ * this is what still has visible edges there. Gold stays reserved for the
+ * one true submit action (`cta`), same rule as everywhere else.
+ */
+export function ButtonOnDark({
+  size = "md",
+  className,
+  ...props
+}: Pick<SharedProps, "size" | "className"> & ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      className={clsx(
+        base,
+        sizes[size],
+        "border border-white/40 text-white hover:border-white hover:bg-white/10",
+        className,
+      )}
+      {...props}
+    />
+  );
+}

@@ -14,7 +14,7 @@ import {
 } from "@/components/site/home-sections";
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { HowItWorks } from "@/components/site/how-it-works";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
 import {
   BriefcaseIcon,
   ClockIcon,
@@ -51,10 +51,13 @@ export default async function HomePage() {
       <Hero fleet={fleet} bookingOptions={bookingOptions} media={heroMedia} />
       <BoroughMarquee />
 
-      {/* Services — light ground, so gold appears only as icons and rules. */}
-      <Section tone="light">
+      {/* Services — charcoal ground, at the client's request for a dark-first
+          homepage (see the note on `Section`'s `charcoal` tone). Gold still
+          appears only as icons and rules, never as a sentence of text. */}
+      <Section tone="charcoal">
         <Reveal>
           <SectionHeading
+            tone="dark"
             eyebrow="What we do"
             title="Five services, one standard"
             intro="A car that is where it said it would be, driven by someone who already knows the route. Everything else is detail."
@@ -70,16 +73,16 @@ export default async function HomePage() {
                 key={service.name}
                 href={service.href}
                 data-reveal
-                className="group flex flex-col border-t border-midnight/10 pt-6"
+                className="group flex flex-col border-t border-white/15 pt-6"
               >
                 <Icon className="h-6 w-6 text-gold" />
-                <h3 className="font-sans mt-5 text-[17px] font-semibold text-midnight">
+                <h3 className="font-sans mt-5 text-[17px] font-semibold text-white">
                   {service.name}
                 </h3>
-                <p className="mt-3 flex-1 text-[15px] leading-[1.7] text-charcoal">
+                <p className="mt-3 flex-1 text-[15px] leading-[1.7] text-white/75">
                   {service.description}
                 </p>
-                <span className="mt-4 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-midnight underline-offset-4 group-hover:underline">
+                <span className="mt-4 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-white underline-offset-4 group-hover:underline">
                   Learn more
                   <span aria-hidden>→</span>
                 </span>
@@ -137,30 +140,32 @@ export default async function HomePage() {
       </Section>
 
       {/* Booking flow */}
-      <Section tone="light">
+      <Section tone="charcoal">
         <Reveal>
           <SectionHeading
+            tone="dark"
             eyebrow="How booking works"
             title="Shorter than describing the trip out loud"
             intro="Four steps, and only the first one needs you."
             data-reveal
           />
         </Reveal>
-        <HowItWorks />
+        <HowItWorks tone="dark" />
       </Section>
 
       {/* Fleet */}
-      <Section tone="grey">
+      <Section tone="dark">
         <Reveal className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
+            tone="dark"
             eyebrow="The fleet"
             title="Every class, chosen without a phone call"
             intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
             data-reveal
           />
-          <ButtonLink href="/fleet" variant="secondary" data-reveal>
+          <ButtonLinkOnDark href="/fleet" data-reveal>
             Compare the fleet
-          </ButtonLink>
+          </ButtonLinkOnDark>
         </Reveal>
 
         {/*
@@ -179,17 +184,17 @@ export default async function HomePage() {
         >
           {fleet.map((vehicle) => (
             <div key={vehicle.slug} data-reveal className="flex min-w-0">
-              <FleetCard vehicle={vehicle} variant="compact" />
+              <FleetCard vehicle={vehicle} variant="compact" tone="dark" />
             </div>
           ))}
         </Reveal>
       </Section>
 
-      <AirportTransfers airports={bookingOptions.airports} />
-      <ServiceAreas />
+      <AirportTransfers airports={bookingOptions.airports} tone="charcoal" />
+      <ServiceAreas tone="dark" />
 
       {/* Values + counters */}
-      <Section tone="dark">
+      <Section tone="charcoal">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
           <Reveal className="lg:col-span-5">
             <SectionHeading
@@ -248,14 +253,14 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <Reviews data={reviewsData} />
-      <About />
+      <Reviews data={reviewsData} tone="dark" />
+      <About tone="charcoal" />
 
       {/* Positioning note, set in the guide's own rationale device */}
-      <Section tone="light">
+      <Section tone="dark">
         <Reveal className="mx-auto max-w-3xl">
           <div data-reveal>
-            <RationaleNote label="Our position">
+            <RationaleNote label="Our position" tone="dark">
               RSSkyler Limo is New York City&rsquo;s accessible-luxury chauffeur
               service — the confidence of a five-star hotel car, without the
               velvet-rope distance.
@@ -264,7 +269,7 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
-      <Faq />
+      <Faq tone="charcoal" />
 
       {/* Closing CTA */}
       <section className="bg-midnight">

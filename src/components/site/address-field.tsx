@@ -25,6 +25,7 @@ export function AddressField({
   defaultValue = "",
   enabled,
   sessionToken,
+  tone = "light",
   onResolve,
   onTypingStart,
 }: {
@@ -35,6 +36,10 @@ export function AddressField({
   defaultValue?: string;
   enabled: boolean;
   sessionToken: string;
+  /** Only the text field itself — the suggestion list below stays a plain
+   *  light popover regardless, the same way a native or Google address
+   *  dropdown always does, so it reads clearly over any page. */
+  tone?: "light" | "dark";
   /** Called with the chosen place id, or null when the text is typed freehand. */
   onResolve?: (placeId: string | null) => void;
   /** Fired on the first keystroke so the parent can open a billing session. */
@@ -131,6 +136,7 @@ export function AddressField({
         value={value}
         placeholder={placeholder}
         required={required}
+        tone={tone}
         autoComplete="off"
         role={enabled ? "combobox" : undefined}
         aria-expanded={enabled ? open : undefined}

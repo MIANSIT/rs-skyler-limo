@@ -21,6 +21,23 @@ export function PlaneIcon({ className }: IconProps) {
   );
 }
 
+export function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+
 export function ClockIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden>

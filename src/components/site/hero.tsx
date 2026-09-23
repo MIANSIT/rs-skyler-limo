@@ -82,9 +82,17 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
           </div>
         ))}
       </div>
+      {/* Charcoal blended in at the bottom — the client's own ask, and it
+          reads closer to the reference's near-black fade than a pure
+          midnight tint does, without a sixth colour: charcoal is already
+          one of the five tokens. */}
       <div
         aria-hidden
-        className="absolute inset-0 z-0 bg-gradient-to-r from-midnight/90 via-midnight/75 to-midnight/50"
+        className="absolute inset-0 z-0 bg-gradient-to-r from-midnight/92 via-midnight/78 to-midnight/55"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent"
       />
     </>
   );
@@ -267,11 +275,15 @@ export function Hero({
               section the way it does stacked on a phone.
             */}
             <div className="lg:hidden">
-              <div className="bg-white p-6 text-center shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
-                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+              {/* The same frosted-glass card as the desktop form, at CTA size
+                  rather than the full multi-step form — see the note above
+                  `BookingForm`'s `tone` prop for why this stays a summary
+                  card rather than the embedded form on a small screen. */}
+              <div className="border border-white/10 bg-charcoal/55 p-6 text-center shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)] backdrop-blur-2xl md:p-8">
+                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                   Get a fare in under a minute
                 </p>
-                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
+                <p className="mt-3 text-[15px] leading-[1.7] text-white/75">
                   Airport, point to point or hourly. Fixed fares within the
                   five boroughs are shown before you book.
                 </p>
@@ -288,7 +300,7 @@ export function Hero({
                 */}
                 <Link
                   href="/quote"
-                  className="mt-4 inline-block font-sans text-[14px] text-midnight underline-offset-4 hover:underline"
+                  className="mt-4 inline-block font-sans text-[14px] text-white underline-offset-4 hover:underline"
                 >
                   Need a custom quote instead?
                 </Link>
@@ -296,7 +308,7 @@ export function Hero({
             </div>
 
             <div className="hidden lg:block">
-              <BookingForm fleet={fleet} options={bookingOptions} />
+              <BookingForm fleet={fleet} options={bookingOptions} tone="dark" />
               <p className="mt-4 text-center text-[13px] text-white/55">
                 A fare and a confirmed pickup in under a minute.
               </p>

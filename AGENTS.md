@@ -86,6 +86,22 @@ The three rules broken most often:
 there. Fonts are loaded once in `src/app/layout.tsx`; colour tokens live in the
 `@theme` block in `src/app/globals.css`.
 
+**The homepage is dark-first, at the client's request (Sept 2026), inspired by
+fiveborolimo.com.** Its sections alternate `midnight` and `charcoal` — a
+`charcoal` tone was added to `Section` in `ui/section.tsx` for this — rather
+than the `white`/`grey` alternation every other page still uses. This is a
+deliberate, page-scoped exception to the 60/30/10 ratio, not a departure from
+it everywhere: white still carries every other page, and the homepage itself
+keeps `midnight` as its dominant ground with `charcoal` as the secondary one,
+so no sixth colour was introduced. The hero's `BookingForm` gained a
+`tone="dark"` prop (a frosted-glass card: `bg-charcoal/55 backdrop-blur-2xl`)
+threaded down through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in
+`ui/field.tsx`; the standalone `/book` page keeps the original light card, so
+only pass `tone="dark"` where the client has actually approved the look.
+Extending this treatment to other pages is a separate, not-yet-done task — see
+`ButtonOnDark`/`ButtonLinkOnDark` in `ui/button.tsx` for the on-dark button
+pattern before reinventing it.
+
 The logo lockup is `src/components/brand/logo.tsx` (RS monogram + wordmark).
 Favicon and app icon are `src/app/icon.png` / `src/app/apple-icon.png` — Next
 emits the `<link>` tags from those filenames, so don't hand-write icon metadata.

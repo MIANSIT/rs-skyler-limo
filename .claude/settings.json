@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\Windows 11\\\\AppData\\\\Local\\\\ms-playwright\\\\\" 2>/dev/null)",
+      "Read(//c/Users/Windows 11/AppData/Local/ms-playwright\" 2>/dev/**)",
+      "Bash(ls -la \"/c/Users/Windows 11/AppData/Local/ms-playwright/\" 2>&1)",
+      "Read(//c/Users/Windows 11/AppData/Local/**)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(node screenshot.mjs)",
+      "Bash(npm install *)",
+      "Bash(node screenshot2.mjs)",
+      "Bash(node screenshot3.mjs)",
+      "Bash(node -e ' *)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Output \"done\")",
+      "Bash(node test-select.mjs)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:3000 >/dev/null; do sleep 1; done')"
+    ]
+  }
+}

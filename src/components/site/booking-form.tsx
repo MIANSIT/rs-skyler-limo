@@ -13,7 +13,8 @@ import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
 import { FormGuard } from "@/components/site/form-guard";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonOnDark } from "@/components/ui/button";
+import { DateField, TimeField } from "@/components/ui/date-time-field";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
@@ -88,13 +89,24 @@ function SubmitButton({ fixed }: { fixed: boolean }) {
   );
 }
 
+/**
+ * `tone="dark"` is the frosted-glass card used in the homepage hero, over
+ * video; `"light"` (the default) is the plain white card the standalone
+ * `/book` page still uses. One component, one set of fields and validation —
+ * only the chrome around it changes, via the shared primitives' own `tone`
+ * prop (see `components/ui/field.tsx`).
+ */
 export function BookingForm({
   fleet,
   options,
+  tone = "light",
 }: {
   fleet: FleetVehicle[];
   options: BookingOptions;
+  tone?: "light" | "dark";
 }) {
+  const dark = tone === "dark";
+
   const [trip, setTrip] = useState<TripType>("airport");
   // Airport and vehicle class start unset rather than defaulting to the
   // first item in each list: silently pre-picking one is how a customer
@@ -273,41 +285,65 @@ export function BookingForm({
     setStep(next);
   };
 
+  /* Step/section dividers, and every other hairline inside the card, derive
+     from midnight on the light card and from white on the dark one — the
+     same "border derived from the ground colour" rule `Rule` in
+     `ui/section.tsx` already follows. */
+  const divider = dark ? "border-white/15" : "border-midnight/10";
+  const cardChrome = dark
+    ? "border border-white/10 bg-charcoal/55 backdrop-blur-2xl shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)]"
+    : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
+  const heading = dark ? "text-white" : "text-midnight";
+  const body = dark ? "text-white/75" : "text-charcoal";
+
   if (state.status === "success") {
     return (
-      <div className="bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
-        <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+      <div className={clsx(cardChrome, "p-6 md:p-8")}>
+        <p
+          className={clsx(
+            "font-sans text-[13px] font-medium tracking-[0.08em] uppercase",
+            dark ? "text-white/60" : "text-charcoal/70",
+          )}
+        >
           {state.pricingMode === "fixed" ? "Booked" : "Request received"}
         </p>
-        <p className="font-display mt-2 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+        <p
+          className={clsx(
+            "font-display mt-2 text-[30px] leading-none font-semibold tabular-nums",
+            heading,
+          )}
+        >
           {state.reference}
         </p>
 
         {state.pricingMode === "fixed" && state.quotedTotalCents !== null ? (
-          <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+          <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
             Your fare is{" "}
-            <strong className="font-semibold text-midnight tabular-nums">
+            <strong className={clsx("font-semibold tabular-nums", heading)}>
               ${Math.round(state.quotedTotalCents / 100)}
             </strong>
             , fixed. A reservations agent confirms every booking by reply.
           </p>
         ) : (
-          <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+          <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
             We price this kind of trip by hand rather than guess at it. A
             reservations agent will come back to you with a fare by phone or
             email, usually within the hour.
           </p>
         )}
 
-        <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+        <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Pick-up times are New York time.
         </p>
 
-        <p className="mt-4 text-[15px] leading-[1.7] text-charcoal">
+        <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Keep this reference. You can check it any time on the{" "}
           <Link
             href="/track"
-            className="text-midnight underline underline-offset-4"
+            className={clsx(
+              "underline underline-offset-4",
+              dark ? "text-white" : "text-midnight",
+            )}
           >
             tracking page
           </Link>{" "}
@@ -318,12 +354,8 @@ export function BookingForm({
   }
 
   return (
-    <div className="bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
-      <div
-        role="tablist"
-        aria-label="Trip type"
-        className="flex border-b border-midnight/10"
-      >
+    <div className={clsx(cardChrome, "p-6 md:p-8")}>
+      <div role="tablist" aria-label="Trip type" className={clsx("flex border-b", divider)}>
         {tripTypes.map((option) => {
           const active = trip === option.value;
           return (
@@ -336,8 +368,10 @@ export function BookingForm({
               className={clsx(
                 "-mb-px border-b-2 px-4 py-3 font-sans text-[13px] font-medium tracking-[0.08em] uppercase transition-colors",
                 active
-                  ? "border-gold text-midnight"
-                  : "border-transparent text-charcoal/60 hover:text-midnight",
+                  ? clsx("border-gold", heading)
+                  : dark
+                    ? "border-transparent text-white/50 hover:text-white"
+                    : "border-transparent text-charcoal/60 hover:text-midnight",
               )}
             >
               {option.label}
@@ -350,11 +384,7 @@ export function BookingForm({
           current and coming steps are not, so nobody can skip ahead of
           validation. Gold marks the active step as a border, never as this
           label's text colour. */}
-      <div
-        role="tablist"
-        aria-label="Booking step"
-        className="mt-5 flex items-center gap-2"
-      >
+      <div role="tablist" aria-label="Booking step" className="mt-5 flex items-center gap-2">
         {STEPS.map((item, index) => {
           const active = step === item.id;
           const complete = step > item.id;
@@ -369,17 +399,21 @@ export function BookingForm({
                 className={clsx(
                   "flex w-full items-center gap-2 border-b-2 pb-2 font-sans text-[13px] font-medium tracking-[0.06em] uppercase transition-colors",
                   active
-                    ? "border-gold text-midnight"
+                    ? clsx("border-gold", heading)
                     : complete
-                      ? "border-midnight/20 text-midnight/70 hover:border-midnight/40"
-                      : "cursor-default border-midnight/10 text-charcoal/40",
+                      ? dark
+                        ? "border-white/30 text-white/70 hover:border-white/50"
+                        : "border-midnight/20 text-midnight/70 hover:border-midnight/40"
+                      : dark
+                        ? "cursor-default border-white/15 text-white/35"
+                        : "cursor-default border-midnight/10 text-charcoal/40",
                 )}
               >
                 <span className="tabular-nums">{item.id}</span>
                 {item.label}
               </button>
               {index < STEPS.length - 1 ? (
-                <span aria-hidden className="text-charcoal/20">
+                <span aria-hidden className={dark ? "text-white/25" : "text-charcoal/20"}>
                   /
                 </span>
               ) : null}
@@ -388,11 +422,7 @@ export function BookingForm({
         })}
       </div>
 
-      <form
-        key={formKey}
-        action={formAction}
-        className="mt-6 flex flex-col gap-5"
-      >
+      <form key={formKey} action={formAction} className="mt-6 flex flex-col gap-5">
         <FormGuard />
         <input type="hidden" name="tripType" value={trip} />
         <input type="hidden" name="placesSessionToken" value={sessionToken} />
@@ -408,9 +438,10 @@ export function BookingForm({
         <div ref={step1Ref} className="grid gap-5 grid-cols-2">
           {trip === "airport" ? (
             <>
-              <Field label="Airport" id="airport">
+              <Field label="Airport" id="airport" tone={tone}>
                 <Select
                   id="airport"
+                  tone={tone}
                   required
                   value={airport}
                   onChange={(event) => setAirport(event.target.value)}
@@ -426,9 +457,10 @@ export function BookingForm({
                 </Select>
               </Field>
 
-              <Field label="Direction" id="direction">
+              <Field label="Direction" id="direction" tone={tone}>
                 <Select
                   id="direction"
+                  tone={tone}
                   value={direction}
                   onChange={(event) =>
                     setDirection(event.target.value as typeof direction)
@@ -445,6 +477,7 @@ export function BookingForm({
             label={cityLabel}
             id="cityAddress"
             error={fieldError(cityField)}
+            tone={tone}
             hint={
               options.placesEnabled
                 ? "Start typing and pick your address from the list."
@@ -459,6 +492,7 @@ export function BookingForm({
               required
               enabled={options.placesEnabled}
               sessionToken={sessionToken}
+              tone={tone}
               defaultValue={prior(cityField)}
               onResolve={setCityPlaceId}
               onTypingStart={startPlacesSession}
@@ -470,6 +504,7 @@ export function BookingForm({
               label={trip === "hourly" ? "Where to, roughly" : "Destination"}
               id="otherEnd"
               error={fieldError("destination")}
+              tone={tone}
               className="col-span-2"
             >
               <AddressField
@@ -479,6 +514,7 @@ export function BookingForm({
                 required
                 enabled={options.placesEnabled}
                 sessionToken={sessionToken}
+                tone={tone}
                 defaultValue={prior("destination")}
                 onTypingStart={startPlacesSession}
               />
@@ -488,13 +524,14 @@ export function BookingForm({
           <Field
             label="Date"
             id="date"
+            tone={tone}
             error={fieldError("pickupAt") ?? (problem.date || undefined)}
             hint={today ? `Today is ${shortDay(today)} in New York.` : undefined}
           >
-            <Input
+            <DateField
               id="date"
               name="date"
-              type="date"
+              tone={tone}
               required
               ref={dateRef}
               min={today || undefined}
@@ -505,16 +542,11 @@ export function BookingForm({
             />
           </Field>
 
-          <Field
-            label="Time"
-            id="time"
-            error={problem.time || undefined}
-            hint="New York time."
-          >
-            <Input
+          <Field label="Time" id="time" tone={tone} error={problem.time || undefined} hint="New York time.">
+            <TimeField
               id="time"
               name="time"
-              type="time"
+              tone={tone}
               required
               ref={timeRef}
               value={pickupTime}
@@ -525,25 +557,30 @@ export function BookingForm({
           </Field>
 
           {today && now ? (
-            <div className="flex flex-col gap-1 text-[13px] leading-[1.6] text-charcoal/70 sm:col-span-2">
+            <div
+              className={clsx(
+                "flex flex-col gap-1 text-[13px] leading-[1.6] sm:col-span-2",
+                dark ? "text-white/60" : "text-charcoal/70",
+              )}
+            >
               <p>
                 It is <span className="tabular-nums">{clockLabel(now)}</span> on{" "}
                 {shortDay(today)} in New York now.
               </p>
               {onYourDevice ? (
                 <p>
-                  That is{" "}
-                  <span className="tabular-nums">{onYourDevice}</span> on your
+                  That is <span className="tabular-nums">{onYourDevice}</span> on your
                   device.
                 </p>
               ) : null}
             </div>
           ) : null}
 
-          <Field label="Vehicle class" id="vehicle">
+          <Field label="Vehicle class" id="vehicle" tone={tone}>
             <Select
               id="vehicle"
               name="vehicle"
+              tone={tone}
               required
               value={vehicle}
               onChange={(event) => setVehicle(event.target.value)}
@@ -560,13 +597,11 @@ export function BookingForm({
           </Field>
 
           {trip === "airport" && !options.placesEnabled ? (
-            <Field
-              label="Borough"
-              id="statedBorough"
-            >
+            <Field label="Borough" id="statedBorough" tone={tone}>
               <Select
                 id="statedBorough"
                 name="statedBorough"
+                tone={tone}
                 value={borough}
                 onChange={(event) => setBorough(event.target.value)}
               >
@@ -581,10 +616,16 @@ export function BookingForm({
           ) : null}
         </div>
 
-          <div className="flex justify-end border-t border-midnight/10 pt-5">
-            <Button type="button" variant="primary" onClick={() => goNext(step1Ref, 2)}>
-              Continue
-            </Button>
+          <div className={clsx("flex justify-end border-t pt-5", divider)}>
+            {dark ? (
+              <ButtonOnDark type="button" onClick={() => goNext(step1Ref, 2)}>
+                Continue
+              </ButtonOnDark>
+            ) : (
+              <Button type="button" variant="primary" onClick={() => goNext(step1Ref, 2)}>
+                Continue
+              </Button>
+            )}
           </div>
         </div>
 
@@ -596,10 +637,11 @@ export function BookingForm({
             covers that. It decides who in the business picks the booking up, so
             it is asked rather than inferred.
           */}
-          <Field label="What is this for" id="serviceType">
+          <Field label="What is this for" id="serviceType" tone={tone}>
             <Select
               id="serviceType"
               name="serviceType"
+              tone={tone}
               defaultValue={prior("serviceType") || "personal"}
             >
               {SERVICE_TYPES.map((item) => (
@@ -621,10 +663,11 @@ export function BookingForm({
           */}
           {trip === "airport" ? (
             <>
-              <Field label="Airline" id="airline" hint="Optional.">
+              <Field label="Airline" id="airline" tone={tone} hint="Optional.">
                 <Input
                   id="airline"
                   name="airline"
+                  tone={tone}
                   placeholder="e.g. Delta"
                   maxLength={120}
                   autoComplete="off"
@@ -635,11 +678,13 @@ export function BookingForm({
               <Field
                 label="Flight number"
                 id="flight"
+                tone={tone}
                 hint="So your driver knows which arrival to meet."
               >
                 <Input
                   id="flight"
                   name="flight"
+                  tone={tone}
                   placeholder="Optional"
                   maxLength={20}
                   {...restore("flight")}
@@ -648,22 +693,24 @@ export function BookingForm({
             </>
           ) : null}
 
-          <Field label="Passengers" id="passengers">
+          <Field label="Passengers" id="passengers" tone={tone}>
             <Input
               id="passengers"
               name="passengers"
               type="number"
+              tone={tone}
               min={1}
               max={selected?.passengerCapacity ?? 14}
               defaultValue={prior("passengers") || 1}
             />
           </Field>
 
-          <Field label="Bags" id="bags">
+          <Field label="Bags" id="bags" tone={tone}>
             <Input
               id="bags"
               name="bags"
               type="number"
+              tone={tone}
               min={0}
               max={selected?.luggageCapacity ?? 12}
               defaultValue={prior("bags") || 0}
@@ -674,11 +721,13 @@ export function BookingForm({
             <Field
               label="Child seats"
               id="childSeats"
+              tone={tone}
               hint={`$${options.childSeatFeeCents / 100} each, up to ${maxChildSeats}.`}
             >
               <Select
                 id="childSeats"
                 name="childSeats"
+                tone={tone}
                 value={String(seatsInRange)}
                 onChange={(event) => setChildSeats(Number(event.target.value))}
               >
@@ -695,52 +744,64 @@ export function BookingForm({
             <Field
               label="Anything we should know"
               id="notes"
+              tone={tone}
               hint="Extra stop, a door to use, a flight you are connecting from. Optional."
             >
-              <Textarea id="notes" name="notes" maxLength={5000} {...restore("notes")} />
+              <Textarea id="notes" name="notes" tone={tone} maxLength={5000} {...restore("notes")} />
             </Field>
           </div>
         </div>
 
-          <div className="flex items-center justify-between border-t border-midnight/10 pt-5">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setStep(1)}
-            >
-              Back
-            </Button>
-            <Button type="button" variant="primary" onClick={() => goNext(step2Ref, 3)}>
-              Continue
-            </Button>
+          <div className={clsx("flex items-center justify-between border-t pt-5", divider)}>
+            {dark ? (
+              <>
+                <ButtonOnDark type="button" onClick={() => setStep(1)}>
+                  Back
+                </ButtonOnDark>
+                <ButtonOnDark type="button" onClick={() => goNext(step2Ref, 3)}>
+                  Continue
+                </ButtonOnDark>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+                  Back
+                </Button>
+                <Button type="button" variant="primary" onClick={() => goNext(step2Ref, 3)}>
+                  Continue
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Step 3 — You */}
         <div className={clsx("flex flex-col gap-5", step !== 3 && "hidden")}>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Name" id="name" error={fieldError("customerName")}>
-              <Input id="name" name="name" autoComplete="name" required maxLength={160} {...restore("name")} />
+            <Field label="Name" id="name" tone={tone} error={fieldError("customerName")}>
+              <Input id="name" name="name" tone={tone} autoComplete="name" required maxLength={160} {...restore("name")} />
             </Field>
 
             <Field
               label="Phone"
               id="phone"
+              tone={tone}
               error={fieldError("customerPhone")}
               hint="You will need this to track the booking."
             >
-              <Input id="phone" name="phone" type="tel" autoComplete="tel" required {...restore("phone")} />
+              <Input id="phone" name="phone" type="tel" tone={tone} autoComplete="tel" required {...restore("phone")} />
             </Field>
 
-            <Field label="Email" id="email" error={fieldError("customerEmail")} className="sm:col-span-2">
-              <Input id="email" name="email" type="email" autoComplete="email" required {...restore("email")} />
+            <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">
+              <Input id="email" name="email" type="email" tone={tone} autoComplete="email" required {...restore("email")} />
             </Field>
           </div>
 
-          <div className="border-t border-midnight/10 pt-5">
+          <div className={clsx("border-t pt-5", divider)}>
             <Checkbox
               id="terms"
               name="terms"
+              tone={tone}
               required
               error={fieldError("terms")}
               label={
@@ -749,7 +810,10 @@ export function BookingForm({
                   <Link
                     href="/terms"
                     target="_blank"
-                    className="font-medium text-midnight underline underline-offset-4"
+                    className={clsx(
+                      "font-medium underline underline-offset-4",
+                      dark ? "text-white" : "text-midnight",
+                    )}
                   >
                     terms and conditions
                   </Link>
@@ -761,32 +825,48 @@ export function BookingForm({
           </div>
 
           <div className="flex justify-start">
-            <Button type="button" variant="secondary" onClick={() => setStep(2)}>
-              Back
-            </Button>
+            {dark ? (
+              <ButtonOnDark type="button" onClick={() => setStep(2)}>
+                Back
+              </ButtonOnDark>
+            ) : (
+              <Button type="button" variant="secondary" onClick={() => setStep(2)}>
+                Back
+              </Button>
+            )}
           </div>
 
-          <div className="flex flex-col gap-4 border-t border-midnight/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className={clsx("flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between", divider)}>
             <div>
               {isFixed && fareTotal !== null ? (
                 <>
-                  <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                  <p
+                    className={clsx(
+                      "font-sans text-[13px] font-medium tracking-[0.08em] uppercase",
+                      dark ? "text-white/60" : "text-charcoal/70",
+                    )}
+                  >
                     Fixed fare · {selected?.name}
                   </p>
-                  <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+                  <p className={clsx("font-display mt-1 text-[30px] leading-none font-semibold tabular-nums", heading)}>
                     ${fareTotal}
                   </p>
-                  <p className="mt-2 text-[13px] text-charcoal/70">
+                  <p className={clsx("mt-2 text-[13px]", dark ? "text-white/55" : "text-charcoal/70")}>
                     Tolls and gratuity included. Not an estimate.
                     {seatFee > 0 ? ` Includes $${seatFee} for child seats.` : ""}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+                  <p
+                    className={clsx(
+                      "font-sans text-[13px] font-medium tracking-[0.08em] uppercase",
+                      dark ? "text-white/60" : "text-charcoal/70",
+                    )}
+                  >
                     Priced by a person
                   </p>
-                  <p className="mt-1 max-w-sm text-[15px] leading-[1.6] text-charcoal">
+                  <p className={clsx("mt-1 max-w-sm text-[15px] leading-[1.6]", body)}>
                     {trip === "airport"
                       ? "Fixed fares cover the five boroughs. We will price this one and come back to you."
                       : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
@@ -802,7 +882,12 @@ export function BookingForm({
         {state.status === "error" ? (
           <p
             role="alert"
-            className="border-l-2 border-red-700 bg-red-700/5 px-4 py-3 text-[15px] text-red-800"
+            className={clsx(
+              "border-l-2 px-4 py-3 text-[15px]",
+              dark
+                ? "border-red-300 bg-red-300/10 text-red-200"
+                : "border-red-700 bg-red-700/5 text-red-800",
+            )}
           >
             {state.message}
           </p>
