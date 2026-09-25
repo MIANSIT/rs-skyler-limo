@@ -207,6 +207,8 @@ export function buildQuoteRequestEmail(
 export function buildQuotedEmail(
   booking: Booking,
   vehicleName: string,
+  /** A signed payment link, present when the customer pays by card. */
+  payUrl: string | null = null,
 ): BuiltEmail {
   const fare = formatMoney(booking.quotedTotalCents) ?? "";
   const note = booking.quoteNote?.trim() ?? "";
@@ -247,7 +249,27 @@ export function buildQuotedEmail(
     ),
   ].join("");
 
-  const trackButton = `
+  // A card customer's one gold action is paying; the booking page drops to a
+  // plain link beneath it. Everyone else keeps the booking page as the button.
+  const payButton = payUrl
+    ? `
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 16px 0;">
+    <tr>
+      <td style="background:${BRAND.gold};">
+        <a href="${escapeHtml(payUrl)}"
+           style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
+          Pay ${escapeHtml(fare)} securely
+        </a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
+    Paid by card through Stripe. The link is for this booking only and works for 7 days.
+    You can also <a href="${escapeHtml(trackUrl(booking.reference))}" style="color:${BRAND.midnight};font-weight:600;">view the booking</a>.
+  </p>`
+    : null;
+
+  const trackButton = payButton ?? `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px 0;">
     <tr>
       <td style="background:${BRAND.gold};">
@@ -296,6 +318,7 @@ export function buildQuotedEmail(
       : "You chose cash on delivery: pay your chauffeur at the end of the trip.",
     ...(note ? ["", "NOTE", `  ${note}`] : []),
     "",
+    ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),
     `View this booking: ${trackUrl(booking.reference)}`,
     "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.",
     "",

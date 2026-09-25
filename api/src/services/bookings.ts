@@ -346,6 +346,15 @@ const EDITABLE_FIELDS = [
 
 type EditableKey = (typeof EDITABLE_FIELDS)[number]["key"];
 
+/**
+ * Pick-up times are chosen to the minute. A stored time with stray seconds
+ * (seed data, an older client) must not read as "changed" when an operator
+ * saves the edit form without touching it.
+ */
+function sameMinute(a: string, b: string): boolean {
+  return Math.floor(Date.parse(a) / 60_000) === Math.floor(Date.parse(b) / 60_000);
+}
+
 /** The booking's current value for an editable field, for change detection. */
 function currentValue(booking: Booking, key: EditableKey): unknown {
   return key === "customerNotes" ? booking.notes : booking[key];
@@ -367,7 +376,7 @@ export async function updateBooking(
       assignments.push("status = :status");
       params.status = patch.status;
     }
-    if (patch.pickupAt !== undefined && Date.parse(patch.pickupAt) !== Date.parse(existing.pickupAt)) {
+    if (patch.pickupAt !== undefined && !sameMinute(patch.pickupAt, existing.pickupAt)) {
       assignments.push("pickup_at = :pickupAt");
       params.pickupAt = new Date(patch.pickupAt);
     }
@@ -379,7 +388,7 @@ export async function updateBooking(
     // page untouched leaves no noise in the history.
     const changed: string[] = [];
 
-    if (patch.pickupAt !== undefined && Date.parse(patch.pickupAt) !== Date.parse(existing.pickupAt)) {
+    if (patch.pickupAt !== undefined && !sameMinute(patch.pickupAt, existing.pickupAt)) {
       changed.push("pick-up time");
     }
     if (patch.vehicleClass !== undefined && patch.vehicleClass !== existing.vehicleClass) {

@@ -57,6 +57,14 @@ export function QuotePricePanel({ quote }: { quote: Quote }) {
         </p>
       )}
 
+      {/* Once paid, the figure is what the customer was charged; changing it
+          here would leave the record disagreeing with Stripe. */}
+      {quote.paymentStatus === "paid" ? (
+        <p className="mt-4 max-w-2xl font-sans text-[14px] leading-normal text-charcoal/80">
+          Paid, so the price is locked. To change what the customer paid, refund
+          in the Stripe Dashboard and mark the payment unpaid first.
+        </p>
+      ) : (
       <form action={formAction} className="mt-5 flex flex-col gap-4">
         <input type="hidden" name="id" value={quote.id} />
         <input type="hidden" name="currentStatus" value={quote.status} />
@@ -81,9 +89,34 @@ export function QuotePricePanel({ quote }: { quote: Quote }) {
           <SaveButton label={priced ? "Update price" : "Save price"} />
         </div>
 
+        {/* How the agreed price will be paid. Card means the customer gets a
+            signed Stripe payment link; cash means the chauffeur collects. */}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="font-sans text-[13px] font-medium tracking-[0.06em] text-charcoal/70 uppercase">
+            Payment
+          </legend>
+          <div className="mt-1 flex flex-wrap gap-5">
+            {[
+              { value: "card", label: "Card (Stripe payment link)" },
+              { value: "cash", label: "Cash on delivery" },
+            ].map((option) => (
+              <label key={option.value} className="flex items-center gap-2 font-sans text-[14px] text-charcoal">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={option.value}
+                  defaultChecked={(quote.paymentMethod ?? "card") === option.value}
+                  className="h-4 w-4 accent-midnight"
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <label className="flex items-start gap-2.5 font-sans text-[14px] leading-normal text-charcoal">
           <input type="checkbox" name="notify" defaultChecked className="mt-0.5 h-4 w-4 shrink-0 accent-midnight" />
-          Email the customer the price, with their tracking link
+          Email the customer the price — with a Stripe payment link when paying by card
         </label>
 
         {state.status === "error" ? (
@@ -96,6 +129,7 @@ export function QuotePricePanel({ quote }: { quote: Quote }) {
           </p>
         ) : null}
       </form>
+      )}
     </section>
   );
 }

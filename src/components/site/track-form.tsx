@@ -172,6 +172,15 @@ export function TrackForm({
               <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
                 ${Math.round(state.quote.agreedPriceCents / 100)}
               </p>
+              <p className="mt-3 font-sans text-[15px] text-charcoal">
+                {state.quote.paymentStatus === "paid"
+                  ? "Paid. Thank you."
+                  : state.quote.paymentMethod === "cash"
+                    ? "Cash on delivery, to your chauffeur on the day."
+                    : state.quote.paymentMethod === "card"
+                      ? "Card — use the payment link we emailed you."
+                      : null}
+              </p>
             </div>
           ) : null}
           <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-midnight/10 pt-6 sm:grid-cols-2">

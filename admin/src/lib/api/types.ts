@@ -107,6 +107,11 @@ export type Quote = {
   /** The price agreed with the customer, in cents; null until one is set. */
   agreedPriceCents: number | null;
   pricedAt: string | null;
+  /** Chosen with the agreed price; null until then. */
+  paymentMethod: PaymentMethod | null;
+  paymentStatus: PaymentStatus;
+  paidAt: string | null;
+  stripePaymentIntentId: string | null;
   source: string;
   createdAt: string;
   updatedAt: string;

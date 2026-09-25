@@ -385,6 +385,36 @@ export async function payBooking(
   redirect(url);
 }
 
+/**
+ * "Pay securely" on a payment-link page. The API re-checks the signed token
+ * before opening a Stripe page for the booking's stored fare; the browser
+ * sends nothing about the amount. Returns only on failure.
+ */
+export async function payWithLink(
+  _previous: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  const reference = String(formData.get("reference") ?? "").trim().toUpperCase();
+  const token = String(formData.get("token") ?? "").trim();
+
+  let url: string;
+  try {
+    ({ url } = await apiFetch<{ url: string }>("/api/payments/link/checkout", {
+      method: "POST",
+      forwardedFor: await callerIp(),
+      body: { reference, token },
+    }));
+  } catch (error) {
+    if (error instanceof ApiRequestError) return error.failure.message;
+    throw error;
+  }
+
+  if (!url.startsWith("https://checkout.stripe.com/")) {
+    return "Card payment is not available right now. Call us to pay.";
+  }
+  redirect(url);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Reviews                                                                    */
 /* -------------------------------------------------------------------------- */

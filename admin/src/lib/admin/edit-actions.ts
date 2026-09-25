@@ -173,6 +173,7 @@ export async function setQuotePrice(
   const status = text(formData, "currentStatus");
   const moveToQuoted = cents !== null && (status === "new" || status === "pending");
   const notify = formData.get("notify") === "on" && cents !== null;
+  const method = text(formData, "paymentMethod");
 
   try {
     await apiFetch(`/api/admin/quotes/${id}`, {
@@ -180,6 +181,7 @@ export async function setQuotePrice(
       token,
       body: {
         agreedPriceCents: cents,
+        ...(method === "card" || method === "cash" ? { paymentMethod: method } : {}),
         ...(moveToQuoted ? { status: "quoted" } : {}),
         notifyCustomer: notify,
       },
@@ -197,7 +199,78 @@ export async function setQuotePrice(
       cents === null
         ? "Price cleared."
         : notify
-          ? "Price saved and emailed to the customer."
+          ? method === "card"
+            ? "Price saved and emailed with a Stripe payment link."
+            : "Price saved and emailed to the customer."
           : "Price saved. The customer was not emailed.",
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Payment links                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type PaymentLinkState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "ready"; url: string; expiresAt: string; sent: boolean };
+
+/**
+ * Makes a signed payment link for a booking and, when the operator pressed
+ * "Email it", sends it to the customer too. The link is returned either way so
+ * it can be copied into a text or WhatsApp message.
+ */
+export async function createPaymentLink(
+  _previous: PaymentLinkState,
+  formData: FormData,
+): Promise<PaymentLinkState> {
+  const { token } = await verifySession();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id < 1) return { status: "error", message: "Unknown booking." };
+
+  const send = formData.get("intent") === "send";
+  // Bookings and quote requests share the control; `kind` picks the route.
+  const kind = formData.get("kind") === "quote" ? "quotes" : "bookings";
+
+  try {
+    const result = await apiFetch<{ url: string; expiresAt: string; sent: boolean }>(
+      `/api/admin/${kind}/${id}/payment-link`,
+      { method: "POST", token, body: { send } },
+    );
+    revalidatePath(`/${kind}/${id}`);
+    return { status: "ready", ...result };
+  } catch (error) {
+    if (error instanceof ApiRequestError) return { status: "error", message: error.failure.message };
+    throw error;
+  }
+}
+
+/**
+ * A quote request's payment buttons — Mark paid / unpaid and switch method —
+ * one field per submit, as on a booking.
+ */
+export async function updateQuotePayment(
+  _previous: EditFormState,
+  formData: FormData,
+): Promise<EditFormState> {
+  const { token } = await verifySession();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id < 1) return { status: "error", message: "Unknown quote request." };
+
+  const paymentMethod = text(formData, "paymentMethod");
+  const paymentStatus = text(formData, "paymentStatus");
+  const body: Record<string, string> = {};
+  if (paymentMethod === "card" || paymentMethod === "cash") body.paymentMethod = paymentMethod;
+  if (paymentStatus === "paid" || paymentStatus === "unpaid") body.paymentStatus = paymentStatus;
+  if (Object.keys(body).length === 0) return { status: "error", message: "Nothing to change." };
+
+  try {
+    await apiFetch(`/api/admin/quotes/${id}`, { method: "PATCH", token, body });
+  } catch (error) {
+    return failure(error);
+  }
+
+  revalidatePath(`/quotes/${id}`);
+  revalidatePath("/quotes");
+  return { status: "idle" };
 }

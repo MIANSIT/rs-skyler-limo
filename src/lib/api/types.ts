@@ -89,6 +89,9 @@ export type TrackedQuote = {
   eventDate: string | null;
   /** Set by an operator once a price is agreed; null until then. */
   agreedPriceCents: number | null;
+  /** Chosen with the agreed price; null until then. */
+  paymentMethod: PaymentMethod | null;
+  paymentStatus: "unpaid" | "paid";
   createdAt: string;
 };
 

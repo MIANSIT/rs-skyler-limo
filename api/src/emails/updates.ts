@@ -220,7 +220,12 @@ function quoteCopy(quote: Quote): BookingCopy {
           quote.agreedPriceCents !== null
             ? `Thank you, ${name}. The price for your request is ${formatMoney(quote.agreedPriceCents)}. The details are below.`
             : `Thank you, ${name}. A reservations agent has worked out a price for your request and sends it to you by phone or email.`,
-        after: "Reply to this email or call us to go ahead. Nothing is reserved or charged until you agree the price.",
+        after:
+          quote.paymentMethod === "cash"
+            ? "Payment is cash on delivery, to your chauffeur on the day. Reply to this email or call us to go ahead."
+            : quote.paymentMethod === "card"
+              ? "Payment is by card: use the button below when you are ready to go ahead. Nothing is charged until you pay."
+              : "Reply to this email or call us to go ahead. Nothing is reserved or charged until you agree the price.",
       };
     case "won":
       return {
@@ -246,7 +251,11 @@ function quoteCopy(quote: Quote): BookingCopy {
   }
 }
 
-export function buildQuoteUpdateEmail(quote: Quote): BuiltEmail {
+export function buildQuoteUpdateEmail(
+  quote: Quote,
+  /** A signed Stripe payment link, when the agreed price is paid by card. */
+  payUrl: string | null = null,
+): BuiltEmail {
   const copy = quoteCopy(quote);
   const service = QUOTE_SERVICE_LABELS[quote.serviceType] ?? quote.serviceType;
   const trackUrl = siteUrl(`/track?reference=${encodeURIComponent(quote.reference)}`);
@@ -274,8 +283,16 @@ export function buildQuoteUpdateEmail(quote: Quote): BuiltEmail {
         ].join(""),
       ),
       copy.after ? paragraph(escapeHtml(copy.after)) : "",
-      button(trackUrl, "View your request"),
-      paragraph(escapeHtml(TRACK_HINT)),
+      // Paying is the one gold action when there is a link; the request page
+      // drops to a plain link. Otherwise the request page is the button.
+      ...(payUrl
+        ? [
+            button(payUrl, `Pay ${formatMoney(quote.agreedPriceCents) ?? ""} securely`),
+            paragraph(
+              `Paid by card through Stripe. This link is for ${escapeHtml(quote.reference)} only and works for 7 days. You can also <a href="${escapeHtml(trackUrl)}" style="color:${BRAND.midnight};font-weight:600;">view your request</a>.`,
+            ),
+          ]
+        : [button(trackUrl, "View your request"), paragraph(escapeHtml(TRACK_HINT))]),
     ].join(""),
     footerNote: FOOTER,
   });
@@ -291,6 +308,7 @@ export function buildQuoteUpdateEmail(quote: Quote): BuiltEmail {
     ...(quote.agreedPriceCents !== null ? [`Price:      ${formatMoney(quote.agreedPriceCents)}`] : []),
     ...(copy.after ? ["", copy.after] : []),
     "",
+    ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),
     `View your request: ${trackUrl}`,
     TRACK_HINT,
     ...signOff(),

@@ -201,6 +201,9 @@ export const updateQuoteSchema = z
 
     /** The price agreed with the customer, in cents. Null clears it. */
     agreedPriceCents: z.coerce.number().int().min(0).max(100_000_000).nullable().optional(),
+    /** How that price will be paid; chosen with it. */
+    paymentMethod: z.enum(paymentMethods).nullable().optional(),
+    paymentStatus: z.enum(paymentStatuses).optional(),
 
     /* The request itself, correctable from the dashboard. No past-date rule
        on `eventDate` for the same reason as `pickupAt` on a booking. */
@@ -275,6 +278,17 @@ export const trackSchema = z.object({
   reference: z.string().trim().min(3).max(20),
   /** Second factor: a reference alone should not reveal a trip. */
   phone: z.string().trim().min(4).max(40),
+});
+
+/** A payment link's two halves, as the /pay page sends them back. */
+export const paymentLinkSchema = z.object({
+  reference: z.string().trim().min(3).max(20),
+  token: z.string().trim().min(10).max(200),
+});
+
+/** The dashboard's "payment link" action: make one, and optionally email it. */
+export const adminPaymentLinkSchema = z.object({
+  send: z.boolean().default(false),
 });
 
 /** The id Stripe puts in the success URL. Shape only; Stripe is asked the rest. */

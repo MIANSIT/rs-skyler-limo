@@ -139,6 +139,13 @@ CREATE TABLE IF NOT EXISTS quotes (
   -- NULL until then. `priced_at` is when it was last set.
   agreed_price_cents INT UNSIGNED NULL,
   priced_at         DATETIME NULL,
+  -- How the agreed price will be paid, chosen by the operator when it is set:
+  -- `card` through a Stripe payment link, `cash` on the day. NULL until then.
+  payment_method    ENUM('card','cash') NULL,
+  payment_status    ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  paid_at           DATETIME NULL,
+  stripe_checkout_session_id VARCHAR(255) NULL,
+  stripe_payment_intent_id   VARCHAR(255) NULL,
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -117,6 +117,16 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               ADD COLUMN priced_at DATETIME NULL AFTER agreed_price_cents`,
     },
     {
+      description: "quotes.payment_method, payment_status, paid_at, Stripe ids",
+      check: () => columnMissing(connection, "quotes", "payment_method"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN payment_method ENUM('card','cash') NULL AFTER priced_at,
+              ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid' AFTER payment_method,
+              ADD COLUMN paid_at DATETIME NULL AFTER payment_status,
+              ADD COLUMN stripe_checkout_session_id VARCHAR(255) NULL AFTER paid_at,
+              ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_checkout_session_id`,
+    },
+    {
       // The client's rate sheet prices transfers from Islip/MacArthur, which
       // the airports table has never had a row for. `INSERT IGNORE` keeps this
       // idempotent even if an operator adds ISP by hand first.

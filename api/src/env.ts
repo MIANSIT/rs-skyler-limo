@@ -153,6 +153,14 @@ const schema = z.object({
    * still recorded when the customer lands back on the site.
    */
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+
+  /**
+   * Signs the payment links operators send customers (`/pay/RS-…?token=…`).
+   * Optional: unset, a key is derived from STRIPE_SECRET_KEY, which is secret
+   * and stable across restarts. Set it to rotate links independently — every
+   * outstanding link stops working the moment it changes.
+   */
+  PAYMENT_LINK_SECRET: z.string().min(32).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { env } from "../env.js";
 import { ApiError } from "../lib/http.js";
 import { samePhone } from "../lib/phone.js";
 import { isReference } from "../lib/reference.js";
@@ -10,6 +11,7 @@ import {
   createQuoteSchema,
   createReviewSchema,
   paymentConfirmSchema,
+  paymentLinkSchema,
   placesAutocompleteSchema,
   trackSchema,
 } from "../schemas.js";
@@ -29,7 +31,16 @@ import { listActiveHeroMedia } from "../services/hero.js";
 import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
 import { sendBookingEmails, sendQuoteRequestEmails } from "../services/mail.js";
-import { canPayOnline, createCheckout, recordCheckout } from "../services/payments.js";
+import {
+  canPayOnline,
+  canPayQuoteOnline,
+  createCheckout,
+  createQuoteCheckout,
+  recordCheckout,
+} from "../services/payments.js";
+import { checkPaymentLink } from "../lib/payment-link.js";
+import { getVehicleBySlug } from "../services/vehicles.js";
+import { titleCase } from "../emails/render.js";
 import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
@@ -255,6 +266,8 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       serviceType: quote.serviceType,
       eventDate: quote.eventDate,
       agreedPriceCents: quote.agreedPriceCents,
+      paymentMethod: quote.paymentMethod,
+      paymentStatus: quote.paymentStatus,
       createdAt: quote.createdAt,
     });
     return;
@@ -305,19 +318,115 @@ publicRouter.post("/payments/checkout", lookupLimit, async (req, res) => {
 });
 
 /**
+ * A payment link, checked. The token is the credential — signed for this
+ * booking and this amount, and time-limited (`lib/payment-link.ts`) — so no
+ * phone number is asked for. One vague 404 for every way a link can be wrong,
+ * so it cannot be used to probe references; `expired` is said plainly because
+ * only the holder of a genuine link can reach it.
+ */
+const EXPIRED = "This payment link has expired. Call us and we will send a new one.";
+const INVALID = "This payment link is not valid. Call us and we will send a new one.";
+
+/**
+ * The booking (`RS-…`) or quote request (`RQ-…`) a payment link is for, once
+ * its token checks out. The signature covers the amount, so for a quote
+ * request the agreed price stands where a booking's fare would.
+ */
+async function payableForLink(reference: string, token: string) {
+  const ref = reference.toUpperCase();
+  if (!isReference(ref)) throw ApiError.notFound(INVALID);
+
+  if (ref.startsWith("RQ-")) {
+    const quote = await getQuoteByReference(ref);
+    const check = quote
+      ? checkPaymentLink({ id: quote.id, reference: quote.reference, quotedTotalCents: quote.agreedPriceCents }, token)
+      : "invalid";
+    if (!quote || check === "invalid") throw ApiError.notFound(INVALID);
+    if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
+    return { kind: "quote" as const, quote };
+  }
+
+  const booking = await getBookingByReference(ref);
+  const check = booking ? checkPaymentLink(booking, token) : "invalid";
+  if (!booking || check === "invalid") throw ApiError.notFound(INVALID);
+  if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
+  return { kind: "booking" as const, booking };
+}
+
+const QUOTE_SERVICE_LABEL: Record<string, string> = {
+  corporate: "Corporate account",
+  wedding: "Wedding",
+  event: "Event",
+  hourly: "Hourly charter",
+  other: "Chauffeured transport",
+};
+
+publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
+  const { reference, token } = paymentLinkSchema.parse(req.body);
+  const found = await payableForLink(reference, token);
+
+  if (found.kind === "quote") {
+    const { quote } = found;
+    res.json({
+      kind: "quote",
+      reference: quote.reference,
+      status: quote.status,
+      serviceLabel: QUOTE_SERVICE_LABEL[quote.serviceType] ?? "Chauffeured transport",
+      eventDate: quote.eventDate,
+      amountCents: quote.agreedPriceCents,
+      paymentStatus: quote.paymentStatus,
+      canPay: canPayQuoteOnline(quote),
+    });
+    return;
+  }
+
+  const { booking } = found;
+  // A class since removed from the fleet still reads as words, not a slug.
+  let vehicleName = titleCase(booking.vehicleClass);
+  try {
+    vehicleName = (await getVehicleBySlug(booking.vehicleClass))?.name ?? vehicleName;
+  } catch {
+    // Keep the tidied slug.
+  }
+
+  res.json({
+    kind: "booking",
+    reference: booking.reference,
+    status: booking.status,
+    pickupAt: booking.pickupAt,
+    pickup: booking.pickup,
+    destination: booking.destination,
+    vehicleName,
+    amountCents: booking.quotedTotalCents,
+    paymentStatus: booking.paymentStatus,
+    canPay: canPayOnline(booking),
+  });
+});
+
+publicRouter.post("/payments/link/checkout", lookupLimit, async (req, res) => {
+  const { reference, token } = paymentLinkSchema.parse(req.body);
+  const found = await payableForLink(reference, token);
+
+  // Backing out of Stripe returns to the same link page, not a generic one.
+  const base = env.SITE_BASE_URL.replace(/\/+$/, "");
+  const ref = found.kind === "quote" ? found.quote.reference : found.booking.reference;
+  const cancelUrl = `${base}/pay/${encodeURIComponent(ref)}?token=${encodeURIComponent(token)}`;
+
+  const url =
+    found.kind === "quote"
+      ? await createQuoteCheckout(found.quote, { cancelUrl })
+      : await createCheckout(found.booking, { cancelUrl });
+  res.json({ url });
+});
+
+/**
  * Where Stripe's success page lands. The session id is looked up with Stripe,
  * not trusted, so this can only ever record a payment that really happened.
  * Returns no customer details beyond what the returning customer just paid.
  */
 publicRouter.post("/payments/confirm", lookupLimit, async (req, res) => {
   const { sessionId } = paymentConfirmSchema.parse(req.body);
-  const booking = await recordCheckout(sessionId);
-
-  res.json({
-    reference: booking.reference,
-    paymentStatus: booking.paymentStatus,
-    amountCents: booking.quotedTotalCents,
-  });
+  res.json(await recordCheckout(sessionId));
 });
 
 /** Approved reviews, plus where to send a customer who wants to review on Google. */

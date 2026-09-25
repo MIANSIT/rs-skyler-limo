@@ -9,6 +9,8 @@ const actionLabels: Record<string, string> = {
   payment_method_cash: "Payment changed to cash on delivery",
   payment_method_card: "Payment changed to card",
   details_updated: "Details edited",
+  payment_link_sent: "Payment link emailed",
+  payment_link_created: "Payment link created",
   price_set: "Agreed price",
 };
 

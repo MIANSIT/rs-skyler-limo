@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { DetailRow } from "@/components/admin/detail-row";
 import { QuoteActions } from "@/components/admin/quote-actions";
+import { QuotePaymentPanel } from "@/components/admin/quote-payment-panel";
 import { QuotePricePanel } from "@/components/admin/quote-price-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getQuote } from "@/lib/admin/dal";
@@ -126,6 +127,8 @@ export default async function QuoteDetailPage({
           </section>
 
           <QuotePricePanel quote={quote} />
+
+          {quote.agreedPriceCents !== null ? <QuotePaymentPanel quote={quote} /> : null}
 
           <ActivityTrail entries={activity} />
         </div>

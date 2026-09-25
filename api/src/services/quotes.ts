@@ -31,6 +31,10 @@ type QuoteRow = RowDataPacket & {
   details: string;
   agreed_price_cents: number | null;
   priced_at: Date | null;
+  payment_method: "card" | "cash" | null;
+  payment_status: "unpaid" | "paid";
+  paid_at: Date | null;
+  stripe_payment_intent_id: string | null;
   source: string;
   created_at: Date;
   updated_at: Date;
@@ -55,6 +59,10 @@ function toQuote(row: QuoteRow) {
     details: row.details,
     agreedPriceCents: row.agreed_price_cents,
     pricedAt: row.priced_at ? row.priced_at.toISOString() : null,
+    paymentMethod: row.payment_method,
+    paymentStatus: row.payment_status,
+    paidAt: row.paid_at ? row.paid_at.toISOString() : null,
+    stripePaymentIntentId: row.stripe_payment_intent_id,
     source: row.source,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -70,7 +78,8 @@ function formatDate(date: Date): string {
 
 const SELECT_COLUMNS = `id, reference, status, service_type, event_date,
   passengers, company, customer_name, customer_email, customer_phone,
-  details, agreed_price_cents, priced_at, source, created_at, updated_at`;
+  details, agreed_price_cents, priced_at, payment_method, payment_status, paid_at,
+  stripe_payment_intent_id, source, created_at, updated_at`;
 
 export async function createQuote(
   input: z.infer<typeof createQuoteSchema>,
@@ -227,9 +236,33 @@ export async function updateQuote(
       params.agreedPriceCents = patch.agreedPriceCents;
     }
 
+    const methodChanged =
+      patch.paymentMethod !== undefined && patch.paymentMethod !== existing.paymentMethod;
+    if (methodChanged) {
+      assignments.push("payment_method = :paymentMethod");
+      params.paymentMethod = patch.paymentMethod;
+    }
+
+    // `paid_at` follows the status, stamped when the money was recorded.
+    const statusPaidChanged =
+      patch.paymentStatus !== undefined && patch.paymentStatus !== existing.paymentStatus;
+    if (statusPaidChanged) {
+      assignments.push("payment_status = :paymentStatus");
+      assignments.push(patch.paymentStatus === "paid" ? "paid_at = UTC_TIMESTAMP()" : "paid_at = NULL");
+      params.paymentStatus = patch.paymentStatus;
+    }
+
     if (assignments.length > 0) {
       await executeOn(connection, `UPDATE quotes SET ${assignments.join(", ")} WHERE id = :id`, params);
     }
+
+    const METHOD_LABEL: Record<string, string> = { card: "card (Stripe)", cash: "cash on delivery" };
+    const paymentNote = [
+      methodChanged && patch.paymentMethod ? `Payment by ${METHOD_LABEL[patch.paymentMethod]}.` : "",
+      statusPaidChanged ? `Marked ${patch.paymentStatus}.` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     const priceNote = priceChanged
       ? patch.agreedPriceCents === null
@@ -252,12 +285,17 @@ export async function updateQuote(
               ? "price_set"
               : changed.length > 0
                 ? "details_updated"
-                : "updated",
+                : statusPaidChanged
+                  ? `payment_${patch.paymentStatus}`
+                  : methodChanged && patch.paymentMethod
+                    ? `payment_method_${patch.paymentMethod}`
+                    : "updated",
           fromStatus: patch.status ? existing.status : null,
           toStatus: patch.status ?? null,
           note:
             [
               priceNote,
+              paymentNote,
               changed.length > 0 ? `Changed: ${changed.join(", ")}.` : "",
               patch.note ?? "",
             ]
