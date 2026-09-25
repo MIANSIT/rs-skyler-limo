@@ -138,6 +138,16 @@ export function QuoteForm({
         <p className="font-display mt-6 text-[30px] leading-none font-semibold text-midnight tabular-nums">
           {state.reference}
         </p>
+        <p className="mt-6 text-[15px] leading-[1.7] text-charcoal">
+          Check where it stands any time on the{" "}
+          <Link
+            href={`/track?reference=${encodeURIComponent(state.reference)}`}
+            className="font-medium text-midnight underline underline-offset-4"
+          >
+            tracking page
+          </Link>{" "}
+          with the phone number you gave us.
+        </p>
         <p className="mt-6 text-[15px] text-charcoal">
           Need an answer sooner?{" "}
           <a

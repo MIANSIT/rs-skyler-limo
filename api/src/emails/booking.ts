@@ -43,6 +43,12 @@ const SERVICE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+/** Shared with the quote-ready email, so both name the choice the same way. */
+export const PAYMENT_LABELS: Record<string, string> = {
+  card: "Card (Stripe)",
+  cash: "Cash on delivery",
+};
+
 const TRIP_LABELS: Record<string, string> = {
   airport: "Airport transfer",
   "point-to-point": "Point to point",
@@ -114,6 +120,10 @@ export function buildBookingEmail(
       "Trip type",
       escapeHtml(TRIP_LABELS[booking.tripType] ?? booking.tripType),
     ),
+    detailRow(
+      "Payment",
+      escapeHtml(PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod),
+    ),
   ].join("");
 
   /* ------------------------------------------------------------- people */
@@ -149,6 +159,12 @@ export function buildBookingEmail(
             fixed
               ? "Tolls and gratuity included. This is the price, not an estimate."
               : "A reservations agent is pricing this trip and will come back to you. Nothing is charged until you agree the fare."
+          }${
+            booking.paymentMethod === "cash"
+              ? " Paid in cash to your chauffeur at the end of the trip."
+              : fixed
+                ? " Payment is by card through Stripe. If you did not finish paying, you can pay from the tracking page."
+                : ""
           }
         </div>
       </td>
@@ -171,7 +187,7 @@ export function buildBookingEmail(
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px 0;">
     <tr>
       <td style="background:${BRAND.gold};">
-        <a href="${escapeHtml(trackUrl())}"
+        <a href="${escapeHtml(trackUrl(booking.reference))}"
            style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
           Track this booking
         </a>
@@ -179,8 +195,7 @@ export function buildBookingEmail(
     </tr>
   </table>
   <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
-    You will need this reference and the phone number on the booking. We ask for
-    both so a reference on its own cannot open your trip.
+    The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.
   </p>`;
 
   const body = [
@@ -239,11 +254,12 @@ function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] || "there";
 }
 
-function trackUrl(): string {
+/** Opens the tracking page with the reference already filled in. */
+function trackUrl(reference: string): string {
   // `env`, not `process.env`. Every value the API uses is declared and
   // validated in env.ts, and nothing below that file reads the environment
   // directly — a default hidden down here is a default nobody finds.
-  return `${env.SITE_BASE_URL.replace(/\/+$/, "")}/track`;
+  return `${env.SITE_BASE_URL.replace(/\/+$/, "")}/track?reference=${encodeURIComponent(reference)}`;
 }
 
 /**
@@ -289,6 +305,11 @@ function plainText(
     fixed && fare
       ? `Fare:       ${fare} (tolls and gratuity included)`
       : "Fare:       To be quoted. Nothing is charged until you agree it.",
+    `Payment:    ${
+      booking.paymentMethod === "cash"
+        ? "Cash on delivery — paid to the chauffeur at the end of the trip"
+        : PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod
+    }`,
   );
 
   if (audience === "ops") {
@@ -310,8 +331,8 @@ function plainText(
   if (audience === "customer") {
     lines.push(
       "",
-      `Track this booking: ${trackUrl()}`,
-      "You will need the reference above and the phone number on the booking.",
+      `Track this booking: ${trackUrl(booking.reference)}`,
+      "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.",
     );
   }
 

@@ -128,6 +128,57 @@ alone travels in email and on paper and would otherwise expose a customer's name
 and route to anyone who read one. Numbers are compared on their last ten digits,
 so `+1 (212) 555-0123` and `212-555-0123` are the same line.
 
+## Payment: card (Stripe) or cash on delivery
+
+The customer chooses on the booking form's last step. The choice is stored on
+the booking as `payment_method` (`card` or `cash`), and whether the money is in
+as `payment_status` (`unpaid` or `paid`), with `paid_at` stamped when it lands.
+
+- **Cash on delivery** is paid to the chauffeur at the end of the trip. An
+  operator records it with **Mark paid** on the booking's Payment panel.
+- **Card** goes through Stripe Checkout, so card details never touch our
+  servers. A fixed fare sends the customer to Stripe straight after booking.
+  A quoted trip is paid from `/track` once an operator has priced it. The
+  lookup there needs the reference and phone number, same as tracking. The
+  amount is always the fare stored on the booking, never a figure from the
+  browser.
+- **Recording the payment.** When Stripe sends the customer back to
+  `/pay/complete`, the API asks Stripe whether that session was paid before
+  marking anything. A reload, or a made-up session id, cannot mark a booking
+  paid. The webhook (`/api/stripe/webhook` on the public site, relayed to the
+  API) does the same for a customer who closes the tab before returning.
+  Recording is idempotent, so both arriving is fine.
+- **Payment links.** For a priced, unpaid card booking the booking's Payment
+  panel has **Email link** and **Get link to copy** (for a text or WhatsApp
+  message). The link opens `/pay/RS-…?token=…`: the booking, the amount, and
+  one Pay button to Stripe. Nothing to type. The token is an HMAC over the
+  booking id, reference, amount and expiry (`api/src/lib/payment-link.ts`), so
+  a link cannot be forged or moved to another booking, stops working when the
+  price changes, and expires after 7 days. The "Your quote is ready" email
+  carries the same link for card customers, so pricing a trip and asking for
+  payment are one step. Signed with `PAYMENT_LINK_SECRET`, or a key derived
+  from `STRIPE_SECRET_KEY` when that is unset. Changing either invalidates
+  every outstanding link.
+- **Quote requests (`RQ-…`) are paid the same way.** When an operator sets
+  the agreed price they choose Card (Stripe payment link) or Cash on
+  delivery. With card and the email box ticked, the "Your price" email
+  carries the Pay button. The request's Payment panel has Mark paid, switch
+  method, and Email or Copy payment link. The link opens `/pay/RQ-…` and a
+  Stripe payment marks the request paid. Once paid, the price is locked.
+- Refunds are done in the Stripe Dashboard. The booking's Payment panel shows
+  the PaymentIntent id to search for.
+
+Configuration is in `api/.env` only; no key reaches either Next.js app:
+
+| Variable | |
+|---|---|
+| `STRIPE_SECRET_KEY` | `sk_test_…` everywhere except production. Unset, card is still offered but nothing opens Stripe. |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…`. In development, from `stripe listen --forward-to localhost:3000/api/stripe/webhook`; in production, from a Dashboard endpoint pointing at `https://rsskylerlimo.com/api/stripe/webhook` with `checkout.session.completed` and `checkout.session.async_payment_succeeded`. |
+| `PAYMENT_LINK_SECRET` | Optional, 32+ characters. Signs payment links; unset, a key is derived from `STRIPE_SECRET_KEY`. |
+
+`SITE_BASE_URL` must be the public site's real origin, because it builds
+Stripe's success and cancel URLs.
+
 ## Spam protection and double bookings
 
 The public forms (booking, quote, review) are protected by rate limiting plus two

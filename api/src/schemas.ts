@@ -65,6 +65,18 @@ export const bookingServiceTypes = [
   "other",
 ] as const;
 
+/**
+ * How the customer intends to pay, chosen on the booking form.
+ *
+ * `card` is settled with the office. `cash` is paid to the chauffeur at the end
+ * of the trip. Online card payment is a separate piece of work (Stripe); when it
+ * lands it becomes a third value here, not a change to these two.
+ */
+export const paymentMethods = ["card", "cash"] as const;
+
+/** Whether the money is in. The operator records it; nothing sets it automatically. */
+export const paymentStatuses = ["unpaid", "paid"] as const;
+
 export const serviceTypes = [
   "corporate",
   "wedding",
@@ -100,6 +112,8 @@ export const createBookingSchema = z.object({
   vehicleClass: trimmed(60),
   /** Defaulted rather than required: an older client that omits it still books. */
   serviceType: z.enum(bookingServiceTypes).default("personal"),
+  /** Defaulted for the same reason: a form that predates the choice still books. */
+  paymentMethod: z.enum(paymentMethods).default("card"),
 
   /* Airport transfers carry the airport, the direction, and the Place ids the
      server re-resolves. The customer never sends a price — `decideFare` derives
@@ -149,6 +163,31 @@ export const updateBookingSchema = z
     pickupAt: z.iso.datetime({ offset: true }).optional(),
     vehicleClass: trimmed(60).optional(),
     quotedTotalCents: z.coerce.number().int().min(0).optional().nullable(),
+    paymentMethod: z.enum(paymentMethods).optional(),
+    paymentStatus: z.enum(paymentStatuses).optional(),
+    /** Email the customer about a status change. Opt-in per request, so only
+     *  the dashboard's status form, with its box ticked, ever sends one. */
+    notifyCustomer: z.boolean().optional(),
+
+    /* Everything else on the booking, as the dashboard's edit page sends it.
+       Same limits as the public form, but no "not in the past" rule on
+       `pickupAt`: an operator correcting yesterday's record must be able to. */
+    customerName: trimmed(160).optional(),
+    customerEmail: z.email().max(255).optional(),
+    customerPhone: phone.optional(),
+    tripType: z.enum(tripTypes).optional(),
+    pickup: trimmed(255).optional(),
+    destination: trimmed(255).optional(),
+    passengers: z.coerce.number().int().min(1).max(60).optional(),
+    bags: z.coerce.number().int().min(0).max(60).optional(),
+    childSeats: z.coerce.number().int().min(0).max(4).optional(),
+    serviceType: z.enum(bookingServiceTypes).optional(),
+    airportCode: airportCodeField.nullable().optional(),
+    airportDirection: z.enum(["from-airport", "to-airport"]).nullable().optional(),
+    airline: z.string().trim().max(120).nullable().optional(),
+    flightNumber: z.string().trim().max(20).nullable().optional(),
+    /** The customer's own instructions. `note` above is the operator's. */
+    customerNotes: z.string().trim().max(5000).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     error: "Nothing to update.",
@@ -158,6 +197,24 @@ export const updateQuoteSchema = z
   .object({
     status: z.enum(quoteStatuses).optional(),
     note: z.string().trim().max(2000).optional(),
+    notifyCustomer: z.boolean().optional(),
+
+    /** The price agreed with the customer, in cents. Null clears it. */
+    agreedPriceCents: z.coerce.number().int().min(0).max(100_000_000).nullable().optional(),
+    /** How that price will be paid; chosen with it. */
+    paymentMethod: z.enum(paymentMethods).nullable().optional(),
+    paymentStatus: z.enum(paymentStatuses).optional(),
+
+    /* The request itself, correctable from the dashboard. No past-date rule
+       on `eventDate` for the same reason as `pickupAt` on a booking. */
+    serviceType: z.enum(serviceTypes).optional(),
+    eventDate: z.iso.date().nullable().optional(),
+    passengers: z.coerce.number().int().min(1).max(500).nullable().optional(),
+    company: z.string().trim().max(160).nullable().optional(),
+    customerName: trimmed(160).optional(),
+    customerEmail: z.email().max(255).optional(),
+    customerPhone: phone.optional(),
+    details: trimmed(5000).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     error: "Nothing to update.",
@@ -221,6 +278,22 @@ export const trackSchema = z.object({
   reference: z.string().trim().min(3).max(20),
   /** Second factor: a reference alone should not reveal a trip. */
   phone: z.string().trim().min(4).max(40),
+});
+
+/** A payment link's two halves, as the /pay page sends them back. */
+export const paymentLinkSchema = z.object({
+  reference: z.string().trim().min(3).max(20),
+  token: z.string().trim().min(10).max(200),
+});
+
+/** The dashboard's "payment link" action: make one, and optionally email it. */
+export const adminPaymentLinkSchema = z.object({
+  send: z.boolean().default(false),
+});
+
+/** The id Stripe puts in the success URL. Shape only; Stripe is asked the rest. */
+export const paymentConfirmSchema = z.object({
+  sessionId: z.string().trim().regex(/^cs_(test|live)_[A-Za-z0-9]+$/),
 });
 
 export const placesAutocompleteSchema = z.object({

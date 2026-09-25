@@ -38,11 +38,15 @@ export const contact = {
  * fits at full length; below that the burger panel shows the same wording. An
  * abbreviated set existed for an intermediate breakpoint that no longer has a
  * horizontal menu to abbreviate.
+ *
+ * Still six items. Services and Airports took the places of Corporate and
+ * Weddings & Events, which the Services page, the homepage and the footer all
+ * link to — eight labels do not fit the bar at 1280.
  */
 export const nav = [
+  { href: "/services", label: "Services" },
+  { href: "/airport-transportation", label: "Airports" },
   { href: "/fleet", label: "Fleet" },
-  { href: "/corporate", label: "Corporate" },
-  { href: "/weddings", label: "Weddings & Events" },
   { href: "/quote", label: "Get a quote" },
   { href: "/track", label: "Track a ride" },
   { href: "/contact", label: "Contact" },
@@ -64,21 +68,27 @@ export type Service = {
 /**
  * `href` must land on a page that actually describes the service. Three of
  * these used to point at `/fleet`, so "Airport Transfers" opened a page about
- * cars. Until the dedicated service pages exist, airport and hourly work point
- * at the booking form, which is the thing a visitor clicking them wants.
+ * cars. Hourly work has no page of its own; its section on /services is the
+ * description.
  */
 export const services: Service[] = [
   {
     name: "Airport Transfers",
     description:
       "JFK, LaGuardia, Newark, Teterboro and Westchester. Fixed fares within the five boroughs, published before you book.",
-    href: "/book",
+    href: "/airport-transportation",
+  },
+  {
+    name: "Point to Point",
+    description:
+      "One address to another anywhere in the city — a dinner, a meeting, a station. Priced by a person before you travel.",
+    href: "/services#point-to-point",
   },
   {
     name: "Hourly Charters",
     description:
       "A car and driver on standby for meetings, appointments, or a day that will not hold still.",
-    href: "/book",
+    href: "/services#hourly",
   },
   {
     name: "Corporate Accounts",
@@ -339,3 +349,57 @@ export const boroughs = [
   "The Bronx",
   "Staten Island",
 ] as const;
+
+/**
+ * The Service Areas page, one entry per borough.
+ *
+ * `note` is geography and the rules that already apply everywhere — which
+ * airports sit nearest, and that the fixed fare covers the whole borough. It
+ * makes no claim about travel times or local knowledge.
+ *
+ * `neighbourhoods` is empty on purpose. The brief allows only places the
+ * business actually serves, and it has confirmed boroughs, not neighbourhoods.
+ * Add names here once the operator supplies them and they appear on the page.
+ */
+export const serviceAreas: {
+  borough: (typeof boroughs)[number];
+  note: string;
+  nearestAirports: string[];
+  neighbourhoods: string[];
+}[] = [
+  {
+    borough: "Manhattan",
+    note: "From the Battery to Inwood. Every Manhattan address is inside the fixed-fare area, so an airport transfer is priced before you book.",
+    nearestAirports: ["LGA", "JFK", "EWR"],
+    neighbourhoods: [],
+  },
+  {
+    borough: "Brooklyn",
+    note: "The whole borough, from Williamsburg to Coney Island. JFK is the usual airport from here, and the fare is the same whichever part of Brooklyn you leave from.",
+    nearestAirports: ["JFK", "LGA"],
+    neighbourhoods: [],
+  },
+  {
+    borough: "Queens",
+    note: "Home to both JFK and LaGuardia. A short hop from Astoria to LaGuardia carries the same published fare as any other pickup in the borough.",
+    nearestAirports: ["LGA", "JFK"],
+    neighbourhoods: [],
+  },
+  {
+    borough: "The Bronx",
+    note: "Across the Bronx, with LaGuardia over the bridge and Westchester County Airport to the north.",
+    nearestAirports: ["LGA", "HPN"],
+    neighbourhoods: [],
+  },
+  {
+    borough: "Staten Island",
+    note: "The whole island. Newark is across the Goethals Bridge, which often makes it the nearer airport — and the tolls are inside a fixed fare.",
+    nearestAirports: ["EWR", "JFK"],
+    neighbourhoods: [],
+  },
+];
+
+/** Whole dollars, the way fares are shown everywhere on the site. */
+export function formatFare(cents: number): string {
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}

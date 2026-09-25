@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { DetailRow } from "@/components/admin/detail-row";
 import { QuoteActions } from "@/components/admin/quote-actions";
+import { QuotePaymentPanel } from "@/components/admin/quote-payment-panel";
+import { QuotePricePanel } from "@/components/admin/quote-price-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getQuote } from "@/lib/admin/dal";
 import { formatDay, formatEventDate, formatService } from "@/lib/admin/format";
@@ -50,6 +52,12 @@ export default async function QuoteDetailPage({
             {quote.reference}
           </h1>
           <StatusBadge status={quote.status} />
+          <Link
+            href={`/quotes/${quote.id}/edit`}
+            className="ml-auto rounded-sm border border-midnight/25 bg-white px-4 py-2 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey"
+          >
+            Edit details
+          </Link>
         </div>
 
         <p className="mt-3 font-sans text-[15px] text-charcoal/70">
@@ -117,6 +125,10 @@ export default async function QuoteDetailPage({
               />
             </dl>
           </section>
+
+          <QuotePricePanel quote={quote} />
+
+          {quote.agreedPriceCents !== null ? <QuotePaymentPanel quote={quote} /> : null}
 
           <ActivityTrail entries={activity} />
         </div>

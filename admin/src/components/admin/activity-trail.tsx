@@ -4,6 +4,14 @@ import type { ActivityEntry } from "@/lib/api/types";
 const actionLabels: Record<string, string> = {
   status_changed: "Status changed",
   updated: "Note added",
+  payment_paid: "Marked paid",
+  payment_unpaid: "Marked unpaid",
+  payment_method_cash: "Payment changed to cash on delivery",
+  payment_method_card: "Payment changed to card",
+  details_updated: "Details edited",
+  payment_link_sent: "Payment link emailed",
+  payment_link_created: "Payment link created",
+  price_set: "Agreed price",
 };
 
 export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {

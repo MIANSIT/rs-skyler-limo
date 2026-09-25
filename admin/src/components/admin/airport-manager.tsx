@@ -146,7 +146,7 @@ function DeleteButton({ airport }: { airport: AdminAirport }) {
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="code" value={airport.code} />
-      <p className="max-w-xs font-sans text-[13px] leading-[1.5] text-charcoal/80">
+      <p className="max-w-xs font-sans text-[13px] leading-normal text-charcoal/80">
         Delete {airport.code}
         {airport.rateCount > 0
           ? ` and its ${airport.rateCount} published fare${airport.rateCount === 1 ? "" : "s"}`

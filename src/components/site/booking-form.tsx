@@ -15,7 +15,14 @@ import { AddressField } from "@/components/site/address-field";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button, ButtonOnDark } from "@/components/ui/button";
 import { DateField, TimeField } from "@/components/ui/date-time-field";
-import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
+import {
+  Checkbox,
+  Field,
+  Input,
+  RadioCards,
+  Select,
+  Textarea,
+} from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
@@ -50,6 +57,27 @@ const SERVICE_TYPES = [
   { value: "event", label: "Event" },
   { value: "other", label: "Something else" },
 ] as const;
+
+/**
+ * Mirrors `paymentMethods` in `api/src/schemas.ts`. Offered on every booking:
+ * whichever way the trip is priced, it is paid by card or in cash on the day.
+ *
+ * Card goes through Stripe Checkout: a fixed fare straight after booking, a
+ * quoted trip from the tracking page once it has a price.
+ */
+const PAYMENT_OPTIONS = [
+  {
+    value: "card",
+    label: "Card (Stripe)",
+    description:
+      "Paid securely through Stripe. A fixed fare straight after booking; a quoted trip once we price it.",
+  },
+  {
+    value: "cash",
+    label: "Cash on Delivery",
+    description: "Paid in cash to your chauffeur at the end of the trip.",
+  },
+];
 
 const BOROUGHS = [
   "Manhattan",
@@ -334,12 +362,17 @@ export function BookingForm({
 
         <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Pick-up times are New York time.
+          {state.paymentMethod === "cash"
+            ? " You have chosen cash on delivery: pay your chauffeur at the end of the trip."
+            : state.pricingMode === "quote"
+              ? " Once we have priced the trip you can pay by card from the tracking page."
+              : " You can pay by card from the tracking page."}
         </p>
 
         <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Keep this reference. You can check it any time on the{" "}
           <Link
-            href="/track"
+            href={`/track?reference=${encodeURIComponent(state.reference)}`}
             className={clsx(
               "underline underline-offset-4",
               dark ? "text-white" : "text-midnight",
@@ -371,7 +404,7 @@ export function BookingForm({
                   ? clsx("border-gold", heading)
                   : dark
                     ? "border-transparent text-white/50 hover:text-white"
-                    : "border-transparent text-charcoal/60 hover:text-midnight",
+                    : "border-transparent text-charcoal/70 hover:text-midnight",
               )}
             >
               {option.label}
@@ -795,6 +828,16 @@ export function BookingForm({
             <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">
               <Input id="email" name="email" type="email" tone={tone} autoComplete="email" required {...restore("email")} />
             </Field>
+          </div>
+
+          <div className={clsx("border-t pt-5", divider)}>
+            <RadioCards
+              name="paymentMethod"
+              legend="How you will pay"
+              options={PAYMENT_OPTIONS}
+              defaultValue={prior("paymentMethod") || "card"}
+              tone={tone}
+            />
           </div>
 
           <div className={clsx("border-t pt-5", divider)}>

@@ -1,9 +1,15 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
-import type { PricingMode, TrackedBooking } from "@/lib/api/types";
+import type {
+  PaymentMethod,
+  PricingMode,
+  TrackedBooking,
+  TrackedQuote,
+} from "@/lib/api/types";
 
 import { newYorkToIso } from "./new-york-time";
 
@@ -15,6 +21,7 @@ export type BookingFormState =
       pricingMode: PricingMode;
       /** Present only on a fixed-fare booking. */
       quotedTotalCents: number | null;
+      paymentMethod: PaymentMethod;
     }
   | {
       status: "error";
@@ -82,6 +89,7 @@ export async function submitBooking(
       "flight",
       "airline",
       "serviceType",
+      "paymentMethod",
       "passengers",
       "bags",
       "childSeats",
@@ -125,6 +133,11 @@ export async function submitBooking(
   const flightNumber = text("flight");
   const tripType = text("tripType");
 
+  // Set when the API opened a Stripe payment page for this booking. The
+  // redirect happens after the try: `redirect` works by throwing, and the
+  // catch below would otherwise swallow it.
+  let checkoutUrl: string | null = null;
+
   try {
     const isAirport = tripType === "airport";
 
@@ -152,6 +165,7 @@ export async function submitBooking(
       reference: string;
       pricingMode: PricingMode;
       quotedTotalCents: number | null;
+      checkoutUrl: string | null;
     }>("/api/bookings", {
       method: "POST",
       forwardedFor: await callerIp(),
@@ -166,6 +180,7 @@ export async function submitBooking(
         childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
         serviceType: text("serviceType") || "personal",
+        paymentMethod: text("paymentMethod") === "cash" ? "cash" : "card",
         airline: isAirport && text("airline") ? text("airline") : null,
         flightNumber: isAirport && flightNumber ? flightNumber : null,
         airportCode: isAirport && airportCode ? airportCode : null,
@@ -182,12 +197,17 @@ export async function submitBooking(
       },
     });
 
-    return {
-      status: "success",
-      reference: result.reference,
-      pricingMode: result.pricingMode,
-      quotedTotalCents: result.quotedTotalCents,
-    };
+    checkoutUrl = result.checkoutUrl;
+
+    if (!checkoutUrl) {
+      return {
+        status: "success",
+        reference: result.reference,
+        pricingMode: result.pricingMode,
+        quotedTotalCents: result.quotedTotalCents,
+        paymentMethod: text("paymentMethod") === "cash" ? "cash" : "card",
+      };
+    }
   } catch (error) {
     if (error instanceof ApiRequestError) {
       return {
@@ -200,6 +220,12 @@ export async function submitBooking(
     }
     throw error;
   }
+
+  // Only a Stripe-hosted page is ever a redirect target from here.
+  if (!checkoutUrl.startsWith("https://checkout.stripe.com/")) {
+    throw new Error("Unexpected payment URL from the API.");
+  }
+  redirect(checkoutUrl);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -287,7 +313,9 @@ export async function submitQuote(
 
 export type TrackState =
   | { status: "idle" }
-  | { status: "found"; booking: TrackedBooking }
+  /** `phone` is kept so "pay by card" can repeat the same two-factor check. */
+  | { status: "found"; booking: TrackedBooking; phone: string }
+  | { status: "found-quote"; quote: TrackedQuote }
   /** Both values are echoed for the same reason the booking form echoes. */
   | { status: "error"; message: string; reference: string; phone: string };
 
@@ -310,19 +338,81 @@ export async function trackBooking(
   }
 
   try {
-    const booking = await apiFetch<TrackedBooking>("/api/track", {
+    const found = await apiFetch<TrackedBooking | TrackedQuote>("/api/track", {
       method: "POST",
       forwardedFor: await callerIp(),
       body: { reference, phone },
     });
 
-    return { status: "found", booking };
+    return found.kind === "quote"
+      ? { status: "found-quote", quote: found }
+      : { status: "found", booking: found, phone };
   } catch (error) {
     if (error instanceof ApiRequestError) {
       return { status: "error", message: error.failure.message, reference, phone };
     }
     throw error;
   }
+}
+
+/**
+ * "Pay by card" from the tracking page. Asks the API for a Stripe payment page
+ * with the same reference and phone the lookup used, then sends the customer
+ * there. Returns only on failure.
+ */
+export async function payBooking(
+  _previous: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  const reference = String(formData.get("reference") ?? "").trim().toUpperCase();
+  const phone = String(formData.get("phone") ?? "").trim();
+
+  let url: string;
+  try {
+    ({ url } = await apiFetch<{ url: string }>("/api/payments/checkout", {
+      method: "POST",
+      forwardedFor: await callerIp(),
+      body: { reference, phone },
+    }));
+  } catch (error) {
+    if (error instanceof ApiRequestError) return error.failure.message;
+    throw error;
+  }
+
+  if (!url.startsWith("https://checkout.stripe.com/")) {
+    return "Card payment is not available right now. Call us to pay.";
+  }
+  redirect(url);
+}
+
+/**
+ * "Pay securely" on a payment-link page. The API re-checks the signed token
+ * before opening a Stripe page for the booking's stored fare; the browser
+ * sends nothing about the amount. Returns only on failure.
+ */
+export async function payWithLink(
+  _previous: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  const reference = String(formData.get("reference") ?? "").trim().toUpperCase();
+  const token = String(formData.get("token") ?? "").trim();
+
+  let url: string;
+  try {
+    ({ url } = await apiFetch<{ url: string }>("/api/payments/link/checkout", {
+      method: "POST",
+      forwardedFor: await callerIp(),
+      body: { reference, token },
+    }));
+  } catch (error) {
+    if (error instanceof ApiRequestError) return error.failure.message;
+    throw error;
+  }
+
+  if (!url.startsWith("https://checkout.stripe.com/")) {
+    return "Card payment is not available right now. Call us to pay.";
+  }
+  redirect(url);
 }
 
 /* -------------------------------------------------------------------------- */

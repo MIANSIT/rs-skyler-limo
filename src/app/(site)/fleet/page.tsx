@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { RationaleNote, Section, SectionHeading } from "@/components/ui/section";
 import { getFleetSafely } from "@/lib/public/fleet";
 import { contact } from "@/lib/content";
+import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
   title: "Fleet",
@@ -26,7 +27,7 @@ export default async function FleetPage() {
       <PageHeader
         eyebrow="The fleet"
         title="One standard, whichever you choose"
-        intro="Every class is maintained on the same inspection cadence and driven by the same vetted chauffeurs. The difference is room, not care."
+        intro="Every class is driven by the same licensed, background-checked chauffeurs. The difference is room, not care."
       />
 
       <Section tone="light">
@@ -36,7 +37,7 @@ export default async function FleetPage() {
               Our fleet listing is briefly unavailable. Call reservations on{" "}
               <a
                 href={contact.phoneHref}
-                className="text-midnight underline-offset-4 tabular-nums hover:underline"
+                className="text-midnight underline underline-offset-4 tabular-nums"
               >
                 {contact.phone}
               </a>{" "}
@@ -45,6 +46,9 @@ export default async function FleetPage() {
           </div>
         ) : (
           <Reveal className="grid gap-6 md:grid-cols-2" y={30}>
+            {/* The cards title themselves with <h3>; this keeps the outline
+                from jumping h1 → h3 for anyone navigating by heading. */}
+            <h2 className="sr-only md:col-span-2">Vehicle classes</h2>
             {fleet.map((vehicle) => (
               <div key={vehicle.slug} data-reveal className="flex min-w-0">
                 <FleetCard vehicle={vehicle} />
@@ -62,7 +66,7 @@ export default async function FleetPage() {
               title="Compare without calling support"
               data-reveal
             />
-            <div data-reveal className="relative mt-10 overflow-x-auto">
+            <div tabIndex={0} role="region" aria-label="Vehicle comparison table" data-reveal className="relative mt-10 overflow-x-auto">
               <table className="w-full min-w-176 border-collapse text-left">
                 <caption className="sr-only">
                   Fleet comparison by passengers, luggage, child seats and
@@ -146,6 +150,8 @@ export default async function FleetPage() {
           </div>
         </Reveal>
       </Section>
+
+      <CtaBand title="Found the right car? Book it, or ask us to price the trip." primary="none" />
     </>
   );
 }

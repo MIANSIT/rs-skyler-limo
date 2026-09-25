@@ -12,6 +12,7 @@ import {
   saveZoneRatesSchema,
   sendQuoteSchema,
   updateBookingSchema,
+  adminPaymentLinkSchema,
   updateQuoteSchema,
   updateReviewSchema,
 } from "../schemas.js";
@@ -20,6 +21,7 @@ import {
   findClashes,
   getBookingById,
   listBookings,
+  listBookingsForExport,
   updateBooking,
 } from "../services/bookings.js";
 import {
@@ -28,7 +30,20 @@ import {
   listAirports,
   updateAirport,
 } from "../services/airports.js";
-import { sendQuotedEmail } from "../services/mail.js";
+import {
+  NOTIFIED_BOOKING_STATUSES,
+  NOTIFIED_QUOTE_STATUSES,
+} from "../emails/updates.js";
+import {
+  sendBookingUpdateEmail,
+  sendQuoteUpdateEmail,
+  sendPaymentLinkEmail,
+  sendQuotedEmail,
+} from "../services/mail.js";
+import { createPaymentLink } from "../lib/payment-link.js";
+import { canPayOnline, canPayQuoteOnline } from "../services/payments.js";
+import { execute } from "../db.js";
+import { bookingsWorkbook } from "../services/export.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
 import {
   deleteReview,
@@ -58,6 +73,24 @@ adminRouter.get("/bookings", async (req, res) => {
   res.json(await listBookings(filters));
 });
 
+/**
+ * The bookings list as an Excel workbook, with the same filters as the list.
+ * Registered before `/bookings/:id`, which would otherwise take "export" as an
+ * id. `no-store`: it is customer data and must not sit in any cache.
+ */
+adminRouter.get("/bookings/export", async (req, res) => {
+  const { status, q, from, to } = listBookingsSchema.parse(req.query);
+  const bookings = await listBookingsForExport({ status, q, from, to });
+  const file = await bookingsWorkbook(bookings);
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader("Cache-Control", "no-store");
+  res.send(file);
+});
+
 adminRouter.get("/bookings/:id", async (req, res) => {
   const id = parseId(req.params.id);
   const booking = await getBookingById(id);
@@ -73,7 +106,23 @@ adminRouter.get("/bookings/:id", async (req, res) => {
 adminRouter.patch("/bookings/:id", async (req, res) => {
   const id = parseId(req.params.id);
   const patch = updateBookingSchema.parse(req.body);
+  const before = await getBookingById(id);
   const booking = await updateBooking(id, patch, req.admin!.id);
+
+  // Only a real change, to a status the customer should hear about, with the
+  // operator's box ticked. Not awaited and never throws — the change is saved.
+  if (
+    patch.notifyCustomer &&
+    before?.status !== booking.status &&
+    (NOTIFIED_BOOKING_STATUSES as readonly string[]).includes(booking.status)
+  ) {
+    void sendBookingUpdateEmail(booking).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
 
   res.json({
     booking,
@@ -98,7 +147,25 @@ adminRouter.get("/quotes/:id", async (req, res) => {
 adminRouter.patch("/quotes/:id", async (req, res) => {
   const id = parseId(req.params.id);
   const patch = updateQuoteSchema.parse(req.body);
+  const before = await getQuoteById(id);
   const quote = await updateQuote(id, patch, req.admin!.id);
+
+  // A status the customer should hear about, or a new agreed price — either
+  // way only with the operator's box ticked.
+  const statusNews =
+    before?.status !== quote.status &&
+    (NOTIFIED_QUOTE_STATUSES as readonly string[]).includes(quote.status);
+  const priceNews =
+    quote.agreedPriceCents !== null && before?.agreedPriceCents !== quote.agreedPriceCents;
+
+  if (patch.notifyCustomer && (statusNews || priceNews)) {
+    void sendQuoteUpdateEmail(quote).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${quote.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
 
   res.json({ quote, activity: await getActivity("quote", id) });
 });
@@ -183,6 +250,114 @@ adminRouter.delete("/reviews/:id", async (req, res) => {
 });
 
 /** Prices a quote request and moves it to `quoted`. */
+/**
+ * A signed payment link for a priced, unpaid card booking — to copy into a
+ * message, or with `send: true` emailed to the customer as well. Each one is
+ * noted in the booking's history, so the office can see what went out when.
+ */
+adminRouter.post("/bookings/:id/payment-link", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { send } = adminPaymentLinkSchema.parse(req.body ?? {});
+
+  const booking = await getBookingById(id);
+  if (!booking) throw ApiError.notFound("That booking no longer exists.");
+
+  if (!canPayOnline(booking)) {
+    throw ApiError.conflict(
+      booking.paymentStatus === "paid"
+        ? "This booking is already paid."
+        : booking.paymentMethod !== "card"
+          ? "This booking is set to cash on delivery. Switch it to card first."
+          : booking.quotedTotalCents === null
+            ? "Set a price before sending a payment link."
+            : booking.status === "cancelled"
+              ? "This booking is cancelled."
+              : "Card payment is not configured on the server.",
+    );
+  }
+
+  const link = createPaymentLink(booking);
+
+  await execute(
+    `INSERT INTO activity_log
+       (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+     VALUES ('booking', :id, :adminUserId, :action, NULL, NULL, :note)`,
+    {
+      id,
+      adminUserId: req.admin!.id,
+      action: send ? "payment_link_sent" : "payment_link_created",
+      note: `Link for $${(booking.quotedTotalCents! / 100).toFixed(2)}, valid until ${link.expiresAt.toISOString().slice(0, 10)}.`,
+    },
+  );
+
+  if (send) {
+    void sendPaymentLinkEmail(booking, link.url, link.expiresAt).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
+
+  res.json({ url: link.url, expiresAt: link.expiresAt.toISOString(), sent: send });
+});
+
+/**
+ * The same for a quote request's agreed price. "Send" emails the customer the
+ * price with the Pay button — the same "Your price" message a priced request
+ * gets — so there is one email to recognise, not two.
+ */
+adminRouter.post("/quotes/:id/payment-link", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { send } = adminPaymentLinkSchema.parse(req.body ?? {});
+
+  const quote = await getQuoteById(id);
+  if (!quote) throw ApiError.notFound("That quote request no longer exists.");
+
+  if (!canPayQuoteOnline(quote)) {
+    throw ApiError.conflict(
+      quote.paymentStatus === "paid"
+        ? "This request is already paid."
+        : quote.agreedPriceCents === null
+          ? "Set the agreed price before sending a payment link."
+          : quote.paymentMethod !== "card"
+            ? "Payment is set to cash on delivery. Choose card to send a link."
+            : quote.status === "lost"
+              ? "This request is closed."
+              : "Card payment is not configured on the server.",
+    );
+  }
+
+  const link = createPaymentLink({
+    id: quote.id,
+    reference: quote.reference,
+    quotedTotalCents: quote.agreedPriceCents,
+  });
+
+  await execute(
+    `INSERT INTO activity_log
+       (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+     VALUES ('quote', :id, :adminUserId, :action, NULL, NULL, :note)`,
+    {
+      id,
+      adminUserId: req.admin!.id,
+      action: send ? "payment_link_sent" : "payment_link_created",
+      note: `Link for $${(quote.agreedPriceCents! / 100).toFixed(2)}, valid until ${link.expiresAt.toISOString().slice(0, 10)}.`,
+    },
+  );
+
+  if (send) {
+    void sendQuoteUpdateEmail(quote).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${quote.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+  }
+
+  res.json({ url: link.url, expiresAt: link.expiresAt.toISOString(), sent: send });
+});
+
 adminRouter.post("/bookings/:id/quote", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) throw ApiError.notFound();
