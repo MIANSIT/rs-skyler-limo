@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import { contact } from "@/lib/content";
 
 /**
- * A fixed CALL / BOOK bar for phones, with TEXT added only when the business
- * has said it reads texts.
+ * A fixed EMAIL / BOOK bar for phones, with TEXT added only when the business
+ * has said it reads texts. Email rather than Call at the client's request
+ * (Sept 2026): they would rather a request arrive in writing. The header's
+ * phone icon still dials.
  *
  * The brief is explicit that a text line must not be offered unless someone is
  * monitoring it, so TEXT is behind `contact.smsEnabled` (off today). Flip that
@@ -16,11 +18,10 @@ import { contact } from "@/lib/content";
  * Neither button is gold. Gold is one action per view and belongs to the page
  * the customer is on, exactly as the outlined header CTA already does; a bar
  * that persists on every screen would otherwise put a second gold action on
- * all of them. Call is outlined on midnight, Book is white with midnight text.
+ * all of them. Email is outlined on midnight, Book is white with midnight text.
  *
- * It renders only below `md`, where the header's phone icon is the sole other
- * way to call. On the booking page itself the bar is hidden: the form is the
- * action there.
+ * It renders only below `md`. On the booking page itself the bar is hidden:
+ * the form is the action there.
  */
 
 const HIDDEN_ON = ["/book"];
@@ -28,7 +29,7 @@ const HIDDEN_ON = ["/book"];
 const buttonBase =
   "flex min-h-12 flex-1 items-center justify-center gap-2 rounded-sm px-3 font-sans text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
 
-function CallIcon() {
+function EmailIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -40,7 +41,8 @@ function CallIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.5.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.57 3.5a1 1 0 0 1-.25 1z" />
+      <rect x="3" y="5" width="18" height="14" rx="1" />
+      <path d="m3.5 6 8.5 7 8.5-7" />
     </svg>
   );
 }
@@ -84,11 +86,11 @@ export function MobileActionBar() {
       >
         <div className="mx-auto flex max-w-md gap-3">
           <a
-            href={contact.phoneHref}
+            href={`mailto:${contact.email}`}
             className={`${buttonBase} border border-white/40 text-white hover:border-white hover:bg-white/10`}
           >
-            <CallIcon />
-            Call
+            <EmailIcon />
+            Email
           </a>
 
           {contact.smsEnabled ? (

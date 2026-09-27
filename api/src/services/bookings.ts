@@ -147,7 +147,7 @@ export async function createBooking(
           pricingMode: fare.pricingMode,
           quotedTotalCents: fare.totalCents,
           pickupPlaceId: input.pickupPlaceId ?? null,
-          pickupLocality: fare.pickupPlace?.locality ?? input.statedBorough ?? null,
+          pickupLocality: fare.pickupPlace?.locality ?? null,
           pickupRegion: fare.pickupPlace?.region ?? null,
           destinationPlaceId: input.destinationPlaceId ?? null,
           destinationLocality: fare.destinationPlace?.locality ?? null,

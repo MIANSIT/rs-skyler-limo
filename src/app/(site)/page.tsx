@@ -5,6 +5,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
+import { ServicesShowcase } from "@/components/site/services-showcase";
 import {
   About,
   AirportTransfers,
@@ -15,14 +16,7 @@ import {
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { HowItWorks } from "@/components/site/how-it-works";
 import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
-import {
-  BriefcaseIcon,
-  ClockIcon,
-  MapPinIcon,
-  PlaneIcon,
-  RingsIcon,
-  ShieldIcon,
-} from "@/components/ui/icon";
+import { ShieldIcon } from "@/components/ui/icon";
 import {
   Container,
   Eyebrow,
@@ -30,12 +24,10 @@ import {
   Section,
   SectionHeading,
 } from "@/components/ui/section";
-import { bookingAirports, services, values } from "@/lib/content";
+import { bookingAirports, values } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { getHeroMediaSafely } from "@/lib/public/hero-media";
 import { getReviewsSafely } from "@/lib/public/reviews";
-
-const serviceIcons = [PlaneIcon, ClockIcon, BriefcaseIcon, MapPinIcon, RingsIcon];
 
 export default async function HomePage() {
   // One fetch, shared by the booking widget and the fleet strip below.
@@ -48,52 +40,52 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero fleet={fleet} bookingOptions={bookingOptions} media={heroMedia} />
+      <Hero fleet={fleet} media={heroMedia} />
       <BoroughMarquee />
 
-      {/* Services — deep-midnight ground, at the client's request for a dark-first
-          homepage (see the note on `Section`'s `deep` tone). Gold still
-          appears only as icons and rules, never as a sentence of text. */}
+      {/* Fleet */}
       <Section tone="deep">
-        <Reveal>
+        <Reveal className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
             tone="dark"
-            eyebrow="What we do"
-            title="Five services, one standard"
-            intro="A car that is where it said it would be, driven by someone who already knows the route. Everything else is detail."
+            eyebrow="The fleet"
+            title="Every class, chosen without a phone call"
+            intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
             data-reveal
           />
+          <ButtonLinkOnDark href="/fleet" data-reveal>
+            Compare the fleet
+          </ButtonLinkOnDark>
         </Reveal>
 
-        <Reveal className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((service, index) => {
-            const Icon = serviceIcons[index];
-            return (
-              <Link
-                key={service.name}
-                href={service.href}
-                data-reveal
-                className="group flex flex-col border-t border-white/15 pt-6"
-              >
-                <Icon className="h-6 w-6 text-gold" />
-                <h3 className="font-sans mt-5 text-[17px] font-semibold text-white">
-                  {service.name}
-                </h3>
-                <p className="mt-3 flex-1 text-[15px] leading-[1.7] text-white/75">
-                  {service.description}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-white underline-offset-4 group-hover:underline">
-                  Learn more
-                  <span aria-hidden>→</span>
-                </span>
-              </Link>
-            );
-          })}
+        {/*
+          Two from `sm`, three from `lg`, four only from `xl`. Two columns held
+          all the way to `xl` left each compact card ~400–470px on a typical
+          laptop window — nearly double its ~270px design width, with the small
+          text and specs stranded in the extra space. Four straight from `lg`
+          overcorrects the other way: the content column is 1024px there, which
+          leaves each card ~220px — narrower than the spec labels inside it.
+          Three at `lg` lands close to the design width (~300px) without either
+          problem.
+        */}
+        <Reveal
+          className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          y={30}
+        >
+          {fleet.map((vehicle) => (
+            <div key={vehicle.slug} data-reveal className="flex min-w-0">
+              <FleetCard vehicle={vehicle} variant="compact" tone="dark" eager />
+            </div>
+          ))}
         </Reveal>
       </Section>
 
+      {/* Services — picture cards after the client's reference. Midnight
+          ground; gold only as each card's arrow. */}
+      <ServicesShowcase fleet={fleet} tone="dark" />
+
       {/*
-        Tracking — midnight ground, the one place gold carries text.
+        Tracking — deep-midnight ground, the one place gold carries text.
 
         This section used to promise automatic delay notifications, flight
         tracking and a shareable live link, illustrated with a moving car and a
@@ -101,7 +93,7 @@ export default async function HomePage() {
         integration, no email of any kind, and `/track` is a two-field lookup.
         It now describes the lookup, which is the thing that actually works.
       */}
-      <Section tone="dark">
+      <Section tone="deep">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <SectionHeading
@@ -140,7 +132,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Booking flow */}
-      <Section tone="deep">
+      <Section tone="dark">
         <Reveal>
           <SectionHeading
             tone="dark"
@@ -151,43 +143,6 @@ export default async function HomePage() {
           />
         </Reveal>
         <HowItWorks tone="dark" />
-      </Section>
-
-      {/* Fleet */}
-      <Section tone="dark">
-        <Reveal className="flex flex-wrap items-end justify-between gap-6">
-          <SectionHeading
-            tone="dark"
-            eyebrow="The fleet"
-            title="Every class, chosen without a phone call"
-            intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
-            data-reveal
-          />
-          <ButtonLinkOnDark href="/fleet" data-reveal>
-            Compare the fleet
-          </ButtonLinkOnDark>
-        </Reveal>
-
-        {/*
-          Two from `sm`, three from `lg`, four only from `xl`. Two columns held
-          all the way to `xl` left each compact card ~400–470px on a typical
-          laptop window — nearly double its ~270px design width, with the small
-          text and specs stranded in the extra space. Four straight from `lg`
-          overcorrects the other way: the content column is 1024px there, which
-          leaves each card ~220px — narrower than the spec labels inside it.
-          Three at `lg` lands close to the design width (~300px) without either
-          problem.
-        */}
-        <Reveal
-          className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          y={30}
-        >
-          {fleet.map((vehicle) => (
-            <div key={vehicle.slug} data-reveal className="flex min-w-0">
-              <FleetCard vehicle={vehicle} variant="compact" tone="dark" />
-            </div>
-          ))}
-        </Reveal>
       </Section>
 
       <AirportTransfers airports={bookingOptions.airports} tone="deep" />

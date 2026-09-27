@@ -94,12 +94,14 @@ darker shade of midnight in the same hue, not a sixth colour. It replaced
 `charcoal` as the secondary ground because the neutral grey clashed with the
 saturated navy, so don't put charcoal back as a background on a midnight page.
 This is a deliberate, page-scoped exception to the 60/30/10 ratio, not a
-departure from it everywhere: white still carries every other page. The hero's
-`BookingForm` gained a `tone="dark"` prop (a frosted-glass card:
-`bg-midnight-deep/55 backdrop-blur-2xl`)
-threaded down through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in
-`ui/field.tsx`; the standalone `/book` page keeps the original light card, so
-only pass `tone="dark"` where the client has actually approved the look.
+departure from it everywhere: white still carries every other page. The hero
+no longer embeds the booking form: `HeroBookingCard`
+(`src/components/site/hero-booking-card.tsx`) picks a trip type and a vehicle
+and links to `/book?trip=…&vehicle=…`, which pre-fills the form. The form
+lives only at `/book`. `BookingForm` still has a `tone="dark"` prop (a
+frosted-glass card: `bg-midnight-deep/55 backdrop-blur-2xl`) threaded down
+through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in `ui/field.tsx`;
+nothing passes it now, and only pass it where the client has approved the look.
 Extending this treatment to other pages is a separate, not-yet-done task — see
 `ButtonOnDark`/`ButtonLinkOnDark` in `ui/button.tsx` for the on-dark button
 pattern before reinventing it.

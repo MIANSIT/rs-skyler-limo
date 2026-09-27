@@ -157,8 +157,9 @@ through `GOOGLE_MAPS_API_KEY`, set on the **API** and never exposed to a
 browser — autocomplete fires on every keystroke, and a key in the browser is a
 key on someone else's bill.
 
-Without a key the booking form falls back to a plain address field plus a
-borough selector, and fixed airport fares still work. Enable "Places API (New)"
+Without a key the booking form falls back to a plain address field, and every
+airport transfer is quoted — nothing proves the address is inside the city, so
+no fixed fare is offered. Enable "Places API (New)"
 in a Google Cloud project with billing, restrict the key to that one API, and
 put it in `api/.env`.
 

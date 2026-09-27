@@ -4,6 +4,8 @@
  * no filler, no exclamation points.
  */
 
+import type { FleetVehicle } from "@/lib/api/types";
+
 /**
  * Every way to reach the business, in one place.
  *
@@ -56,9 +58,15 @@ export const nav = [
  */
 
 export type Service = {
+  /** Also the photo's filename: `public/services/<slug>.jpg`. */
+  slug: string;
   name: string;
   description: string;
+  /** One short line for the homepage's picture cards. */
+  summary: string;
   href: string;
+  /** Which vehicle's photo stands in until the service has its own. */
+  vehicleCategory: FleetVehicle["category"];
 };
 
 /**
@@ -69,34 +77,49 @@ export type Service = {
  */
 export const services: Service[] = [
   {
+    slug: "airport-transfers",
     name: "Airport Transfers",
     description:
-      "JFK, LaGuardia, Newark, Teterboro and Westchester. Fixed fares within the five boroughs, published before you book.",
+      "JFK, LaGuardia, Newark, Teterboro and Westchester. Fixed fares within New York City, published before you book.",
+    summary: "JFK, LGA, EWR, TEB and HPN, at a fare you see first.",
     href: "/book",
+    vehicleCategory: "sedan",
   },
   {
+    slug: "hourly-charters",
     name: "Hourly Charters",
     description:
       "A car and driver on standby for meetings, appointments, or a day that will not hold still.",
+    summary: "A car and driver on standby, by the hour.",
     href: "/book",
+    vehicleCategory: "suv",
   },
   {
+    slug: "corporate-accounts",
     name: "Corporate Accounts",
     description:
       "Monthly billing and a named contact for company travel programmes.",
+    summary: "Monthly billing and a named contact.",
     href: "/corporate",
+    vehicleCategory: "premium-suv",
   },
   {
+    slug: "events",
     name: "Events",
     description:
       "Coordinated multi-vehicle logistics for conferences, galas and private functions.",
+    summary: "Several vehicles, one plan, for galas and conferences.",
     href: "/weddings",
+    vehicleCategory: "sprinter",
   },
   {
+    slug: "weddings",
     name: "Weddings",
     description:
       "A dedicated division, its own coordinators, and a timeline agreed before the day.",
+    summary: "Its own coordinators and a timeline agreed early.",
     href: "/weddings",
+    vehicleCategory: "premium-suv",
   },
 ];
 

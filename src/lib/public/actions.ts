@@ -173,7 +173,6 @@ export async function submitBooking(
         // The server re-resolves these; it does not trust a typed address.
         pickupPlaceId: text("pickupPlaceId") || null,
         destinationPlaceId: text("destinationPlaceId") || null,
-        statedBorough: text("statedBorough") || null,
         placesSessionToken: text("placesSessionToken") || null,
         customerName: text("name"),
         customerEmail: text("email"),

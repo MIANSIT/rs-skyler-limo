@@ -222,8 +222,8 @@ journalctl -u rsskyler-admin | grep COOKIE_INSECURE
 ## Still outstanding
 
 - **Google Places** — `GOOGLE_MAPS_API_KEY` is unset in `api/.env`. Address
-  autocomplete is off and the booking form uses its borough-selector fallback;
-  fixed airport fares work either way.
+  autocomplete is off, and until it is set every airport transfer is quoted —
+  fixed fares need a resolved address inside the city.
 - **Quote emails** — built. A quote request from `/quote`, corporate or weddings
   emails the customer and the desk, and pricing a trip in the dashboard emails the
   customer their quote. Same transport, same rules as booking email: never

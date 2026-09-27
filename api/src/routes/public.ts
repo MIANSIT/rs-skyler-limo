@@ -153,7 +153,6 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
     pickupPlaceId: input.pickupPlaceId,
     destinationPlaceId: input.destinationPlaceId,
-    statedBorough: input.statedBorough,
     sessionToken: input.placesSessionToken ?? randomUUID(),
   });
 

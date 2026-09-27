@@ -108,8 +108,6 @@ export const createBookingSchema = z.object({
   airportDirection: z.enum(["from-airport", "to-airport"]).optional().nullable(),
   pickupPlaceId: z.string().trim().max(255).optional().nullable(),
   destinationPlaceId: z.string().trim().max(255).optional().nullable(),
-  /** Used only when Places is unavailable and the customer picked a borough. */
-  statedBorough: z.string().trim().max(60).optional().nullable(),
   /** Ties the autocomplete keystrokes and the details call into one billed session. */
   placesSessionToken: z.string().trim().max(120).optional().nullable(),
 

@@ -56,8 +56,8 @@ const schema = z.object({
   /**
    * Google Places, used for address autocomplete and for deciding whether an
    * address is inside New York City. Optional: without it the booking form
-   * falls back to a plain address field and a borough selector, and fixed
-   * airport fares still work.
+   * falls back to a plain address field and every airport transfer is
+   * quoted, since nothing proves the address is inside the city.
    *
    * Server-side only — it must never be exposed with a NEXT_PUBLIC_ prefix.
    */
