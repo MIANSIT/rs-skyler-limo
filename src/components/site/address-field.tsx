@@ -28,6 +28,7 @@ export function AddressField({
   tone = "light",
   onResolve,
   onTypingStart,
+  onTextChange,
 }: {
   id: string;
   name: string;
@@ -44,6 +45,8 @@ export function AddressField({
   onResolve?: (placeId: string | null) => void;
   /** Fired on the first keystroke so the parent can open a billing session. */
   onTypingStart?: () => void;
+  /** The text as it stands, typed or picked — for a live trip summary. */
+  onTextChange?: (text: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -122,6 +125,7 @@ export function AddressField({
       .join(", ");
 
     setValue(text);
+    onTextChange?.(text);
     setPlaceId(suggestion.placeId);
     onResolve?.(suggestion.placeId);
     setOpen(false);
@@ -145,6 +149,7 @@ export function AddressField({
         onChange={(event) => {
           onTypingStart?.();
           setValue(event.target.value);
+          onTextChange?.(event.target.value);
           // Editing the text invalidates the resolved place, and with it the
           // fixed fare that depended on knowing the borough.
           if (placeId) {

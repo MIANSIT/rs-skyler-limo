@@ -61,3 +61,14 @@
     outline-offset: 2px;
   }
 }
+
+/* The /book trip summary's photo swap. Opacity only — nothing moves — and
+   used through `motion-safe:`, so it is off for anyone who asked for less. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
