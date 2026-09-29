@@ -107,7 +107,7 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
               aria-checked={active}
               onClick={() => setTrip(option.value)}
               className={clsx(
-                "flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2.5 text-center font-sans text-[11px] leading-tight font-semibold tracking-[0.08em] uppercase transition-colors sm:px-2 sm:text-[12px]",
+                "flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2.5 text-center font-sans text-[11px] leading-tight font-semibold tracking-[0.04em] uppercase transition-colors sm:px-2 sm:text-[12px] sm:tracking-[0.08em]",
                 active
                   ? "bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
                   : "text-white/60 hover:bg-white/5 hover:text-white",

@@ -36,6 +36,7 @@ import {
 } from "@/lib/public/use-new-york-clock";
 
 import { type TripType, tripTypes } from "@/lib/public/trip-types";
+import { TripSummary } from "@/components/site/trip-summary";
 
 /** Mirrors `bookingServiceTypes` in `api/src/schemas.ts`. */
 const SERVICE_TYPES = [
@@ -114,12 +115,15 @@ export function BookingForm({
   tone = "light",
   initialTrip = "airport",
   initialVehicle = "",
+  withSummary = false,
 }: {
   fleet: FleetVehicle[];
   options: BookingOptions;
   tone?: "light" | "dark";
   initialTrip?: TripType;
   initialVehicle?: string;
+  /** Show the live "Your trip" panel beside the form (`/book`). */
+  withSummary?: boolean;
 }) {
   const dark = tone === "dark";
 
@@ -138,6 +142,10 @@ export function BookingForm({
     "from-airport",
   );
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
+  // The address text as typed, for the trip summary only — the fields
+  // themselves still submit their own values.
+  const [cityText, setCityText] = useState("");
+  const [otherText, setOtherText] = useState("");
 
   const [step, setStep] = useState<Step>(1);
   const dateRef = useRef<HTMLInputElement>(null);
@@ -307,7 +315,7 @@ export function BookingForm({
      `ui/section.tsx` already follows. */
   const divider = dark ? "border-white/15" : "border-midnight/10";
   const cardChrome = dark
-    ? "border border-white/10 bg-midnight-deep/55 backdrop-blur-2xl shadow-[0_32px_70px_-28px_rgba(0,0,0,0.65)]"
+    ? "rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_30px_60px_-30px_rgba(0,0,0,0.75)]"
     : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
   const heading = dark ? "text-white" : "text-midnight";
   const body = dark ? "text-white/75" : "text-charcoal";
@@ -374,7 +382,7 @@ export function BookingForm({
     );
   }
 
-  return (
+  const card = (
     <div className={clsx(cardChrome, "p-6 md:p-8")}>
       <div role="tablist" aria-label="Trip type" className={clsx("flex border-b", divider)}>
         {tripTypes.map((option) => {
@@ -517,6 +525,7 @@ export function BookingForm({
               defaultValue={prior(cityField)}
               onResolve={setCityPlaceId}
               onTypingStart={startPlacesSession}
+              onTextChange={setCityText}
             />
           </Field>
 
@@ -538,6 +547,7 @@ export function BookingForm({
                 tone={tone}
                 defaultValue={prior("destination")}
                 onTypingStart={startPlacesSession}
+                onTextChange={setOtherText}
               />
             </Field>
           ) : null}
@@ -880,7 +890,7 @@ export function BookingForm({
                   </p>
                   <p className={clsx("mt-1 max-w-sm text-[15px] leading-[1.6]", body)}>
                     {trip === "airport"
-                      ? "Fixed fares cover the five boroughs. We will price this one and come back to you."
+                      ? "Fixed fares cover New York City. We will price this one and come back to you."
                       : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
                   </p>
                 </>
@@ -905,6 +915,27 @@ export function BookingForm({
           </p>
         ) : null}
       </form>
+    </div>
+  );
+
+  if (!withSummary) return card;
+
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
+      {card}
+      <div className="lg:sticky lg:top-28">
+        <TripSummary
+          trip={trip}
+          vehicle={vehicle ? (selected ?? null) : null}
+          airportName={options.airports.find((item) => item.code === airport)?.name ?? null}
+          direction={direction}
+          cityText={cityText}
+          otherText={trip === "airport" ? "" : otherText}
+          date={pickupDate}
+          time={pickupTime}
+          fixedFare={isFixed && fareTotal !== null ? fareTotal : null}
+        />
+      </div>
     </div>
   );
 }

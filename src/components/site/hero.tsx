@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { MaskedWords } from "@/components/motion/masked-words";
+import { BookingSheet } from "@/components/site/booking-sheet";
 import { HeroBookingCard } from "@/components/site/hero-booking-card";
 import type { FleetVehicle, HeroMediaItem } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
@@ -252,7 +253,9 @@ export function Hero({
             on the right at `lg`, beneath the headline's line of sight, the
             way the client's reference hero places its fleet card.
           */}
-          <div data-hero-card className="w-full max-w-md lg:col-span-5 lg:col-start-8 lg:justify-self-end">
+          {/* Hidden below `md`: on a phone the card lives in `BookingSheet`,
+              opened from the Book button in the bottom bar. */}
+          <div data-hero-card className="hidden w-full max-w-md md:block lg:col-span-5 lg:col-start-8 lg:justify-self-end">
             <HeroBookingCard fleet={fleet} />
             {/*
               A second path, not a second gold action: weddings, corporate
@@ -269,6 +272,7 @@ export function Hero({
           </div>
         </div>
       </div>
+      <BookingSheet fleet={fleet} />
     </section>
   );
 }

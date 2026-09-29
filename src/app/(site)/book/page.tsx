@@ -10,7 +10,7 @@ import { tripTypes } from "@/lib/public/trip-types";
 export const metadata: Metadata = {
   title: "Book a Car",
   description:
-    "Airport transfers, point-to-point rides and hourly charters across New York City. Fixed fares within the five boroughs, published before you book.",
+    "Airport transfers, point-to-point rides and hourly charters across New York City. Fixed fares within New York City, published before you book.",
 };
 
 /**
@@ -41,17 +41,32 @@ export default async function BookPage({
       <PageHeader
         eyebrow="Book a car"
         title="A fare and a confirmed pickup in under a minute"
-        intro="Airport, point to point or hourly. Fixed fares within the five boroughs are shown before you book — everything else is priced by a person, usually within the hour."
+        intro="Airport, point to point or hourly. Fixed fares within New York City are shown before you book — everything else is priced by a person, usually within the hour."
       />
 
-      <Section tone="grey">
-        <Reveal className="mx-auto max-w-2xl">
+      {/*
+        Dark, like the homepage: the deep-midnight ground, the same slow gold
+        wash the hero uses, and the form as the hero's glass card. The trip
+        summary beside it fills in as the customer chooses.
+      */}
+      <Section tone="deep" className="relative overflow-clip">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-1/4 -right-1/4 h-[90%] w-[70%] rounded-full bg-[radial-gradient(closest-side,rgba(212,160,23,0.10),transparent)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-1/3 -left-1/4 h-[80%] w-[60%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.05),transparent)]"
+        />
+        <Reveal className="relative">
           <div data-reveal>
             <BookingForm
               fleet={fleet}
               options={bookingOptions}
               initialTrip={trip}
               initialVehicle={vehicle}
+              tone="dark"
+              withSummary
             />
           </div>
         </Reveal>

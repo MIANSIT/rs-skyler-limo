@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { contact } from "@/lib/content";
+import { bookingSheet, useBookingSheet } from "@/lib/public/booking-sheet";
 
 /**
  * A fixed EMAIL / BOOK bar for phones, with TEXT added only when the business
@@ -22,6 +23,12 @@ import { contact } from "@/lib/content";
  *
  * It renders only below `md`. On the booking page itself the bar is hidden:
  * the form is the action there.
+ *
+ * Email opens a new message with the subject "Query", addressed to
+ * `SUPPORT_EMAIL` from `.env.local` (passed down by the layout, so the
+ * address can change without a code edit). Book opens the booking sheet when
+ * the page has one — the homepage, where the hero card is hidden on phones —
+ * and goes to `/book` everywhere else.
  */
 
 const HIDDEN_ON = ["/book"];
@@ -64,8 +71,10 @@ function TextIcon() {
   );
 }
 
-export function MobileActionBar() {
+export function MobileActionBar({ email }: { email: string }) {
   const pathname = usePathname();
+  const sheet = useBookingSheet();
+  const bookClass = `${buttonBase} bg-white text-midnight hover:bg-grey`;
 
   if (HIDDEN_ON.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return null;
@@ -86,7 +95,7 @@ export function MobileActionBar() {
       >
         <div className="mx-auto flex max-w-md gap-3">
           <a
-            href={`mailto:${contact.email}`}
+            href={`mailto:${email}?subject=${encodeURIComponent("Query")}`}
             className={`${buttonBase} border border-white/40 text-white hover:border-white hover:bg-white/10`}
           >
             <EmailIcon />
@@ -103,12 +112,21 @@ export function MobileActionBar() {
             </a>
           ) : null}
 
-          <Link
-            href="/book"
-            className={`${buttonBase} bg-white text-midnight hover:bg-grey`}
-          >
-            Book
-          </Link>
+          {sheet.available ? (
+            <button
+              type="button"
+              onClick={bookingSheet.open}
+              aria-haspopup="dialog"
+              aria-expanded={sheet.open}
+              className={bookClass}
+            >
+              Book
+            </button>
+          ) : (
+            <Link href="/book" className={bookClass}>
+              Book
+            </Link>
+          )}
         </div>
       </nav>
     </>
