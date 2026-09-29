@@ -36,6 +36,8 @@ type QuoteRow = RowDataPacket & {
   paid_at: Date | null;
   stripe_payment_intent_id: string | null;
   source: string;
+  customer_change_pending: number;
+  customer_changed_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -64,6 +66,9 @@ function toQuote(row: QuoteRow) {
     paidAt: row.paid_at ? row.paid_at.toISOString() : null,
     stripePaymentIntentId: row.stripe_payment_intent_id,
     source: row.source,
+    /** The customer changed it from /track and no operator has reviewed that yet. */
+    customerChangePending: row.customer_change_pending === 1,
+    customerChangedAt: row.customer_changed_at ? row.customer_changed_at.toISOString() : null,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -79,7 +84,8 @@ function formatDate(date: Date): string {
 const SELECT_COLUMNS = `id, reference, status, service_type, event_date,
   passengers, company, customer_name, customer_email, customer_phone,
   details, agreed_price_cents, priced_at, payment_method, payment_status, paid_at,
-  stripe_payment_intent_id, source, created_at, updated_at`;
+  stripe_payment_intent_id, source, customer_change_pending, customer_changed_at,
+  created_at, updated_at`;
 
 export async function createQuote(
   input: z.infer<typeof createQuoteSchema>,
@@ -152,6 +158,10 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
   if (filters.status) {
     conditions.push("status = :status");
     params.status = filters.status;
+  }
+
+  if (filters.changed === "1") {
+    conditions.push("customer_change_pending = 1");
   }
 
   if (filters.q) {

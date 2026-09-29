@@ -12,6 +12,7 @@ import {
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
+import { EmailInput } from "@/components/site/email-input";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button, ButtonOnDark } from "@/components/ui/button";
 import { DateField, TimeField } from "@/components/ui/date-time-field";
@@ -34,21 +35,8 @@ import {
   useNewYorkClock,
 } from "@/lib/public/use-new-york-clock";
 
-type TripType = "airport" | "point-to-point" | "hourly";
+import { type TripType, tripTypes } from "@/lib/public/trip-types";
 
-const tripTypes: { value: TripType; label: string }[] = [
-  { value: "airport", label: "Airport" },
-  { value: "point-to-point", label: "Point to point" },
-  { value: "hourly", label: "Hourly" },
-];
-
-/**
- * The five boroughs, offered when Places is not configured.
- *
- * Selecting one is what makes a fixed airport fare available in that case —
- * it is the customer telling us the trip is inside the city, which Google
- * would otherwise have told us.
- */
 /** Mirrors `bookingServiceTypes` in `api/src/schemas.ts`. */
 const SERVICE_TYPES = [
   { value: "personal", label: "Personal travel" },
@@ -78,14 +66,6 @@ const PAYMENT_OPTIONS = [
     description: "Paid in cash to your chauffeur at the end of the trip.",
   },
 ];
-
-const BOROUGHS = [
-  "Manhattan",
-  "Brooklyn",
-  "Queens",
-  "The Bronx",
-  "Staten Island",
-] as const;
 
 /**
  * The form as three short screens rather than one long one, so the hero card
@@ -123,32 +103,40 @@ function SubmitButton({ fixed }: { fixed: boolean }) {
  * `/book` page still uses. One component, one set of fields and validation —
  * only the chrome around it changes, via the shared primitives' own `tone`
  * prop (see `components/ui/field.tsx`).
+ *
+ * `initialTrip` and `initialVehicle` carry the choice made on the homepage
+ * hero's booking card through to `/book`, so the customer does not pick the
+ * same two things twice. A vehicle slug not in the fleet is ignored.
  */
 export function BookingForm({
   fleet,
   options,
   tone = "light",
+  initialTrip = "airport",
+  initialVehicle = "",
 }: {
   fleet: FleetVehicle[];
   options: BookingOptions;
   tone?: "light" | "dark";
+  initialTrip?: TripType;
+  initialVehicle?: string;
 }) {
   const dark = tone === "dark";
 
-  const [trip, setTrip] = useState<TripType>("airport");
+  const [trip, setTrip] = useState<TripType>(initialTrip);
   // Airport and vehicle class start unset rather than defaulting to the
   // first item in each list: silently pre-picking one is how a customer
   // ends up booked from the wrong airport without ever having chosen it.
-  // Direction and borough keep their defaults below — those are genuinely
-  // meaningful defaults (the more common direction; "no borough assumed"),
-  // not just "first in a list".
-  const [vehicle, setVehicle] = useState("");
+  // Direction keeps its default below — the more common direction is a
+  // genuinely meaningful default, not just "first in a list".
+  const [vehicle, setVehicle] = useState(() =>
+    fleet.some((item) => item.slug === initialVehicle) ? initialVehicle : "",
+  );
   const [childSeats, setChildSeats] = useState(0);
   const [airport, setAirport] = useState("");
   const [direction, setDirection] = useState<"from-airport" | "to-airport">(
     "from-airport",
   );
-  const [borough, setBorough] = useState<string>("");
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>(1);
@@ -240,9 +228,9 @@ export function BookingForm({
     );
   }, [trip, airport, selected, options.rates]);
 
-  // Without Places, the borough dropdown is what establishes "inside the city".
-  const insideCity = options.placesEnabled ? Boolean(cityPlaceId) : Boolean(borough);
-  const isFixed = Boolean(published) && insideCity;
+  // Only a resolved Places address establishes "inside the city"; without
+  // Places every airport trip is quoted.
+  const isFixed = Boolean(published) && Boolean(cityPlaceId);
 
   const seatFee = (seatsInRange * options.childSeatFeeCents) / 100;
   const fareTotal = published ? published.priceCents / 100 + seatFee : null;
@@ -468,7 +456,7 @@ export function BookingForm({
 
         {/* Step 1 — Trip */}
         <div className={clsx("flex flex-col gap-5", step !== 1 && "hidden")}>
-        <div ref={step1Ref} className="grid gap-5 grid-cols-2">
+        <div ref={step1Ref} className="grid gap-5 sm:grid-cols-2">
           {trip === "airport" ? (
             <>
               <Field label="Airport" id="airport" tone={tone}>
@@ -516,7 +504,7 @@ export function BookingForm({
                 ? "Start typing and pick your address from the list."
                 : undefined
             }
-            className="col-span-2"
+            className="sm:col-span-2"
           >
             <AddressField
               id="cityAddress"
@@ -538,7 +526,7 @@ export function BookingForm({
               id="otherEnd"
               error={fieldError("destination")}
               tone={tone}
-              className="col-span-2"
+              className="sm:col-span-2"
             >
               <AddressField
                 id="otherEnd"
@@ -628,25 +616,6 @@ export function BookingForm({
               ))}
             </Select>
           </Field>
-
-          {trip === "airport" && !options.placesEnabled ? (
-            <Field label="Borough" id="statedBorough" tone={tone}>
-              <Select
-                id="statedBorough"
-                name="statedBorough"
-                tone={tone}
-                value={borough}
-                onChange={(event) => setBorough(event.target.value)}
-              >
-                <option value="">Outside NYC (quoted)</option>
-                {BOROUGHS.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
         </div>
 
           <div className={clsx("flex justify-end border-t pt-5", divider)}>
@@ -826,7 +795,7 @@ export function BookingForm({
             </Field>
 
             <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">
-              <Input id="email" name="email" type="email" tone={tone} autoComplete="email" required {...restore("email")} />
+              <EmailInput id="email" tone={tone} defaultValue={prior("email")} sendsWhat="your confirmation and any updates" />
             </Field>
           </div>
 

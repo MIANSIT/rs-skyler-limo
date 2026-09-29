@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { BookingsTable } from "@/components/admin/bookings-table";
+import { ChangedToggle } from "@/components/admin/changed-toggle";
 import { FilterBar } from "@/components/admin/filter-bar";
 import { Pagination } from "@/components/admin/pagination";
 import { getBookings } from "@/lib/admin/dal";
@@ -22,17 +23,26 @@ export default async function BookingsPage({
 
   const status = single("status");
   const query = single("q");
+  const changed = single("changed") === "1" ? "1" : undefined;
   const page = Number(single("page") ?? 1);
 
   const exportParams = new URLSearchParams();
   if (status && bookingStatuses.includes(status as never)) exportParams.set("status", status);
   if (query) exportParams.set("q", query);
+  if (changed) exportParams.set("changed", changed);
+
+  // The toggle keeps the status and search; only `changed` flips.
+  const toggleParams = new URLSearchParams(exportParams);
+  if (changed) toggleParams.delete("changed");
+  else toggleParams.set("changed", "1");
+  const toggleHref = toggleParams.size > 0 ? `/bookings?${toggleParams}` : "/bookings";
   const exportQuery = exportParams.size > 0 ? `?${exportParams}` : "";
 
   const { bookings, total, perPage } = await getBookings({
     // Anything not a known status is dropped rather than passed to the API.
     status: bookingStatuses.includes(status as never) ? status : undefined,
     q: query,
+    changed,
     page: Number.isInteger(page) && page > 0 ? page : 1,
   });
 
@@ -63,14 +73,21 @@ export default async function BookingsPage({
         activeStatus={status}
         query={query}
         placeholder="Reference, name, phone, address"
+        keep={changed ? { changed } : {}}
       />
+
+      <div>
+        <ChangedToggle href={toggleHref} active={Boolean(changed)} />
+      </div>
 
       <BookingsTable
         bookings={bookings}
         emptyMessage={
-          status || query
-            ? "No bookings match that filter."
-            : "No bookings yet."
+          changed && !status && !query
+            ? "No customer changes waiting for review."
+            : status || query || changed
+              ? "No bookings match that filter."
+              : "No bookings yet."
         }
       />
 

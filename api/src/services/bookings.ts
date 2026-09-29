@@ -52,6 +52,8 @@ type BookingRow = RowDataPacket & {
   notes: string | null;
   quoted_total_cents: number | null;
   source: string;
+  customer_change_pending: number;
+  customer_changed_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -93,6 +95,9 @@ function toBooking(row: BookingRow) {
     notes: row.notes,
     quotedTotalCents: row.quoted_total_cents,
     source: row.source,
+    /** The customer changed it from /track and no operator has reviewed that yet. */
+    customerChangePending: row.customer_change_pending === 1,
+    customerChangedAt: row.customer_changed_at ? row.customer_changed_at.toISOString() : null,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -105,7 +110,7 @@ const SELECT_COLUMNS = `id, reference, status, trip_type, pricing_mode, pickup,
   payment_method, payment_status, paid_at, stripe_payment_intent_id,
   pickup_locality, pickup_region, destination_locality, destination_region,
   airport_code, airport_direction,
-  source, created_at, updated_at`;
+  source, customer_change_pending, customer_changed_at, created_at, updated_at`;
 
 export async function createBooking(
   input: z.infer<typeof createBookingSchema>,
@@ -157,7 +162,7 @@ export async function createBooking(
           pricingMode: fare.pricingMode,
           quotedTotalCents: fare.totalCents,
           pickupPlaceId: input.pickupPlaceId ?? null,
-          pickupLocality: fare.pickupPlace?.locality ?? input.statedBorough ?? null,
+          pickupLocality: fare.pickupPlace?.locality ?? null,
           pickupRegion: fare.pickupPlace?.region ?? null,
           destinationPlaceId: input.destinationPlaceId ?? null,
           destinationLocality: fare.destinationPlace?.locality ?? null,
@@ -223,6 +228,7 @@ function bookingFilters(filters: {
   q?: string;
   from?: string;
   to?: string;
+  changed?: string;
 }): { where: string; params: Record<string, unknown> } {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
@@ -230,6 +236,10 @@ function bookingFilters(filters: {
   if (filters.status) {
     conditions.push("status = :status");
     params.status = filters.status;
+  }
+
+  if (filters.changed === "1") {
+    conditions.push("customer_change_pending = 1");
   }
 
   if (filters.q) {
@@ -307,6 +317,7 @@ export async function listBookingsForExport(filters: {
   q?: string;
   from?: string;
   to?: string;
+  changed?: string;
 }): Promise<Booking[]> {
   const { where, params } = bookingFilters(filters);
   const rows = await query<BookingRow>(

@@ -7,10 +7,13 @@ export type DashboardStats = {
     today: number;
     next7Days: number;
     total: number;
+    /** Changed by the customer and not yet reviewed. */
+    changed: number;
   };
   quotes: {
     new: number;
     total: number;
+    changed: number;
   };
   /** Bookings created per day for the last 14 days, oldest first. */
   recentVolume: { date: string; count: number }[];
@@ -82,6 +85,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       confirmed_count: number;
       today_count: number;
       week_count: number;
+      changed_count: number;
       total: number;
     }
   >(
@@ -93,15 +97,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
        SUM(pickup_at BETWEEN UTC_TIMESTAMP()
                          AND UTC_TIMESTAMP() + INTERVAL 7 DAY
            AND status IN ('new','confirmed'))                     AS week_count,
+       SUM(customer_change_pending = 1)                           AS changed_count,
        COUNT(*)                                                   AS total
      FROM bookings`,
     { dayStart: start, dayEnd: end },
   );
 
   const quoteRow = await queryOne<
-    RowDataPacket & { new_count: number; total: number }
+    RowDataPacket & { new_count: number; changed_count: number; total: number }
   >(
-    `SELECT SUM(status = 'new') AS new_count, COUNT(*) AS total FROM quotes`,
+    `SELECT SUM(status = 'new') AS new_count,
+            SUM(customer_change_pending = 1) AS changed_count,
+            COUNT(*) AS total
+       FROM quotes`,
   );
 
   const volumeRows = await query<RowDataPacket & { day: Date; count: number }>(
@@ -120,10 +128,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       today: Number(bookingRow?.today_count ?? 0),
       next7Days: Number(bookingRow?.week_count ?? 0),
       total: Number(bookingRow?.total ?? 0),
+      changed: Number(bookingRow?.changed_count ?? 0),
     },
     quotes: {
       new: Number(quoteRow?.new_count ?? 0),
       total: Number(quoteRow?.total ?? 0),
+      changed: Number(quoteRow?.changed_count ?? 0),
     },
     recentVolume: volumeRows.map((row) => ({
       date: row.day.toISOString().slice(0, 10),

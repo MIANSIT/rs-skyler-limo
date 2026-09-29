@@ -109,6 +109,14 @@ CREATE TABLE IF NOT EXISTS bookings (
   airport_direction ENUM('from-airport','to-airport') NULL,
 
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
+
+  -- Set when the customer changes the booking themselves from /track, after
+  -- proving the email address with a one-time code. The dashboard tags the
+  -- booking until an operator marks the change reviewed. What changed is in
+  -- `activity_log` (action `customer_changed`).
+  customer_change_pending TINYINT(1) NOT NULL DEFAULT 0,
+  customer_changed_at     DATETIME NULL,
+
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -147,6 +155,9 @@ CREATE TABLE IF NOT EXISTS quotes (
   stripe_checkout_session_id VARCHAR(255) NULL,
   stripe_payment_intent_id   VARCHAR(255) NULL,
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
+  -- Same meaning as on `bookings`.
+  customer_change_pending TINYINT(1) NOT NULL DEFAULT 0,
+  customer_changed_at     DATETIME NULL,
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -370,4 +381,30 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
   CONSTRAINT fk_reviews_admin
     FOREIGN KEY (moderated_by) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One-time codes that let a customer change their own booking or quote request.
+--
+-- The code goes to the email address already on the record — never one typed
+-- at the time — so knowing a reference and a phone number is not enough to
+-- rewrite someone's trip. Only a hash is stored. A code works for ten minutes
+-- and five guesses; a correct one is exchanged for a short-lived token, and
+-- that token is spent by exactly one save. Rows are kept as an audit of who
+-- asked for what, not reused.
+CREATE TABLE IF NOT EXISTS change_codes (
+  id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  subject_type      ENUM('booking','quote') NOT NULL,
+  subject_id        BIGINT UNSIGNED NOT NULL,
+  code_salt         CHAR(32) NOT NULL,
+  code_hash         CHAR(64) NOT NULL,
+  attempts          TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  expires_at        DATETIME NOT NULL,
+  verified_at       DATETIME NULL,
+  token_hash        CHAR(64) NULL,
+  token_expires_at  DATETIME NULL,
+  used_at           DATETIME NULL,
+  created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_change_codes_subject (subject_type, subject_id, created_at),
+  UNIQUE KEY uq_change_codes_token (token_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

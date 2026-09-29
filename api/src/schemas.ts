@@ -122,8 +122,6 @@ export const createBookingSchema = z.object({
   airportDirection: z.enum(["from-airport", "to-airport"]).optional().nullable(),
   pickupPlaceId: z.string().trim().max(255).optional().nullable(),
   destinationPlaceId: z.string().trim().max(255).optional().nullable(),
-  /** Used only when Places is unavailable and the customer picked a borough. */
-  statedBorough: z.string().trim().max(60).optional().nullable(),
   /** Ties the autocomplete keystrokes and the details call into one billed session. */
   placesSessionToken: z.string().trim().max(120).optional().nullable(),
 
@@ -226,6 +224,8 @@ export const listBookingsSchema = z.object({
   q: z.string().trim().max(120).optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
+  /** `1` lists only bookings the customer changed and nobody has reviewed yet. */
+  changed: z.enum(["1"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -233,6 +233,7 @@ export const listBookingsSchema = z.object({
 export const listQuotesSchema = z.object({
   status: z.enum(quoteStatuses).optional(),
   q: z.string().trim().max(120).optional(),
+  changed: z.enum(["1"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -279,6 +280,81 @@ export const trackSchema = z.object({
   /** Second factor: a reference alone should not reveal a trip. */
   phone: z.string().trim().min(4).max(40),
 });
+
+/* -------------------------------------------------------------------------- */
+/* Customer self-service changes                                              */
+/* -------------------------------------------------------------------------- */
+
+/** "Email me a code": the same two factors as /track. */
+export const changeCodeSchema = trackSchema;
+
+export const changeVerifySchema = trackSchema.extend({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code from the email."),
+});
+
+/** Every save carries the lookup factors and the token the code was traded for. */
+const changeSession = trackSchema.extend({
+  token: z.string().trim().min(20).max(200),
+});
+
+/**
+ * What a customer may change on their own booking. Trip type, airport,
+ * direction and email are deliberately absent: the first three change what
+ * the trip *is* (call the office), and the email is where the code goes.
+ *
+ * `acceptedFare` is the fare the customer was shown and agreed to when a
+ * change moved it. The server re-derives the fare and saves only if it still
+ * matches — the browser never sets a price.
+ */
+export const changeBookingSchema = changeSession.extend({
+  pickupAt: z.iso.datetime({ offset: true }),
+  pickup: trimmed(255),
+  destination: trimmed(255),
+  pickupPlaceId: z.string().trim().max(255).optional().nullable(),
+  destinationPlaceId: z.string().trim().max(255).optional().nullable(),
+  placesSessionToken: z.string().trim().max(120).optional().nullable(),
+  passengers: z.coerce.number().int().min(1).max(60),
+  bags: z.coerce.number().int().min(0).max(60),
+  childSeats: z.coerce.number().int().min(0).max(4),
+  vehicleClass: trimmed(60),
+  airline: z.string().trim().max(120).optional().nullable(),
+  flightNumber: z.string().trim().max(20).optional().nullable(),
+  notes: z.string().trim().max(5000).optional().nullable(),
+  customerName: trimmed(160),
+  customerPhone: phone,
+  acceptedFare: z
+    .object({
+      pricingMode: z.enum(["fixed", "quote"]),
+      totalCents: z.number().int().min(0).nullable(),
+    })
+    .optional()
+    .nullable(),
+});
+
+export type ChangeBookingInput = z.infer<typeof changeBookingSchema>;
+
+/** The quote-request equivalent. Service type stays; a different service is a new request. */
+export const changeQuoteSchema = changeSession.extend({
+  eventDate: z.iso
+    .date()
+    .refine((value) => value >= todayInNewYork(), {
+      error: "That date has passed. Choose today or a later date.",
+    })
+    .optional()
+    .nullable(),
+  passengers: z.coerce.number().int().min(1).max(500).optional().nullable(),
+  company: z.string().trim().max(160).optional().nullable(),
+  customerName: trimmed(160),
+  customerPhone: phone,
+  details: trimmed(5000),
+  /** True once the customer has agreed that the change clears their agreed price. */
+  acceptPriceReset: z.boolean().optional(),
+});
+
+export type ChangeQuoteInput = z.infer<typeof changeQuoteSchema>;
 
 /** A payment link's two halves, as the /pay page sends them back. */
 export const paymentLinkSchema = z.object({

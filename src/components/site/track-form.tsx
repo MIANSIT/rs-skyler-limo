@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ChangeRecord } from "@/components/site/change-record";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import type { FleetVehicle } from "@/lib/api/types";
 import { payBooking, trackBooking, type TrackState } from "@/lib/public/actions";
 
 const statusCopy: Record<string, string> = {
@@ -87,10 +89,15 @@ function PayForm({ reference, phone, amountCents }: { reference: string; phone: 
 export function TrackForm({
   vehicleNames,
   initialReference = "",
+  fleet,
+  placesEnabled,
 }: {
   vehicleNames: Record<string, string>;
   /** From `?reference=` on a tracking link: pre-filled, phone focused. */
   initialReference?: string;
+  /** For the change form's vehicle list and address lookup. */
+  fleet: FleetVehicle[];
+  placesEnabled: boolean;
 }) {
   const [state, formAction] = useActionState<TrackState, FormData>(trackBooking, {
     status: "idle",
@@ -203,6 +210,16 @@ export function TrackForm({
               }
             />
           </dl>
+
+          <ChangeRecord
+            key={state.quote.reference}
+            kind="quote"
+            reference={state.quote.reference}
+            phone={state.phone}
+            change={state.quote.change}
+            fleet={fleet}
+            placesEnabled={placesEnabled}
+          />
         </div>
       ) : null}
 
@@ -298,6 +315,16 @@ export function TrackForm({
               }
             />
           </dl>
+
+          <ChangeRecord
+            key={state.booking.reference}
+            kind="booking"
+            reference={state.booking.reference}
+            phone={state.phone}
+            change={state.booking.change}
+            fleet={fleet}
+            placesEnabled={placesEnabled}
+          />
         </div>
       ) : null}
     </>

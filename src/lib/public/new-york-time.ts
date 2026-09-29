@@ -79,3 +79,12 @@ export function todayInNewYork(): string {
 export function nowInNewYork(): string {
   return clockFormat.format(new Date());
 }
+
+/**
+ * `2026-10-12T10:00:00.000Z` → `{ date: "2026-10-12", time: "06:00" }`: an
+ * instant as the New York date and clock a form field shows.
+ */
+export function isoToNewYork(iso: string): { date: string; time: string } {
+  const instant = new Date(iso);
+  return { date: dayFormat.format(instant), time: clockFormat.format(instant) };
+}

@@ -209,3 +209,34 @@ export async function updateQuoteStatus(
 
   return undefined;
 }
+
+/**
+ * "Mark as reviewed" on a booking or quote the customer changed. Clears the
+ * tag everywhere; the change itself stays in the history.
+ */
+export async function markChangeReviewed(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const { token } = await verifySession();
+
+  const id = Number(formData.get("id"));
+  const kind = formData.get("kind") === "quote" ? "quote" : "booking";
+  if (!Number.isInteger(id) || id < 1) return { error: `Unknown ${kind}.` };
+
+  try {
+    await apiFetch(`/api/admin/${kind === "quote" ? "quotes" : "bookings"}/${id}/change-reviewed`, {
+      method: "POST",
+      token,
+    });
+  } catch (error) {
+    if (error instanceof ApiRequestError) return { error: error.failure.message };
+    throw error;
+  }
+
+  const base = kind === "quote" ? "/quotes" : "/bookings";
+  revalidatePath(`${base}/${id}`);
+  revalidatePath(base);
+  revalidatePath("/");
+  return undefined;
+}

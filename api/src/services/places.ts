@@ -10,8 +10,8 @@ import { ApiError } from "../lib/http.js";
  * rate limiter in front of these routes is ours to set.
  *
  * Everything degrades to `available: false` rather than throwing. Without a key
- * the booking form falls back to a plain address field and a borough selector,
- * which is a worse experience but a working one — a missing API key must never
+ * the booking form falls back to a plain address field and airport transfers
+ * are quoted rather than fixed, which is a worse experience but a working one — a missing API key must never
  * be the reason a customer cannot book.
  */
 

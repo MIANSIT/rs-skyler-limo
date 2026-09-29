@@ -4,7 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { TrackForm } from "@/components/site/track-form";
-import { getFleetSafely } from "@/lib/public/fleet";
+import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
@@ -30,7 +30,7 @@ export default async function TrackPage({
   const initialReference = /^R[SQ]-[0-9A-Z]{7}$/.test(candidate) ? candidate : "";
 
   // Vehicle names come from the fleet the operator maintains, not a copy.
-  const fleet = await getFleetSafely();
+  const [fleet, options] = await Promise.all([getFleetSafely(), getBookingOptionsSafely()]);
   const vehicleNames = Object.fromEntries(
     fleet.map((vehicle) => [vehicle.slug, vehicle.name]),
   );
@@ -52,7 +52,12 @@ export default async function TrackPage({
               data-reveal
             />
             <div data-reveal>
-              <TrackForm vehicleNames={vehicleNames} initialReference={initialReference} />
+              <TrackForm
+                vehicleNames={vehicleNames}
+                initialReference={initialReference}
+                fleet={fleet}
+                placesEnabled={options.placesEnabled}
+              />
             </div>
 
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">

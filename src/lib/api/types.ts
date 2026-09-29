@@ -77,6 +77,8 @@ export type TrackedBooking = {
   paymentStatus: "unpaid" | "paid";
   /** True when the customer can pay this booking by card on Stripe now. */
   canPayOnline: boolean;
+  /** Whether the customer may change it online now, and if not, why. */
+  change: Changeability;
 };
 
 /** What /track returns for a quote request (`RQ-…`): status, nothing more. */
@@ -93,6 +95,59 @@ export type TrackedQuote = {
   paymentMethod: PaymentMethod | null;
   paymentStatus: "unpaid" | "paid";
   createdAt: string;
+  change: Changeability;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Customer self-service changes                                              */
+/* -------------------------------------------------------------------------- */
+
+export type Changeability = { allowed: boolean; reason: string | null };
+
+/** A booking's editable fields, returned once the emailed code is right. */
+export type ChangeableBooking = {
+  kind: "booking";
+  reference: string;
+  tripType: TripType;
+  airportCode: string | null;
+  airportDirection: "from-airport" | "to-airport" | null;
+  pickupAt: string;
+  pickup: string;
+  destination: string;
+  passengers: number;
+  bags: number;
+  childSeats: number;
+  vehicleClass: string;
+  airline: string | null;
+  flightNumber: string | null;
+  notes: string | null;
+  customerName: string;
+  customerPhone: string;
+  pricingMode: PricingMode;
+  quotedTotalCents: number | null;
+  paymentStatus: "unpaid" | "paid";
+};
+
+export type ChangeableQuote = {
+  kind: "quote";
+  reference: string;
+  serviceType: string;
+  eventDate: string | null;
+  passengers: number | null;
+  company: string | null;
+  customerName: string;
+  customerPhone: string;
+  details: string;
+  agreedPriceCents: number | null;
+};
+
+export type FieldChange = { label: string; before: string; after: string };
+
+export type ProposedFare = {
+  pricingMode: PricingMode;
+  /** Null when the trip goes to a person to price. */
+  totalCents: number | null;
+  reason: string;
 };
 
 /* -------------------------------------------------------------------------- */

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ChangedTag } from "@/components/admin/changed-tag";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
   formatMoney,
@@ -111,6 +112,7 @@ export function BookingsTable({
               <td className="px-4 py-4">
                 <div className="flex flex-col items-start gap-1.5">
                   <StatusBadge status={booking.status} />
+                  {booking.customerChangePending ? <ChangedTag /> : null}
                   {booking.possibleClashes ? (
                     <span
                       title="Another booking for this vehicle class is within 3 hours"

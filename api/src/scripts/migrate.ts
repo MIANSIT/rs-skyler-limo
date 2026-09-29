@@ -144,6 +144,20 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
                 FROM airports`,
     },
     {
+      description: "bookings.customer_change_pending, customer_changed_at",
+      check: () => columnMissing(connection, "bookings", "customer_change_pending"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN customer_change_pending TINYINT(1) NOT NULL DEFAULT 0 AFTER source,
+              ADD COLUMN customer_changed_at DATETIME NULL AFTER customer_change_pending`,
+    },
+    {
+      description: "quotes.customer_change_pending, customer_changed_at",
+      check: () => columnMissing(connection, "quotes", "customer_change_pending"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN customer_change_pending TINYINT(1) NOT NULL DEFAULT 0 AFTER source,
+              ADD COLUMN customer_changed_at DATETIME NULL AFTER customer_change_pending`,
+    },
+    {
       // Widening an ENUM is safe to repeat, but only run it when needed so the
       // table is not rebuilt on every deploy.
       description: "activity_log.subject_type += 'vehicle'",

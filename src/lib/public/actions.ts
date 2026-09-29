@@ -188,7 +188,6 @@ export async function submitBooking(
         // The server re-resolves these; it does not trust a typed address.
         pickupPlaceId: text("pickupPlaceId") || null,
         destinationPlaceId: text("destinationPlaceId") || null,
-        statedBorough: text("statedBorough") || null,
         placesSessionToken: text("placesSessionToken") || null,
         customerName: text("name"),
         customerEmail: text("email"),
@@ -315,7 +314,7 @@ export type TrackState =
   | { status: "idle" }
   /** `phone` is kept so "pay by card" can repeat the same two-factor check. */
   | { status: "found"; booking: TrackedBooking; phone: string }
-  | { status: "found-quote"; quote: TrackedQuote }
+  | { status: "found-quote"; quote: TrackedQuote; phone: string }
   /** Both values are echoed for the same reason the booking form echoes. */
   | { status: "error"; message: string; reference: string; phone: string };
 
@@ -345,7 +344,7 @@ export async function trackBooking(
     });
 
     return found.kind === "quote"
-      ? { status: "found-quote", quote: found }
+      ? { status: "found-quote", quote: found, phone }
       : { status: "found", booking: found, phone };
   } catch (error) {
     if (error instanceof ApiRequestError) {

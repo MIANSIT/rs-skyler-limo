@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { EmailInput } from "@/components/site/email-input";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-time-field";
@@ -249,14 +250,11 @@ export function QuoteForm({
           className={showDate ? undefined : "sm:col-span-2"}
           error={fieldError("customerEmail")}
         >
-          <Input
+          <EmailInput
             id="quote-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
             maxLength={255}
-            {...restore("email")}
+            defaultValue={restore("email")?.defaultValue}
+            sendsWhat="our reply"
           />
         </Field>
 

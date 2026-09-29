@@ -7,6 +7,10 @@ import { isReference } from "../lib/reference.js";
 import { issueFormToken, requireFormGuard } from "../lib/form-guard.js";
 import { rateLimit } from "../middleware.js";
 import {
+  changeBookingSchema,
+  changeCodeSchema,
+  changeQuoteSchema,
+  changeVerifySchema,
   createBookingSchema,
   createQuoteSchema,
   createReviewSchema,
@@ -28,9 +32,31 @@ import {
 } from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
 import { listActiveHeroMedia } from "../services/hero.js";
-import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
+import {
+  CHILD_SEAT_FEE_CENTS,
+  decideFare,
+  getPublicRates,
+  listActiveAirports,
+} from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
-import { sendBookingEmails, sendQuoteRequestEmails } from "../services/mail.js";
+import {
+  sendBookingChangedEmails,
+  sendBookingEmails,
+  sendChangeCodeEmail,
+  sendQuoteChangedEmails,
+  sendQuoteRequestEmails,
+} from "../services/mail.js";
+import {
+  bookingChangeability,
+  bookingEditable,
+  changeBooking,
+  changeQuote,
+  findChangeSubject,
+  issueChangeCode,
+  quoteChangeability,
+  quoteEditable,
+  verifyChangeCode,
+} from "../services/changes.js";
 import {
   canPayOnline,
   canPayQuoteOnline,
@@ -49,6 +75,9 @@ export const publicRouter: Router = Router();
 // enough that a script cannot fill the dashboard with noise overnight.
 const submitLimit = rateLimit({ windowMs: 60_000, max: 8 });
 const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+// Codes and guesses: tighter than a lookup. The per-record limits in
+// `services/changes.ts` stop a slow attack; this stops a fast one.
+const changeLimit = rateLimit({ windowMs: 60_000, max: 20 });
 
 /**
  * A token the forms send back with the submission. Issued when a form loads, so
@@ -57,12 +86,6 @@ const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
 publicRouter.get("/form-token", lookupLimit, (_req, res) => {
   res.json({ token: issueFormToken() });
 });
-
-/**
- * Kept beside the fare logic rather than in the site's content file: this
- * number is charged, so it belongs where the charging happens.
- */
-const CHILD_SEAT_FEE_CENTS = 3500;
 
 /**
  * The fleet as the public site shows it: active vehicles only, in the
@@ -166,7 +189,6 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
     pickupPlaceId: input.pickupPlaceId,
     destinationPlaceId: input.destinationPlaceId,
-    statedBorough: input.statedBorough,
     sessionToken: input.placesSessionToken ?? randomUUID(),
   });
 
@@ -269,6 +291,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       paymentMethod: quote.paymentMethod,
       paymentStatus: quote.paymentStatus,
       createdAt: quote.createdAt,
+      change: quoteChangeability(quote),
     });
     return;
   }
@@ -296,7 +319,111 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     paymentMethod: booking.paymentMethod,
     paymentStatus: booking.paymentStatus,
     canPayOnline: canPayOnline(booking),
+    change: bookingChangeability(booking),
   });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Customer self-service changes — see services/changes.ts                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * "Email me a code". The code goes to the address on the record and is never
+ * in the response. The send is not awaited, like every send: if it fails, the
+ * page already tells the customer how to reach the office.
+ */
+publicRouter.post("/change/code", changeLimit, async (req, res) => {
+  const { reference, phone } = changeCodeSchema.parse(req.body);
+  const subject = await findChangeSubject(reference, phone);
+  const issued = await issueChangeCode(subject);
+
+  const record = subject.kind === "booking" ? subject.booking : subject.quote;
+  void sendChangeCodeEmail({
+    to: issued.email,
+    reference: record.reference,
+    kind: subject.kind,
+    customerName: record.customerName,
+    code: issued.code,
+    expiresInMinutes: issued.expiresInMinutes,
+  }).catch((error: unknown) => {
+    console.error(
+      `[mail] unexpected failure sending a change code for ${record.reference}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
+
+  res.json({
+    maskedEmail: issued.maskedEmail,
+    expiresInMinutes: issued.expiresInMinutes,
+    resendAfterSeconds: issued.resendAfterSeconds,
+  });
+});
+
+/** The code, traded for a change token and the record's editable fields. */
+publicRouter.post("/change/verify", changeLimit, async (req, res) => {
+  const { reference, phone, code } = changeVerifySchema.parse(req.body);
+  const subject = await findChangeSubject(reference, phone);
+  const { token, expiresInMinutes } = await verifyChangeCode(subject, code);
+
+  res.json({
+    token,
+    expiresInMinutes,
+    details: subject.kind === "booking" ? bookingEditable(subject.booking) : quoteEditable(subject.quote),
+  });
+});
+
+publicRouter.post("/change/booking", changeLimit, async (req, res) => {
+  const input = changeBookingSchema.parse(req.body);
+  const subject = await findChangeSubject(input.reference, input.phone);
+  if (subject.kind !== "booking") throw ApiError.notFound("No booking matches those details.");
+
+  const result = await changeBooking(subject.booking, input);
+
+  if (result.outcome === "saved") {
+    void sendBookingChangedEmails(result.booking, result.changes).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${result.booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+    res.json({
+      outcome: "saved",
+      reference: result.booking.reference,
+      status: result.booking.status,
+      statusChanged: result.statusChanged,
+      changes: result.changes,
+    });
+    return;
+  }
+
+  res.json(result);
+});
+
+publicRouter.post("/change/quote", changeLimit, async (req, res) => {
+  const input = changeQuoteSchema.parse(req.body);
+  const subject = await findChangeSubject(input.reference, input.phone);
+  if (subject.kind !== "quote") throw ApiError.notFound("No booking matches those details.");
+
+  const result = await changeQuote(subject.quote, input);
+
+  if (result.outcome === "saved") {
+    void sendQuoteChangedEmails(result.quote, result.changes).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${result.quote.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+    res.json({
+      outcome: "saved",
+      reference: result.quote.reference,
+      status: result.quote.status,
+      statusChanged: result.statusChanged,
+      changes: result.changes,
+    });
+    return;
+  }
+
+  res.json(result);
 });
 
 /**

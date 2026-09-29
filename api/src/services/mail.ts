@@ -4,6 +4,12 @@ import { buildBookingEmail } from "../emails/booking.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
 import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
 import { buildPaymentLinkEmail } from "../emails/payment.js";
+import {
+  buildBookingChangedEmail,
+  buildChangeCodeEmail,
+  buildQuoteChangedEmail,
+} from "../emails/changes.js";
+import type { FieldChange } from "./changes.js";
 import { createPaymentLink } from "../lib/payment-link.js";
 import { canPayOnline, canPayQuoteOnline } from "./payments.js";
 import { env } from "../env.js";
@@ -297,6 +303,76 @@ export async function sendQuoteUpdateEmail(quote: Quote): Promise<void> {
     html: email.html,
     text: email.text,
   });
+}
+
+/**
+ * The one-time code for changing a booking or request. Customer only, and only
+ * to the address already on the record. Like every send it never throws; if it
+ * does not arrive, the page tells the customer how to reach the office.
+ */
+export async function sendChangeCodeEmail(input: {
+  to: string;
+  reference: string;
+  kind: "booking" | "quote";
+  customerName: string;
+  code: string;
+  expiresInMinutes: number;
+}): Promise<void> {
+  const email = buildChangeCodeEmail(input);
+  await send({ to: input.to, subject: email.subject, html: email.html, text: email.text });
+}
+
+/** "Your booking was updated" to the customer, before → after to the office. */
+export async function sendBookingChangedEmails(booking: Booking, changes: FieldChange[]): Promise<void> {
+  let vehicleName: string;
+  try {
+    vehicleName = (await getVehicleBySlug(booking.vehicleClass))?.name ?? booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const customer = buildBookingChangedEmail(booking, vehicleName, changes, "customer");
+  const ops = buildBookingChangedEmail(booking, vehicleName, changes, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: booking.customerEmail,
+      replyTo: env.MAIL_OPS_RECIPIENTS,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      to: env.MAIL_OPS_RECIPIENTS,
+      replyTo: booking.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
+}
+
+/** The same for a quote request. */
+export async function sendQuoteChangedEmails(quote: Quote, changes: FieldChange[]): Promise<void> {
+  const customer = buildQuoteChangedEmail(quote, changes, "customer");
+  const ops = buildQuoteChangedEmail(quote, changes, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: quote.customerEmail,
+      replyTo: env.MAIL_OPS_RECIPIENTS,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      to: env.MAIL_OPS_RECIPIENTS,
+      replyTo: quote.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
 }
 
 function describe(error: unknown): string {

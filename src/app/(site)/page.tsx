@@ -6,6 +6,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
+import { ServicesShowcase } from "@/components/site/services-showcase";
 import {
   About,
   AirportTransfers,
@@ -16,55 +17,33 @@ import {
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { HowItWorks } from "@/components/site/how-it-works";
 import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
-import {
-  ArrowRightIcon,
-  BriefcaseIcon,
-  ClockIcon,
-  MapPinIcon,
-  PlaneIcon,
-  RingsIcon,
-  ShieldIcon,
-} from "@/components/ui/icon";
+import { ShieldIcon } from "@/components/ui/icon";
 import {
   Container,
   Eyebrow,
   RationaleNote,
   Section,
   SectionHeading,
-  type SectionTone,
 } from "@/components/ui/section";
 import {
   about,
   bookingAirports,
   contact,
   demoReviews,
-  services,
   values,
 } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { getHeroMediaSafely } from "@/lib/public/hero-media";
 import { getReviewsSafely } from "@/lib/public/reviews";
 
-/**
- * Keyed by name, not position: a service added to `services` in content.ts
- * would otherwise shift every icon after it onto the wrong service.
- */
-const serviceIcons: Record<string, (props: { className?: string }) => ReactNode> = {
-  "Airport Transfers": PlaneIcon,
-  "Point to Point": ArrowRightIcon,
-  "Hourly Charters": ClockIcon,
-  "Corporate Accounts": BriefcaseIcon,
-  Events: MapPinIcon,
-  Weddings: RingsIcon,
-};
+type HomeTone = "deep" | "dark";
 
 /**
- * The homepage, in the order the brief sets out: Hero, Booking/Quote, Services,
- * Airport Transportation, Fleet, Why Choose Us, Service Areas, Reviews, About,
- * FAQ, Final CTA — then the footer from the layout.
- *
- * Booking/Quote is the form inside the hero, followed by the two sections that
- * explain it: how booking works, and checking a booking afterwards.
+ * The homepage: Hero (with the booking card that hands off to `/book`), Fleet
+ * and Services straight beneath it as picture cards, then the rest in the order
+ * the brief sets out — how booking works, checking a booking, Airport
+ * Transportation, Why Choose Us, Service Areas, Reviews, About, FAQ, Final CTA
+ * — then the footer from the layout.
  *
  * The page alternates `deep` and `dark` (midnight) grounds — see `Section`.
  * Tones are handed out in order over the sections that actually render, rather
@@ -73,7 +52,7 @@ const serviceIcons: Record<string, (props: { className?: string }) => ReactNode>
  * side.
  */
 export default async function HomePage() {
-  // One fetch, shared by the booking widget and the fleet strip below.
+  // One fetch, shared by the booking card and the fleet strip below.
   const [fleet, bookingOptions, heroMedia, reviewsData] = await Promise.all([
     getFleetSafely(),
     getBookingOptionsSafely(),
@@ -88,8 +67,56 @@ export default async function HomePage() {
   const sections: {
     key: string;
     show?: boolean;
-    render: (tone: SectionTone) => ReactNode;
+    render: (tone: HomeTone) => ReactNode;
   }[] = [
+    /* ---- Fleet ---- */
+    {
+      key: "fleet",
+      render: (tone) => (
+        <Section tone={tone}>
+          <Reveal className="flex flex-wrap items-end justify-between gap-6">
+            <SectionHeading
+              tone="dark"
+              eyebrow="The fleet"
+              title="Every class, chosen without a phone call"
+              intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
+              data-reveal
+            />
+            <ButtonLinkOnDark href="/fleet" data-reveal>
+              Compare the fleet
+            </ButtonLinkOnDark>
+          </Reveal>
+
+          {/*
+            Two from `sm`, three from `lg`, four only from `xl`. Two columns
+            held all the way to `xl` left each compact card ~400–470px on a
+            typical laptop, nearly double its ~270px design width; four straight
+            from `lg` leaves each ~220px, narrower than its spec labels. Three
+            at `lg` lands close to the design width.
+
+            `eager`: this strip sits right under the hero, so on a tall window
+            its photos are the page's largest image.
+          */}
+          <Reveal
+            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            y={30}
+          >
+            {fleet.map((vehicle) => (
+              <div key={vehicle.slug} data-reveal className="flex min-w-0">
+                <FleetCard vehicle={vehicle} variant="compact" tone="dark" eager />
+              </div>
+            ))}
+          </Reveal>
+        </Section>
+      ),
+    },
+
+    /* ---- Services — picture cards after the client's reference ---- */
+    {
+      key: "services",
+      render: (tone) => <ServicesShowcase fleet={fleet} tone={tone} />,
+    },
+
     /* ---- Booking/Quote: how it works, then checking on it afterwards ---- */
     {
       key: "how-it-works",
@@ -108,6 +135,7 @@ export default async function HomePage() {
         </Section>
       ),
     },
+
     {
       /*
         Tracking. This section used to promise automatic delay notifications,
@@ -157,95 +185,11 @@ export default async function HomePage() {
       ),
     },
 
-    /* ---- Services ---- */
-    {
-      // Gold appears only as icons and rules, never as a sentence of text.
-      key: "services",
-      render: (tone) => (
-        <Section tone={tone}>
-          <Reveal>
-            <SectionHeading
-              tone="dark"
-              eyebrow="What we do"
-              title="Every trip, one standard"
-              intro="A car that is where it said it would be, driven by someone who already knows the route. Everything else is detail."
-              data-reveal
-            />
-          </Reveal>
-
-          <Reveal className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => {
-              const Icon = serviceIcons[service.name] ?? ArrowRightIcon;
-              return (
-                <Link
-                  key={service.name}
-                  href={service.href}
-                  data-reveal
-                  className="group flex flex-col border-t border-white/15 pt-6"
-                >
-                  <Icon className="h-6 w-6 text-gold" />
-                  <h3 className="font-sans mt-5 text-[17px] font-semibold text-white">
-                    {service.name}
-                  </h3>
-                  <p className="mt-3 flex-1 text-[15px] leading-[1.7] text-white/75">
-                    {service.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-white underline-offset-4 group-hover:underline">
-                    Learn more
-                    <span aria-hidden>→</span>
-                  </span>
-                </Link>
-              );
-            })}
-          </Reveal>
-        </Section>
-      ),
-    },
-
     /* ---- Airport Transportation ---- */
     {
       key: "airports",
       render: (tone) => (
         <AirportTransfers airports={bookingOptions.airports} tone={tone} />
-      ),
-    },
-
-    /* ---- Fleet ---- */
-    {
-      key: "fleet",
-      render: (tone) => (
-        <Section tone={tone}>
-          <Reveal className="flex flex-wrap items-end justify-between gap-6">
-            <SectionHeading
-              tone="dark"
-              eyebrow="The fleet"
-              title="Every class, chosen without a phone call"
-              intro="Each class states plainly who it is for, what it holds, how many child seats it takes, and where the fare starts."
-              data-reveal
-            />
-            <ButtonLinkOnDark href="/fleet" data-reveal>
-              Compare the fleet
-            </ButtonLinkOnDark>
-          </Reveal>
-
-          {/*
-            Two from `sm`, three from `lg`, four only from `xl`. Two columns
-            held all the way to `xl` left each compact card ~400–470px on a
-            typical laptop, nearly double its ~270px design width; four straight
-            from `lg` leaves each ~220px, narrower than its spec labels. Three
-            at `lg` lands close to the design width.
-          */}
-          <Reveal
-            className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            y={30}
-          >
-            {fleet.map((vehicle) => (
-              <div key={vehicle.slug} data-reveal className="flex min-w-0">
-                <FleetCard vehicle={vehicle} variant="compact" tone="dark" />
-              </div>
-            ))}
-          </Reveal>
-        </Section>
       ),
     },
 
@@ -340,8 +284,7 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero, carrying the Booking/Quote form. */}
-      <Hero fleet={fleet} bookingOptions={bookingOptions} media={heroMedia} />
+      <Hero fleet={fleet} media={heroMedia} />
       <BoroughMarquee />
 
       {/* The hero and borough strip are midnight, so the first section takes

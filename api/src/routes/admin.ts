@@ -52,6 +52,7 @@ import {
 } from "../services/reviews.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
+import { markChangeReviewed } from "../services/changes.js";
 import { getZoneRateGrid, saveZoneRates } from "../services/zone-rates.js";
 
 export const adminRouter: Router = Router();
@@ -79,8 +80,8 @@ adminRouter.get("/bookings", async (req, res) => {
  * id. `no-store`: it is customer data and must not sit in any cache.
  */
 adminRouter.get("/bookings/export", async (req, res) => {
-  const { status, q, from, to } = listBookingsSchema.parse(req.query);
-  const bookings = await listBookingsForExport({ status, q, from, to });
+  const { status, q, from, to, changed } = listBookingsSchema.parse(req.query);
+  const bookings = await listBookingsForExport({ status, q, from, to, changed });
   const file = await bookingsWorkbook(bookings);
 
   res.setHeader(
@@ -129,6 +130,19 @@ adminRouter.patch("/bookings/:id", async (req, res) => {
     activity: await getActivity("booking", id),
     clashes: await findClashes(booking),
   });
+});
+
+/** Clears the "Changed by customer" tag once an operator has read the change. */
+adminRouter.post("/bookings/:id/change-reviewed", async (req, res) => {
+  const id = parseId(req.params.id);
+  await markChangeReviewed("booking", id, req.admin!.id);
+  res.status(204).end();
+});
+
+adminRouter.post("/quotes/:id/change-reviewed", async (req, res) => {
+  const id = parseId(req.params.id);
+  await markChangeReviewed("quote", id, req.admin!.id);
+  res.status(204).end();
 });
 
 adminRouter.get("/quotes", async (req, res) => {

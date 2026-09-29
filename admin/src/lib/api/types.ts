@@ -74,6 +74,9 @@ export type Booking = {
   notes: string | null;
   quotedTotalCents: number | null;
   source: string;
+  /** Changed by the customer from /track; cleared when an operator reviews it. */
+  customerChangePending: boolean;
+  customerChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
   /**
@@ -113,6 +116,8 @@ export type Quote = {
   paidAt: string | null;
   stripePaymentIntentId: string | null;
   source: string;
+  customerChangePending: boolean;
+  customerChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -141,8 +146,10 @@ export type DashboardStats = {
     today: number;
     next7Days: number;
     total: number;
+    /** Changed by the customer and not yet reviewed. */
+    changed: number;
   };
-  quotes: { new: number; total: number };
+  quotes: { new: number; total: number; changed: number };
   recentVolume: { date: string; count: number }[];
 };
 
