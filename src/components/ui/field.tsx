@@ -31,6 +31,14 @@ export const controlByTone: Record<Tone, string> = {
   dark: "border-white/25 bg-white/10 text-white placeholder:text-white/40 hover:border-white/45 focus:border-white/70",
 };
 
+/**
+ * The frosted-glass card a dark page's form sits in — `/book`'s booking form
+ * and `/track`'s lookup and results. A light tint with a hairline edge over
+ * the deep-midnight ground; white text on it stays well above AA.
+ */
+export const glassCard =
+  "rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_30px_60px_-30px_rgba(0,0,0,0.75)]";
+
 export const control =
   "w-full rounded-sm border px-4 py-3 font-sans text-[15px] transition-colors focus:outline-none";
 

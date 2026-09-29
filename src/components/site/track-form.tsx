@@ -5,8 +5,9 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { ChangeRecord } from "@/components/site/change-record";
-import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Button, ButtonOnDark } from "@/components/ui/button";
+import { Field, Input, glassCard } from "@/components/ui/field";
+import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
 import { payBooking, trackBooking, type TrackState } from "@/lib/public/actions";
 
@@ -49,12 +50,12 @@ function SubmitButton() {
 function PayButton({ amount }: { amount: string }) {
   const { pending } = useFormStatus();
 
-  // Midnight, not gold: the lookup button above already holds the view's one
-  // gold action.
+  // Outlined, not gold: the lookup button above already holds the view's one
+  // gold action, and a midnight fill would vanish on the glass card.
   return (
-    <Button type="submit" variant="primary" disabled={pending}>
+    <ButtonOnDark type="submit" disabled={pending}>
       {pending ? "Opening Stripe…" : `Pay ${amount} by card`}
-    </Button>
+    </ButtonOnDark>
   );
 }
 
@@ -67,10 +68,10 @@ function PayForm({ reference, phone, amountCents }: { reference: string; phone: 
   const [error, action] = useActionState<string | null, FormData>(payBooking, null);
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-3 border-t border-midnight/10 pt-6">
+    <form action={action} className="mt-6 flex flex-col gap-3 border-t border-white/15 pt-6">
       <input type="hidden" name="reference" value={reference} />
       <input type="hidden" name="phone" value={phone} />
-      <p className="text-[15px] leading-[1.7] text-charcoal">
+      <p className="text-[15px] leading-[1.7] text-white/75">
         You chose to pay by card. Payment is taken securely by Stripe; your
         card details never reach us.
       </p>
@@ -78,7 +79,7 @@ function PayForm({ reference, phone, amountCents }: { reference: string; phone: 
         <PayButton amount={`$${Math.round(amountCents / 100)}`} />
       </div>
       {error ? (
-        <p role="alert" className="text-[14px] text-red-800">
+        <p role="alert" className="text-[14px] text-red-300">
           {error}
         </p>
       ) : null}
@@ -114,14 +115,16 @@ export function TrackForm({
     <>
       <form
         action={formAction}
-        className="mt-8 flex flex-col gap-5 border border-midnight/10 p-6 md:p-8"
+        className={clsx(glassCard, "mt-8 flex flex-col gap-5 p-6 md:p-8")}
       >
         <Field
+          tone="dark"
           label="Booking reference"
           id="reference"
           hint="From your confirmation: RS-… for a booking, RQ-… for a quote request."
         >
           <Input
+            tone="dark"
             id="reference"
             name="reference"
             required
@@ -135,6 +138,7 @@ export function TrackForm({
         </Field>
 
         <Field
+          tone="dark"
           label="Phone number"
           id="phone"
           hint="The number on the booking. We ask for both so a reference on its own cannot open your trip."
@@ -144,6 +148,7 @@ export function TrackForm({
               it stays in the 555-01xx range reserved for fiction rather than
               echoing the real support line back at them. */}
           <Input
+            tone="dark"
             id="phone"
             name="phone"
             type="tel"
@@ -163,23 +168,23 @@ export function TrackForm({
       {state.status === "found-quote" ? (
         <div
           role="status"
-          className="mt-8 border border-midnight/10 bg-grey p-6 md:p-8"
+          className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
-          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
             {state.quote.reference} · Quote request
           </p>
-          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-midnight">
+          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {quoteStatusCopy[state.quote.status] ?? "We have your request."}
           </p>
           {state.quote.agreedPriceCents !== null ? (
-            <div className="mt-6 border-t border-midnight/10 pt-6">
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+            <div className="mt-6 border-t border-white/15 pt-6">
+              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                 Your price
               </p>
-              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
                 ${Math.round(state.quote.agreedPriceCents / 100)}
               </p>
-              <p className="mt-3 font-sans text-[15px] text-charcoal">
+              <p className="mt-3 font-sans text-[15px] text-white/75">
                 {state.quote.paymentStatus === "paid"
                   ? "Paid. Thank you."
                   : state.quote.paymentMethod === "cash"
@@ -190,7 +195,7 @@ export function TrackForm({
               </p>
             </div>
           ) : null}
-          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-midnight/10 pt-6 sm:grid-cols-2">
+          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 sm:grid-cols-2">
             <Row
               label="Service"
               value={quoteServiceLabels[state.quote.serviceType] ?? state.quote.serviceType}
@@ -226,38 +231,38 @@ export function TrackForm({
       {state.status === "found" ? (
         <div
           role="status"
-          className="mt-8 border border-midnight/10 bg-grey p-6 md:p-8"
+          className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
-          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
             {state.booking.reference}
           </p>
-          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-midnight">
+          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {statusCopy[state.booking.status] ?? "We have your booking."}
           </p>
 
           {state.booking.quotedTotalCents !== null ? (
-            <div className="mt-6 border-t border-midnight/10 pt-6">
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+            <div className="mt-6 border-t border-white/15 pt-6">
+              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                 {state.booking.pricingMode === "fixed"
                   ? "Fixed fare"
                   : "Your quote"}
               </p>
-              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-midnight tabular-nums">
+              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
                 ${Math.round(state.booking.quotedTotalCents / 100)}
               </p>
               {state.booking.quoteNote ? (
-                <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-charcoal">
+                <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-white/75">
                   {state.booking.quoteNote}
                 </p>
               ) : null}
               {state.booking.paymentStatus === "paid" ? (
-                <p className="mt-3 font-sans text-[15px] font-semibold text-midnight">
+                <p className="mt-3 font-sans text-[15px] font-semibold text-white">
                   Paid. Thank you.
                 </p>
               ) : null}
             </div>
           ) : state.booking.pricingMode === "quote" ? (
-            <p className="mt-6 max-w-md border-t border-midnight/10 pt-6 text-[15px] leading-[1.7] text-charcoal">
+            <p className="mt-6 max-w-md border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
               We are still pricing this trip. A reservations agent will come back
               to you by phone or email — the fare will appear here as soon as it
               is set.
@@ -273,11 +278,11 @@ export function TrackForm({
           ) : null}
 
           {state.booking.status === "completed" ? (
-            <p className="mt-6 border-t border-midnight/10 pt-6 text-[15px] leading-[1.7] text-charcoal">
+            <p className="mt-6 border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
               How was the trip?{" "}
               <Link
                 href={`/review?reference=${encodeURIComponent(state.booking.reference)}`}
-                className="font-medium text-midnight underline underline-offset-4"
+                className="font-medium text-white underline underline-offset-4"
               >
                 Leave a review
               </Link>
@@ -285,7 +290,7 @@ export function TrackForm({
             </p>
           ) : null}
 
-          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-midnight/10 pt-6 sm:grid-cols-2">
+          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 sm:grid-cols-2">
             <Row label="Pickup" value={state.booking.pickup} />
             <Row label="Destination" value={state.booking.destination} />
             <Row
@@ -334,10 +339,10 @@ export function TrackForm({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+      <dt className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
         {label}
       </dt>
-      <dd className="mt-1 text-[15px] text-midnight tabular-nums">{value}</dd>
+      <dd className="mt-1 text-[15px] text-white tabular-nums">{value}</dd>
     </div>
   );
 }

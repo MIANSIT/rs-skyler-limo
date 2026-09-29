@@ -19,6 +19,7 @@ import { DateField, TimeField } from "@/components/ui/date-time-field";
 import {
   Checkbox,
   Field,
+  glassCard,
   Input,
   RadioCards,
   Select,
@@ -315,7 +316,7 @@ export function BookingForm({
      `ui/section.tsx` already follows. */
   const divider = dark ? "border-white/15" : "border-midnight/10";
   const cardChrome = dark
-    ? "rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_30px_60px_-30px_rgba(0,0,0,0.75)]"
+    ? glassCard
     : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
   const heading = dark ? "text-white" : "text-midnight";
   const body = dark ? "text-white/75" : "text-charcoal";

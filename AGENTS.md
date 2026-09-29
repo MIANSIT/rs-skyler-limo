@@ -111,10 +111,13 @@ and links to `/book?trip=…&vehicle=…`, which pre-fills the form. The form
 lives only at `/book`. `BookingForm` still has a `tone="dark"` prop (a
 frosted-glass card: `bg-midnight-deep/55 backdrop-blur-2xl`) threaded down
 through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in `ui/field.tsx`;
-nothing passes it now, and only pass it where the client has approved the look.
-Extending this treatment to other pages is a separate, not-yet-done task — see
-`ButtonOnDark`/`ButtonLinkOnDark` in `ui/button.tsx` for the on-dark button
-pattern before reinventing it.
+only `/book` passes it, and only pass it where the client has approved the look.
+`/book` and `/track` have since joined it: a `deep` section with the hero's
+faint gold wash, the form and results as `glassCard` (`ui/field.tsx`), every
+field on `tone="dark"`, and non-gold buttons as `ButtonOnDark`/`ButtonLinkOnDark`
+(`ui/button.tsx`) — a midnight fill disappears on glass. The page's one gold
+action (Book / Show my booking) keeps the gold. Other pages are still light;
+use the same pieces when a page goes dark rather than reinventing them.
 
 The logo lockup is `src/components/brand/logo.tsx` (RS monogram + wordmark).
 Favicon and app icon are `src/app/icon.png` / `src/app/apple-icon.png` — Next

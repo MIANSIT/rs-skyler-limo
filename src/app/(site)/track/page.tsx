@@ -43,10 +43,23 @@ export default async function TrackPage({
         intro="Enter your reference and the phone number on the booking. Nothing to install, and it works on any phone."
       />
 
-      <Section tone="light">
-        <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
+      {/*
+        Dark, like the homepage and /book: the deep-midnight ground with the
+        same slow gold wash, and the lookup and its result as glass cards.
+      */}
+      <Section tone="deep" className="relative overflow-clip">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-1/4 -right-1/4 h-[90%] w-[70%] rounded-full bg-[radial-gradient(closest-side,rgba(212,160,23,0.10),transparent)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-1/3 -left-1/4 h-[80%] w-[60%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.05),transparent)]"
+        />
+        <div className="relative grid gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <SectionHeading
+              tone="dark"
               eyebrow="Find a booking"
               title="Two details, nothing to install"
               data-reveal
@@ -60,11 +73,11 @@ export default async function TrackPage({
               />
             </div>
 
-            <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">
+            <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-white/75">
               No reference to hand? Call dispatch on{" "}
               <a
                 href={contact.phoneHref}
-                className="text-midnight underline underline-offset-4 tabular-nums"
+                className="text-white underline underline-offset-4 tabular-nums"
               >
                 {contact.phone}
               </a>{" "}
@@ -74,14 +87,11 @@ export default async function TrackPage({
 
           <Reveal y={30}>
             <div data-reveal>
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                 What you will see
               </p>
-              {/* The preview is drawn for a midnight ground (white text, gold
-                  label), so on this light section it becomes a solid midnight
-                  panel itself — no outlined card inside a midnight box. */}
               <div className="mt-5">
-                <BookingStatusPreview ground="light" />
+                <BookingStatusPreview ground="dark" />
               </div>
             </div>
           </Reveal>
