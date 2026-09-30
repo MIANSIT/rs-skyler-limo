@@ -324,17 +324,6 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
   });
 });
 
-<<<<<<< HEAD
-/**
- * Approved reviews, plus where to send a customer who wants to review on
- * Google, plus the listing itself.
- *
- * `googleProfileUrl` is not review data and rides along here because this is
- * the one public endpoint already derived from `GOOGLE_PLACE_ID`, and the site
- * caches it under the `reviews` tag. A second endpoint would mean a second
- * round trip on every page render to publish one URL.
- */
-=======
 /* -------------------------------------------------------------------------- */
 /* Customer self-service changes — see services/changes.ts                    */
 /* -------------------------------------------------------------------------- */
@@ -568,8 +557,15 @@ publicRouter.post("/payments/confirm", lookupLimit, async (req, res) => {
   res.json(await recordCheckout(sessionId));
 });
 
-/** Approved reviews, plus where to send a customer who wants to review on Google. */
->>>>>>> ba3b8c6abf39eb34e57333e48bb082104657f731
+/**
+ * Approved reviews, plus where to send a customer who wants to review on
+ * Google, plus the listing itself.
+ *
+ * `googleProfileUrl` is not review data and rides along here because this is
+ * the one public endpoint already derived from `GOOGLE_PLACE_ID`, and the site
+ * caches it under the `reviews` tag. A second endpoint would mean a second
+ * round trip on every page render to publish one URL.
+ */
 publicRouter.get("/reviews", async (_req, res) => {
   res.json({
     ...(await listApprovedReviews()),

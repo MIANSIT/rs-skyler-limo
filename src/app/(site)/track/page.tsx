@@ -11,16 +11,12 @@ import { contact } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Track a ride",
   description:
-<<<<<<< HEAD
-    "Enter a booking reference to see your driver's live position, vehicle and ETA. No app required.",
+    "Enter your booking reference and the phone number on it to see its status, pickup, vehicle and fare. No account or app required.",
   /* Per-customer and gated on a reference plus the phone number on the booking:
      there is nothing here to rank for. Matches the disallow in `robots.ts` — a
      disallowed page can still be indexed from an inbound link, and this is the
      half that actually keeps it out of the results. */
   robots: { index: false, follow: true },
-=======
-    "Enter your booking reference and the phone number on it to see its status, pickup, vehicle and fare. No account or app required.",
->>>>>>> ba3b8c6abf39eb34e57333e48bb082104657f731
 };
 
 /**
