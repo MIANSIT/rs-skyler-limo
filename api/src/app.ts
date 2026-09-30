@@ -11,6 +11,7 @@ import { adminHeroRouter } from "./routes/hero.js";
 import { adminVehiclesRouter } from "./routes/vehicles.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
+import { handleWebhook } from "./services/payments.js";
 
 export function createApp(): Express {
   const app = express();
@@ -37,6 +38,24 @@ export function createApp(): Express {
       maxAge: 600,
     }),
   );
+  /**
+   * Stripe's webhook, registered before the JSON parser: the signature covers
+   * the exact bytes Stripe sent, and a parsed-and-reserialised body would never
+   * verify. The public site forwards it here (`src/app/api/stripe/webhook`).
+   */
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json", limit: "256kb" }),
+    async (req, res, next) => {
+      try {
+        await handleWebhook(req.body as Buffer, String(req.headers["stripe-signature"] ?? ""));
+        res.json({ received: true });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   app.use(express.json({ limit: "64kb" }));
 
   app.get("/health", async (_req, res) => {

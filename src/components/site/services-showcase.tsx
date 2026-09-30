@@ -33,7 +33,7 @@ function ownPhoto(service: Service): Photo | null {
 /**
  * Until then, a photo of our own fleet — Chapter 9 rules out stock imagery of
  * unrelated cars. Each service takes the first photo not already used by an
- * earlier card, preferring its own vehicle class, so five cards never show the
+ * earlier card, preferring its own vehicle class, so the cards never show the
  * same shot twice while the fleet has enough photos to go round.
  */
 function assignPhotos(fleet: FleetVehicle[]): (Photo | null)[] {
@@ -61,7 +61,7 @@ function assignPhotos(fleet: FleetVehicle[]): (Photo | null)[] {
 }
 
 /**
- * The five services as picture cards — photo, name, one line, an arrow —
+ * The services as picture cards — photo, name, one line, an arrow —
  * after the client's reference. Gold is only the arrow's ring and glyph, so
  * the section keeps no gold text and no second gold action.
  */
@@ -80,14 +80,14 @@ export function ServicesShowcase({
         <SectionHeading
           tone="dark"
           eyebrow="What we do"
-          title="Five services, one standard"
+          title="Every trip, one standard"
           intro="Professional chauffeur service designed around your schedule, your comfort and where you are going."
           data-reveal
         />
       </Reveal>
 
       <Reveal
-        className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
         y={30}
       >
         {services.map((service, index) => {
@@ -105,7 +105,7 @@ export function ServicesShowcase({
                     src={photo.url}
                     alt={photo.alt}
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 20vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
                 ) : (

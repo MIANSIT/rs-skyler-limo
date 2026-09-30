@@ -194,7 +194,7 @@ export function Hero({
       />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="grid items-end gap-14 lg:min-h-[560px] lg:grid-cols-12 lg:gap-8">
+        <div className="grid items-end gap-14 lg:min-h-140 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-7">
             <p
               data-hero-eyebrow
@@ -227,7 +227,7 @@ export function Hero({
               Airport Transfers &bull; Corporate Travel &bull; Special Events
             </p>
 
-            <dl className="mt-14 grid max-w-md grid-cols-[repeat(3,auto)] justify-between gap-6 border-t border-white/15 pt-8">
+            <dl className="mt-14 grid max-w-md grid-cols-[repeat(3,auto)] justify-between gap-4 border-t sm:gap-6 border-white/15 pt-8">
               {/* The airport count said 3 while the booking form has offered
                   5 since Teterboro and Westchester were added, and "24/7
                   Dispatch" was a staffing claim nothing here backs up.
@@ -279,14 +279,16 @@ export function Hero({
 
 function HeroStat({ value, label }: { value: string; label: string }) {
   return (
-    <div data-hero-stat>
-      <dt className="sr-only">{label}</dt>
-      <dd className="font-display text-[28px] leading-none font-semibold text-white tabular-nums">
+    // The label is the <dt> and comes first in the DOM, as a definition list
+    // requires; `order-first` keeps the number above it on screen, top-aligned
+    // with its neighbours even when a label wraps to two lines on a phone.
+    <div data-hero-stat className="flex flex-col">
+      <dt className="mt-2 font-sans text-[12px] tracking-widest text-white/55 uppercase sm:text-[13px] sm:whitespace-nowrap">
+        {label}
+      </dt>
+      <dd className="font-display order-first text-[28px] leading-none font-semibold text-white tabular-nums">
         {value}
       </dd>
-      <p className="mt-2 font-sans text-[12px] tracking-[0.1em] whitespace-nowrap text-white/55 uppercase sm:text-[13px] sm:tracking-widest">
-        {label}
-      </p>
     </div>
   );
 }

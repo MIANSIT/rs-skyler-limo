@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ChangedTag } from "@/components/admin/changed-tag";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
   formatMoney,
@@ -98,11 +99,20 @@ export function BookingsTable({
                 </span>
               </td>
               <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">
-                {formatMoney(booking.quotedTotalCents)}
+                <span className="block">
+                  {formatMoney(booking.quotedTotalCents)}
+                </span>
+                {/* Cash is the one the driver has to act on, so it is named;
+                    paid is shown for either method. */}
+                <span className="block whitespace-nowrap text-charcoal/55">
+                  {booking.paymentMethod === "cash" ? "Cash" : "Card"}
+                  {booking.paymentStatus === "paid" ? " · paid" : ""}
+                </span>
               </td>
               <td className="px-4 py-4">
                 <div className="flex flex-col items-start gap-1.5">
                   <StatusBadge status={booking.status} />
+                  {booking.customerChangePending ? <ChangedTag /> : null}
                   {booking.possibleClashes ? (
                     <span
                       title="Another booking for this vehicle class is within 3 hours"

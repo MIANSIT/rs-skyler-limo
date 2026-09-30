@@ -26,6 +26,13 @@ export type TripType = "airport" | "point-to-point" | "hourly";
  */
 export type PricingMode = "fixed" | "quote";
 
+/**
+ * How the customer means to pay. `card` is settled with the office; `cash` is
+ * paid to the chauffeur at the end of the trip. Mirrors `paymentMethods` in
+ * `api/src/schemas.ts`.
+ */
+export type PaymentMethod = "card" | "cash";
+
 /* -------------------------------------------------------------------------- */
 /* Booking                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -53,8 +60,9 @@ export type BookingOptions = {
   childSeatFeeCents: number;
 };
 
-/** What /track returns. Still no customer contact details. */
+/** What /track returns for a booking. Still no customer contact details. */
 export type TrackedBooking = {
+  kind: "booking";
   reference: string;
   status: BookingStatus;
   pricingMode: PricingMode;
@@ -65,6 +73,81 @@ export type TrackedBooking = {
   quotedTotalCents: number | null;
   quoteNote: string | null;
   quotedAt: string | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: "unpaid" | "paid";
+  /** True when the customer can pay this booking by card on Stripe now. */
+  canPayOnline: boolean;
+  /** Whether the customer may change it online now, and if not, why. */
+  change: Changeability;
+};
+
+/** What /track returns for a quote request (`RQ-…`): status, nothing more. */
+export type TrackedQuote = {
+  kind: "quote";
+  reference: string;
+  status: "new" | "quoted" | "won" | "lost" | "pending";
+  serviceType: string;
+  /** `YYYY-MM-DD`, or null when the customer gave no date. */
+  eventDate: string | null;
+  /** Set by an operator once a price is agreed; null until then. */
+  agreedPriceCents: number | null;
+  /** Chosen with the agreed price; null until then. */
+  paymentMethod: PaymentMethod | null;
+  paymentStatus: "unpaid" | "paid";
+  createdAt: string;
+  change: Changeability;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Customer self-service changes                                              */
+/* -------------------------------------------------------------------------- */
+
+export type Changeability = { allowed: boolean; reason: string | null };
+
+/** A booking's editable fields, returned once the emailed code is right. */
+export type ChangeableBooking = {
+  kind: "booking";
+  reference: string;
+  tripType: TripType;
+  airportCode: string | null;
+  airportDirection: "from-airport" | "to-airport" | null;
+  pickupAt: string;
+  pickup: string;
+  destination: string;
+  passengers: number;
+  bags: number;
+  childSeats: number;
+  vehicleClass: string;
+  airline: string | null;
+  flightNumber: string | null;
+  notes: string | null;
+  customerName: string;
+  customerPhone: string;
+  pricingMode: PricingMode;
+  quotedTotalCents: number | null;
+  paymentStatus: "unpaid" | "paid";
+};
+
+export type ChangeableQuote = {
+  kind: "quote";
+  reference: string;
+  serviceType: string;
+  eventDate: string | null;
+  passengers: number | null;
+  company: string | null;
+  customerName: string;
+  customerPhone: string;
+  details: string;
+  agreedPriceCents: number | null;
+};
+
+export type FieldChange = { label: string; before: string; after: string };
+
+export type ProposedFare = {
+  pricingMode: PricingMode;
+  /** Null when the trip goes to a person to price. */
+  totalCents: number | null;
+  reason: string;
 };
 
 /* -------------------------------------------------------------------------- */

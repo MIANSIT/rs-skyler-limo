@@ -73,7 +73,7 @@ export function FleetCard({
           : "border-midnight/10 bg-white",
       )}
     >
-      <div className="relative flex aspect-[16/10] items-end overflow-hidden bg-midnight p-6">
+      <div className="relative flex aspect-16/10 items-end overflow-hidden bg-midnight p-6">
         {photo ? (
           <Image
             src={photo.url}
@@ -87,7 +87,7 @@ export function FleetCard({
             {/* No photography yet. The mark on midnight rather than a stock
                 photo of an unrelated car — Chapter 9 rules that out, and a
                 customer who has ridden with us should recognise the vehicle. */}
-            <LogoMark className="absolute top-1/2 left-1/2 h-28 -translate-x-1/2 -translate-y-[60%] opacity-30" />
+            <LogoMark className="absolute top-1/2 left-1/2 h-28 -translate-x-1/2 translate-y-[-60%] opacity-30" />
             <p className="relative font-sans text-[13px] tracking-[0.12em] text-white/40 uppercase">
               {vehicle.name}
             </p>
@@ -109,7 +109,7 @@ export function FleetCard({
           <p
             className={clsx(
               "mt-1 truncate font-sans text-[12px] tracking-[0.06em] uppercase",
-              dark ? "text-white/50" : "text-charcoal/60",
+              dark ? "text-white/50" : "text-charcoal/70",
             )}
           >
             {vehicle.model}
@@ -125,7 +125,10 @@ export function FleetCard({
           {vehicle.bestFor}
         </p>
 
-        <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-[12px] sm:grid-cols-4">
+        {/* Four across only when the card is wide: /fleet goes two cards per
+            row at `md`, which squeezes each column below "PASSENGERS" until
+            `lg` widens them again. */}
+        <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-[12px] sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
           <Spec label="Passengers" value={`Up to ${vehicle.passengerCapacity}`} dark={dark} />
           <Spec label="Luggage" value={`${vehicle.luggageCapacity} cases`} dark={dark} />
           <Spec
@@ -169,7 +172,7 @@ export function FleetCard({
         {interiors.length > 0 ? (
           <ul className="mt-6 grid grid-cols-3 gap-2">
             {interiors.slice(0, 3).map((interior) => (
-              <li key={interior.id} className="relative aspect-[4/3]">
+              <li key={interior.id} className="relative aspect-4/3">
                 <Image
                   src={interior.url}
                   alt={interior.altText}
@@ -349,7 +352,7 @@ function Spec({ label, value, dark }: { label: string; value: string; dark: bool
       <dt
         className={clsx(
           "font-medium tracking-[0.06em] uppercase",
-          dark ? "text-white/50" : "text-charcoal/60",
+          dark ? "text-white/50" : "text-charcoal/70",
         )}
       >
         {label}

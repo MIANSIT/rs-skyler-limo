@@ -190,7 +190,7 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
           "flex items-center justify-between gap-2 text-left",
         )}
       >
-        <span className={clsx(!selected && "opacity-60")}>
+        <span className={clsx(!selected && "opacity-70")}>
           {selected ? formatDisplay(selected) : "mm/dd/yyyy"}
         </span>
         <CalendarIcon
@@ -647,7 +647,7 @@ export const TimeField = forwardRef<HTMLInputElement, TimeFieldProps>(function T
           "flex items-center justify-between gap-2 text-left",
         )}
       >
-        <span className={clsx(!parsed && "opacity-60")}>
+        <span className={clsx(!parsed && "opacity-70")}>
           {parsed ? `${parsed.hour12}:${String(parsed.minute).padStart(2, "0")} ${parsed.period}` : "--:-- --"}
         </span>
         <ClockIcon

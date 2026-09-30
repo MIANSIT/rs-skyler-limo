@@ -29,6 +29,14 @@ export type QuoteStatus = (typeof quoteStatuses)[number];
 
 export type TripType = "airport" | "point-to-point" | "hourly";
 
+/**
+ * Mirrors `paymentMethods` / `paymentStatuses` in `api/src/schemas.ts` (and
+ * `PaymentMethod` in the public site's types). `card` is Stripe once it is
+ * connected; `cash` is cash on delivery, paid to the chauffeur.
+ */
+export type PaymentMethod = "card" | "cash";
+export type PaymentStatus = "unpaid" | "paid";
+
 export type Booking = {
   id: number;
   reference: string;
@@ -46,6 +54,12 @@ export type Booking = {
   pricingMode: "fixed" | "quote";
   quotedAt: string | null;
   quoteNote: string | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  /** When it was marked paid — by Stripe or by an operator. Null while unpaid. */
+  paidAt: string | null;
+  /** Set when Stripe took the payment; search it in the Stripe Dashboard. */
+  stripePaymentIntentId: string | null;
   pickupLocality: string | null;
   pickupRegion: string | null;
   destinationLocality: string | null;
@@ -60,6 +74,9 @@ export type Booking = {
   notes: string | null;
   quotedTotalCents: number | null;
   source: string;
+  /** Changed by the customer from /track; cleared when an operator reviews it. */
+  customerChangePending: boolean;
+  customerChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
   /**
@@ -90,7 +107,17 @@ export type Quote = {
   customerEmail: string;
   customerPhone: string;
   details: string;
+  /** The price agreed with the customer, in cents; null until one is set. */
+  agreedPriceCents: number | null;
+  pricedAt: string | null;
+  /** Chosen with the agreed price; null until then. */
+  paymentMethod: PaymentMethod | null;
+  paymentStatus: PaymentStatus;
+  paidAt: string | null;
+  stripePaymentIntentId: string | null;
   source: string;
+  customerChangePending: boolean;
+  customerChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -119,8 +146,10 @@ export type DashboardStats = {
     today: number;
     next7Days: number;
     total: number;
+    /** Changed by the customer and not yet reviewed. */
+    changed: number;
   };
-  quotes: { new: number; total: number };
+  quotes: { new: number; total: number; changed: number };
   recentVolume: { date: string; count: number }[];
 };
 

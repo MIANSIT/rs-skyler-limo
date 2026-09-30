@@ -117,7 +117,7 @@ function ReviewRow({ review }: { review: AdminReview }) {
           </summary>
           <form action={deleteReview} className="mt-2 flex flex-col gap-2">
             <input type="hidden" name="id" value={review.id} />
-            <p className="max-w-[14rem] font-sans text-[13px] leading-[1.5] text-charcoal/80">
+            <p className="max-w-[14rem] font-sans text-[13px] leading-normal text-charcoal/80">
               Permanent. Hiding is reversible.
             </p>
             <button

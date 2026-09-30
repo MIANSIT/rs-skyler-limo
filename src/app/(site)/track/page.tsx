@@ -4,7 +4,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { TrackForm } from "@/components/site/track-form";
-import { getFleetSafely } from "@/lib/public/fleet";
+import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
@@ -14,9 +14,23 @@ export const metadata: Metadata = {
     "Enter your booking reference and the phone number on it to see its status, pickup, vehicle and fare. No account or app required.",
 };
 
-export default async function TrackPage() {
+/**
+ * `?reference=` fills in the reference, so a link from an email or from the
+ * confirmation screen leaves only the phone number to type. Accepted only in
+ * the shape of one of our references; anything else is ignored rather than
+ * echoed into the page.
+ */
+export default async function TrackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const raw = (await searchParams).reference;
+  const candidate = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  const initialReference = /^R[SQ]-[0-9A-Z]{7}$/.test(candidate) ? candidate : "";
+
   // Vehicle names come from the fleet the operator maintains, not a copy.
-  const fleet = await getFleetSafely();
+  const [fleet, options] = await Promise.all([getFleetSafely(), getBookingOptionsSafely()]);
   const vehicleNames = Object.fromEntries(
     fleet.map((vehicle) => [vehicle.slug, vehicle.name]),
   );
@@ -29,23 +43,41 @@ export default async function TrackPage() {
         intro="Enter your reference and the phone number on the booking. Nothing to install, and it works on any phone."
       />
 
-      <Section tone="light">
-        <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
+      {/*
+        Dark, like the homepage and /book: the deep-midnight ground with the
+        same slow gold wash, and the lookup and its result as glass cards.
+      */}
+      <Section tone="deep" className="relative overflow-clip">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-1/4 -right-1/4 h-[90%] w-[70%] rounded-full bg-[radial-gradient(closest-side,rgba(212,160,23,0.10),transparent)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-1/3 -left-1/4 h-[80%] w-[60%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.05),transparent)]"
+        />
+        <div className="relative grid gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <SectionHeading
+              tone="dark"
               eyebrow="Find a booking"
               title="Two details, nothing to install"
               data-reveal
             />
             <div data-reveal>
-              <TrackForm vehicleNames={vehicleNames} />
+              <TrackForm
+                vehicleNames={vehicleNames}
+                initialReference={initialReference}
+                fleet={fleet}
+                placesEnabled={options.placesEnabled}
+              />
             </div>
 
-            <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-charcoal">
+            <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-white/75">
               No reference to hand? Call dispatch on{" "}
               <a
                 href={contact.phoneHref}
-                className="text-midnight underline-offset-4 tabular-nums hover:underline"
+                className="text-white underline underline-offset-4 tabular-nums"
               >
                 {contact.phone}
               </a>{" "}
@@ -55,14 +87,11 @@ export default async function TrackPage() {
 
           <Reveal y={30}>
             <div data-reveal>
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
+              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                 What you will see
               </p>
-              {/* The preview is drawn for a midnight ground (white text, gold
-                  label), so on this light section it becomes a solid midnight
-                  panel itself — no outlined card inside a midnight box. */}
               <div className="mt-5">
-                <BookingStatusPreview ground="light" />
+                <BookingStatusPreview ground="dark" />
               </div>
             </div>
           </Reveal>

@@ -95,6 +95,38 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               NOT NULL DEFAULT 'new'`,
     },
     {
+      description: "bookings.payment_method, payment_status, paid_at",
+      check: () => columnMissing(connection, "bookings", "payment_method"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN payment_method ENUM('card','cash') NOT NULL DEFAULT 'card' AFTER quote_note,
+              ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid' AFTER payment_method,
+              ADD COLUMN paid_at DATETIME NULL AFTER payment_status`,
+    },
+    {
+      description: "bookings.stripe_checkout_session_id, stripe_payment_intent_id",
+      check: () => columnMissing(connection, "bookings", "stripe_checkout_session_id"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN stripe_checkout_session_id VARCHAR(255) NULL AFTER paid_at,
+              ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_checkout_session_id`,
+    },
+    {
+      description: "quotes.agreed_price_cents, priced_at",
+      check: () => columnMissing(connection, "quotes", "agreed_price_cents"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN agreed_price_cents INT UNSIGNED NULL AFTER details,
+              ADD COLUMN priced_at DATETIME NULL AFTER agreed_price_cents`,
+    },
+    {
+      description: "quotes.payment_method, payment_status, paid_at, Stripe ids",
+      check: () => columnMissing(connection, "quotes", "payment_method"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN payment_method ENUM('card','cash') NULL AFTER priced_at,
+              ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid' AFTER payment_method,
+              ADD COLUMN paid_at DATETIME NULL AFTER payment_status,
+              ADD COLUMN stripe_checkout_session_id VARCHAR(255) NULL AFTER paid_at,
+              ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_checkout_session_id`,
+    },
+    {
       // The client's rate sheet prices transfers from Islip/MacArthur, which
       // the airports table has never had a row for. `INSERT IGNORE` keeps this
       // idempotent even if an operator adds ISP by hand first.
@@ -110,6 +142,20 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
       sql: `INSERT IGNORE INTO airports (code, name, display_order)
               SELECT 'MMU', 'Morristown (MMU)', COALESCE(MAX(display_order), 0) + 1
                 FROM airports`,
+    },
+    {
+      description: "bookings.customer_change_pending, customer_changed_at",
+      check: () => columnMissing(connection, "bookings", "customer_change_pending"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN customer_change_pending TINYINT(1) NOT NULL DEFAULT 0 AFTER source,
+              ADD COLUMN customer_changed_at DATETIME NULL AFTER customer_change_pending`,
+    },
+    {
+      description: "quotes.customer_change_pending, customer_changed_at",
+      check: () => columnMissing(connection, "quotes", "customer_change_pending"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN customer_change_pending TINYINT(1) NOT NULL DEFAULT 0 AFTER source,
+              ADD COLUMN customer_changed_at DATETIME NULL AFTER customer_change_pending`,
     },
     {
       // Widening an ENUM is safe to repeat, but only run it when needed so the

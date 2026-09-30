@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ChangedTag } from "@/components/admin/changed-tag";
+import { ChangedToggle } from "@/components/admin/changed-toggle";
 import { FilterBar } from "@/components/admin/filter-bar";
 import { Pagination } from "@/components/admin/pagination";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -28,14 +30,22 @@ export default async function QuotesPage({
 
   const status = single("status");
   const query = single("q");
+  const changed = single("changed") === "1" ? "1" : undefined;
   const page = Number(single("page") ?? 1);
   const safePage = Number.isInteger(page) && page > 0 ? page : 1;
 
   const { quotes, total, perPage } = await getQuotes({
     status: quoteStatuses.includes(status as never) ? status : undefined,
     q: query,
+    changed,
     page: safePage,
   });
+
+  const toggleParams = new URLSearchParams();
+  if (status && quoteStatuses.includes(status as never)) toggleParams.set("status", status);
+  if (query) toggleParams.set("q", query);
+  if (!changed) toggleParams.set("changed", "1");
+  const toggleHref = toggleParams.size > 0 ? `/quotes?${toggleParams}` : "/quotes";
 
   return (
     <div className="flex flex-col gap-8">
@@ -54,13 +64,20 @@ export default async function QuotesPage({
         activeStatus={status}
         query={query}
         placeholder="Reference, name, company"
+        keep={changed ? { changed } : {}}
       />
+
+      <div>
+        <ChangedToggle href={toggleHref} active={Boolean(changed)} />
+      </div>
 
       {quotes.length === 0 ? (
         <p className="rounded-sm border border-midnight/10 bg-white px-6 py-8 text-center font-sans text-[15px] text-charcoal/60">
-          {status || query
-            ? "No quote requests match that filter."
-            : "No quote requests yet."}
+          {changed && !status && !query
+            ? "No customer changes waiting for review."
+            : status || query || changed
+              ? "No quote requests match that filter."
+              : "No quote requests yet."}
         </p>
       ) : (
         <ul className="flex flex-col gap-px overflow-hidden rounded-sm border border-midnight/10 bg-midnight/10">
@@ -75,6 +92,7 @@ export default async function QuotesPage({
                     {quote.reference}
                   </span>
                   <StatusBadge status={quote.status} />
+                  {quote.customerChangePending ? <ChangedTag /> : null}
                   <span className="font-sans text-[15px] text-midnight">
                     {quote.customerName}
                     {quote.company ? (

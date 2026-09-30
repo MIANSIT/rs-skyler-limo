@@ -66,6 +66,16 @@ Things that are easy to get wrong here:
   `MAIL_USER` — **never `MAIL`**, which is a POSIX shell variable holding the
   user's mail spool that dotenv refuses to overwrite. Anything a customer typed
   is escaped before it reaches the markup.
+- **Customers can change their own booking or quote request** from `/track`
+  (`api/src/services/changes.ts`, `src/components/site/change-record.tsx`). A
+  6-digit code goes to the email *already on the record* — never one typed then,
+  and email is not editable here — and a correct code buys one save. The same row
+  is updated (reference unchanged), `decideFare` runs again (a moved fare is shown
+  and must be accepted; a paid fare cannot move), a confirmed booking drops to
+  `pending`, and a priced quote loses its price. The row gets
+  `customer_change_pending`, shown as "Changed by customer" in the admin until
+  someone marks it reviewed; the before → after lives in `activity_log`
+  (`customer_changed`, `admin_user_id` NULL). No changes within 12 hours of pickup.
 
 See the README for setup and `deploy/nginx.conf` for the two server blocks.
 
@@ -101,10 +111,13 @@ and links to `/book?trip=…&vehicle=…`, which pre-fills the form. The form
 lives only at `/book`. `BookingForm` still has a `tone="dark"` prop (a
 frosted-glass card: `bg-midnight-deep/55 backdrop-blur-2xl`) threaded down
 through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in `ui/field.tsx`;
-nothing passes it now, and only pass it where the client has approved the look.
-Extending this treatment to other pages is a separate, not-yet-done task — see
-`ButtonOnDark`/`ButtonLinkOnDark` in `ui/button.tsx` for the on-dark button
-pattern before reinventing it.
+only `/book` passes it, and only pass it where the client has approved the look.
+`/book` and `/track` have since joined it: a `deep` section with the hero's
+faint gold wash, the form and results as `glassCard` (`ui/field.tsx`), every
+field on `tone="dark"`, and non-gold buttons as `ButtonOnDark`/`ButtonLinkOnDark`
+(`ui/button.tsx`) — a midnight fill disappears on glass. The page's one gold
+action (Book / Show my booking) keeps the gold. Other pages are still light;
+use the same pieces when a page goes dark rather than reinventing them.
 
 The logo lockup is `src/components/brand/logo.tsx` (RS monogram + wordmark).
 Favicon and app icon are `src/app/icon.png` / `src/app/apple-icon.png` — Next

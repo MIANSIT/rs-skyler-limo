@@ -145,6 +145,13 @@ export async function saveRates(
   });
 }
 
+/**
+ * Per child seat, added to a fixed fare. Kept beside the fare logic rather than
+ * in the site's content file: this number is charged, so it belongs where the
+ * charging happens.
+ */
+export const CHILD_SEAT_FEE_CENTS = 3500;
+
 export type FareDecision = {
   pricingMode: "fixed" | "quote";
   /** Set only when `fixed`. */

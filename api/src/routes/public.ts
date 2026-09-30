@@ -1,14 +1,21 @@
 import { Router } from "express";
 
+import { env } from "../env.js";
 import { ApiError } from "../lib/http.js";
 import { samePhone } from "../lib/phone.js";
 import { isReference } from "../lib/reference.js";
 import { issueFormToken, requireFormGuard } from "../lib/form-guard.js";
 import { rateLimit } from "../middleware.js";
 import {
+  changeBookingSchema,
+  changeCodeSchema,
+  changeQuoteSchema,
+  changeVerifySchema,
   createBookingSchema,
   createQuoteSchema,
   createReviewSchema,
+  paymentConfirmSchema,
+  paymentLinkSchema,
   placesAutocompleteSchema,
   trackSchema,
 } from "../schemas.js";
@@ -17,7 +24,7 @@ import {
   findRecentDuplicate,
   getBookingByReference,
 } from "../services/bookings.js";
-import { createQuote } from "../services/quotes.js";
+import { createQuote, getQuoteByReference } from "../services/quotes.js";
 import {
   createReview,
   googleReviewUrl,
@@ -25,9 +32,41 @@ import {
 } from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
 import { listActiveHeroMedia } from "../services/hero.js";
-import { decideFare, getPublicRates, listActiveAirports } from "../services/pricing.js";
+import {
+  CHILD_SEAT_FEE_CENTS,
+  decideFare,
+  getPublicRates,
+  listActiveAirports,
+} from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
-import { sendBookingEmails, sendQuoteRequestEmails } from "../services/mail.js";
+import {
+  sendBookingChangedEmails,
+  sendBookingEmails,
+  sendChangeCodeEmail,
+  sendQuoteChangedEmails,
+  sendQuoteRequestEmails,
+} from "../services/mail.js";
+import {
+  bookingChangeability,
+  bookingEditable,
+  changeBooking,
+  changeQuote,
+  findChangeSubject,
+  issueChangeCode,
+  quoteChangeability,
+  quoteEditable,
+  verifyChangeCode,
+} from "../services/changes.js";
+import {
+  canPayOnline,
+  canPayQuoteOnline,
+  createCheckout,
+  createQuoteCheckout,
+  recordCheckout,
+} from "../services/payments.js";
+import { checkPaymentLink } from "../lib/payment-link.js";
+import { getVehicleBySlug } from "../services/vehicles.js";
+import { titleCase } from "../emails/render.js";
 import { randomUUID } from "node:crypto";
 
 export const publicRouter: Router = Router();
@@ -36,6 +75,9 @@ export const publicRouter: Router = Router();
 // enough that a script cannot fill the dashboard with noise overnight.
 const submitLimit = rateLimit({ windowMs: 60_000, max: 8 });
 const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+// Codes and guesses: tighter than a lookup. The per-record limits in
+// `services/changes.ts` stop a slow attack; this stops a fast one.
+const changeLimit = rateLimit({ windowMs: 60_000, max: 20 });
 
 /**
  * A token the forms send back with the submission. Issued when a form loads, so
@@ -44,12 +86,6 @@ const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
 publicRouter.get("/form-token", lookupLimit, (_req, res) => {
   res.json({ token: issueFormToken() });
 });
-
-/**
- * Kept beside the fare logic rather than in the site's content file: this
- * number is charged, so it belongs where the charging happens.
- */
-const CHILD_SEAT_FEE_CENTS = 3500;
 
 /**
  * The fleet as the public site shows it: active vehicles only, in the
@@ -173,11 +209,30 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     );
   });
 
+  /**
+   * A fixed fare paid by card goes straight to Stripe. The booking is already
+   * saved, so if Stripe is down the customer still has their reference and can
+   * pay later from the tracking page — a payment failure is logged, never
+   * returned as a failed booking.
+   */
+  let checkoutUrl: string | null = null;
+  if (canPayOnline(booking)) {
+    try {
+      checkoutUrl = await createCheckout(booking);
+    } catch (error) {
+      console.error(
+        `[stripe] could not open checkout for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   res.status(201).json({
     reference: booking.reference,
     pricingMode: booking.pricingMode,
     quotedTotalCents: booking.quotedTotalCents,
     fareReason: fare.reason,
+    checkoutUrl,
   });
 });
 
@@ -216,6 +271,31 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     throw ApiError.notFound("No booking matches those details.");
   }
 
+  /*
+   * A quote request (`RQ-…`) is looked up the same way, so every email the
+   * customer gets — booking or request — can point at the one tracking page.
+   * It carries no route or fare, so the response is short.
+   */
+  if (reference.toUpperCase().startsWith("RQ-")) {
+    const quote = await getQuoteByReference(reference);
+    if (!quote || !samePhone(quote.customerPhone, phone)) {
+      throw ApiError.notFound("No booking matches those details.");
+    }
+    res.json({
+      kind: "quote",
+      reference: quote.reference,
+      status: quote.status,
+      serviceType: quote.serviceType,
+      eventDate: quote.eventDate,
+      agreedPriceCents: quote.agreedPriceCents,
+      paymentMethod: quote.paymentMethod,
+      paymentStatus: quote.paymentStatus,
+      createdAt: quote.createdAt,
+      change: quoteChangeability(quote),
+    });
+    return;
+  }
+
   const booking = await getBookingByReference(reference);
 
   const matches = booking && samePhone(booking.customerPhone, phone);
@@ -225,6 +305,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
   if (!matches) throw ApiError.notFound("No booking matches those details.");
 
   res.json({
+    kind: "booking",
     reference: booking.reference,
     status: booking.status,
     pricingMode: booking.pricingMode,
@@ -235,7 +316,244 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     quotedTotalCents: booking.quotedTotalCents,
     quoteNote: booking.quoteNote,
     quotedAt: booking.quotedAt,
+    paymentMethod: booking.paymentMethod,
+    paymentStatus: booking.paymentStatus,
+    canPayOnline: canPayOnline(booking),
+    change: bookingChangeability(booking),
   });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Customer self-service changes — see services/changes.ts                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * "Email me a code". The code goes to the address on the record and is never
+ * in the response. The send is not awaited, like every send: if it fails, the
+ * page already tells the customer how to reach the office.
+ */
+publicRouter.post("/change/code", changeLimit, async (req, res) => {
+  const { reference, phone } = changeCodeSchema.parse(req.body);
+  const subject = await findChangeSubject(reference, phone);
+  const issued = await issueChangeCode(subject);
+
+  const record = subject.kind === "booking" ? subject.booking : subject.quote;
+  void sendChangeCodeEmail({
+    to: issued.email,
+    reference: record.reference,
+    kind: subject.kind,
+    customerName: record.customerName,
+    code: issued.code,
+    expiresInMinutes: issued.expiresInMinutes,
+  }).catch((error: unknown) => {
+    console.error(
+      `[mail] unexpected failure sending a change code for ${record.reference}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
+
+  res.json({
+    maskedEmail: issued.maskedEmail,
+    expiresInMinutes: issued.expiresInMinutes,
+    resendAfterSeconds: issued.resendAfterSeconds,
+  });
+});
+
+/** The code, traded for a change token and the record's editable fields. */
+publicRouter.post("/change/verify", changeLimit, async (req, res) => {
+  const { reference, phone, code } = changeVerifySchema.parse(req.body);
+  const subject = await findChangeSubject(reference, phone);
+  const { token, expiresInMinutes } = await verifyChangeCode(subject, code);
+
+  res.json({
+    token,
+    expiresInMinutes,
+    details: subject.kind === "booking" ? bookingEditable(subject.booking) : quoteEditable(subject.quote),
+  });
+});
+
+publicRouter.post("/change/booking", changeLimit, async (req, res) => {
+  const input = changeBookingSchema.parse(req.body);
+  const subject = await findChangeSubject(input.reference, input.phone);
+  if (subject.kind !== "booking") throw ApiError.notFound("No booking matches those details.");
+
+  const result = await changeBooking(subject.booking, input);
+
+  if (result.outcome === "saved") {
+    void sendBookingChangedEmails(result.booking, result.changes).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${result.booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+    res.json({
+      outcome: "saved",
+      reference: result.booking.reference,
+      status: result.booking.status,
+      statusChanged: result.statusChanged,
+      changes: result.changes,
+    });
+    return;
+  }
+
+  res.json(result);
+});
+
+publicRouter.post("/change/quote", changeLimit, async (req, res) => {
+  const input = changeQuoteSchema.parse(req.body);
+  const subject = await findChangeSubject(input.reference, input.phone);
+  if (subject.kind !== "quote") throw ApiError.notFound("No booking matches those details.");
+
+  const result = await changeQuote(subject.quote, input);
+
+  if (result.outcome === "saved") {
+    void sendQuoteChangedEmails(result.quote, result.changes).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${result.quote.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+    res.json({
+      outcome: "saved",
+      reference: result.quote.reference,
+      status: result.quote.status,
+      statusChanged: result.statusChanged,
+      changes: result.changes,
+    });
+    return;
+  }
+
+  res.json(result);
+});
+
+/**
+ * Opens a Stripe payment page for a priced, unpaid card booking. The same two
+ * factors as /track, so nobody can open a payment page — or learn a fare — for
+ * someone else's trip from a reference alone.
+ */
+publicRouter.post("/payments/checkout", lookupLimit, async (req, res) => {
+  const { reference, phone } = trackSchema.parse(req.body);
+
+  const booking = isReference(reference.toUpperCase())
+    ? await getBookingByReference(reference)
+    : null;
+  if (!booking || !samePhone(booking.customerPhone, phone)) {
+    throw ApiError.notFound("No booking matches those details.");
+  }
+
+  res.json({ url: await createCheckout(booking) });
+});
+
+/**
+ * A payment link, checked. The token is the credential — signed for this
+ * booking and this amount, and time-limited (`lib/payment-link.ts`) — so no
+ * phone number is asked for. One vague 404 for every way a link can be wrong,
+ * so it cannot be used to probe references; `expired` is said plainly because
+ * only the holder of a genuine link can reach it.
+ */
+const EXPIRED = "This payment link has expired. Call us and we will send a new one.";
+const INVALID = "This payment link is not valid. Call us and we will send a new one.";
+
+/**
+ * The booking (`RS-…`) or quote request (`RQ-…`) a payment link is for, once
+ * its token checks out. The signature covers the amount, so for a quote
+ * request the agreed price stands where a booking's fare would.
+ */
+async function payableForLink(reference: string, token: string) {
+  const ref = reference.toUpperCase();
+  if (!isReference(ref)) throw ApiError.notFound(INVALID);
+
+  if (ref.startsWith("RQ-")) {
+    const quote = await getQuoteByReference(ref);
+    const check = quote
+      ? checkPaymentLink({ id: quote.id, reference: quote.reference, quotedTotalCents: quote.agreedPriceCents }, token)
+      : "invalid";
+    if (!quote || check === "invalid") throw ApiError.notFound(INVALID);
+    if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
+    return { kind: "quote" as const, quote };
+  }
+
+  const booking = await getBookingByReference(ref);
+  const check = booking ? checkPaymentLink(booking, token) : "invalid";
+  if (!booking || check === "invalid") throw ApiError.notFound(INVALID);
+  if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
+  return { kind: "booking" as const, booking };
+}
+
+const QUOTE_SERVICE_LABEL: Record<string, string> = {
+  corporate: "Corporate account",
+  wedding: "Wedding",
+  event: "Event",
+  hourly: "Hourly charter",
+  other: "Chauffeured transport",
+};
+
+publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
+  const { reference, token } = paymentLinkSchema.parse(req.body);
+  const found = await payableForLink(reference, token);
+
+  if (found.kind === "quote") {
+    const { quote } = found;
+    res.json({
+      kind: "quote",
+      reference: quote.reference,
+      status: quote.status,
+      serviceLabel: QUOTE_SERVICE_LABEL[quote.serviceType] ?? "Chauffeured transport",
+      eventDate: quote.eventDate,
+      amountCents: quote.agreedPriceCents,
+      paymentStatus: quote.paymentStatus,
+      canPay: canPayQuoteOnline(quote),
+    });
+    return;
+  }
+
+  const { booking } = found;
+  // A class since removed from the fleet still reads as words, not a slug.
+  let vehicleName = titleCase(booking.vehicleClass);
+  try {
+    vehicleName = (await getVehicleBySlug(booking.vehicleClass))?.name ?? vehicleName;
+  } catch {
+    // Keep the tidied slug.
+  }
+
+  res.json({
+    kind: "booking",
+    reference: booking.reference,
+    status: booking.status,
+    pickupAt: booking.pickupAt,
+    pickup: booking.pickup,
+    destination: booking.destination,
+    vehicleName,
+    amountCents: booking.quotedTotalCents,
+    paymentStatus: booking.paymentStatus,
+    canPay: canPayOnline(booking),
+  });
+});
+
+publicRouter.post("/payments/link/checkout", lookupLimit, async (req, res) => {
+  const { reference, token } = paymentLinkSchema.parse(req.body);
+  const found = await payableForLink(reference, token);
+
+  // Backing out of Stripe returns to the same link page, not a generic one.
+  const base = env.SITE_BASE_URL.replace(/\/+$/, "");
+  const ref = found.kind === "quote" ? found.quote.reference : found.booking.reference;
+  const cancelUrl = `${base}/pay/${encodeURIComponent(ref)}?token=${encodeURIComponent(token)}`;
+
+  const url =
+    found.kind === "quote"
+      ? await createQuoteCheckout(found.quote, { cancelUrl })
+      : await createCheckout(found.booking, { cancelUrl });
+  res.json({ url });
+});
+
+/**
+ * Where Stripe's success page lands. The session id is looked up with Stripe,
+ * not trusted, so this can only ever record a payment that really happened.
+ * Returns no customer details beyond what the returning customer just paid.
+ */
+publicRouter.post("/payments/confirm", lookupLimit, async (req, res) => {
+  const { sessionId } = paymentConfirmSchema.parse(req.body);
+  res.json(await recordCheckout(sessionId));
 });
 
 /** Approved reviews, plus where to send a customer who wants to review on Google. */

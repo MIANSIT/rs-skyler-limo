@@ -95,7 +95,7 @@ export default async function FleetPage({
                     )}
                   </div>
 
-                  <div className="min-w-[12rem] flex-1">
+                  <div className="min-w-48 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
                       <Link
                         href={`/fleet/${vehicle.id}`}
@@ -117,7 +117,7 @@ export default async function FleetPage({
                     </p>
                   </div>
 
-                  <dl className="flex gap-6 font-sans text-[13px]">
+                  <dl className="flex flex-wrap gap-x-6 gap-y-3 font-sans text-[13px]">
                     <Stat label="Pax" value={vehicle.passengerCapacity} />
                     <Stat label="Bags" value={vehicle.luggageCapacity} />
                     <Stat label="Seats" value={vehicle.maxChildSeats} />

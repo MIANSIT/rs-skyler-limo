@@ -81,6 +81,19 @@ CREATE TABLE IF NOT EXISTS bookings (
   -- What the operator wants the customer to read beside the number.
   quote_note        TEXT NULL,
 
+  -- How the customer means to pay, chosen on the booking form: `card` is
+  -- settled with the office, `cash` is paid to the chauffeur at the end of the
+  -- trip. `payment_status` is recorded by an operator; nothing sets it
+  -- automatically, because nothing here takes money.
+  payment_method    ENUM('card','cash') NOT NULL DEFAULT 'card',
+  payment_status    ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  paid_at           DATETIME NULL,
+  -- The Stripe objects behind a card payment: the latest Checkout Session
+  -- opened for this booking, and the PaymentIntent once it succeeded. Kept so
+  -- an operator can find the payment in the Stripe Dashboard.
+  stripe_checkout_session_id VARCHAR(255) NULL,
+  stripe_payment_intent_id   VARCHAR(255) NULL,
+
   -- Resolved from the address by the Places lookup, so "is this inside New
   -- York" is answered by Google rather than by trusting typed text. NULL when
   -- the lookup was unavailable and the customer typed a plain address.
@@ -96,6 +109,14 @@ CREATE TABLE IF NOT EXISTS bookings (
   airport_direction ENUM('from-airport','to-airport') NULL,
 
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
+
+  -- Set when the customer changes the booking themselves from /track, after
+  -- proving the email address with a one-time code. The dashboard tags the
+  -- booking until an operator marks the change reviewed. What changed is in
+  -- `activity_log` (action `customer_changed`).
+  customer_change_pending TINYINT(1) NOT NULL DEFAULT 0,
+  customer_changed_at     DATETIME NULL,
+
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -122,7 +143,21 @@ CREATE TABLE IF NOT EXISTS quotes (
   customer_email    VARCHAR(255) NOT NULL,
   customer_phone    VARCHAR(40) NOT NULL,
   details           TEXT NOT NULL,
+  -- The price agreed with the customer, in cents, once an operator sets it.
+  -- NULL until then. `priced_at` is when it was last set.
+  agreed_price_cents INT UNSIGNED NULL,
+  priced_at         DATETIME NULL,
+  -- How the agreed price will be paid, chosen by the operator when it is set:
+  -- `card` through a Stripe payment link, `cash` on the day. NULL until then.
+  payment_method    ENUM('card','cash') NULL,
+  payment_status    ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
+  paid_at           DATETIME NULL,
+  stripe_checkout_session_id VARCHAR(255) NULL,
+  stripe_payment_intent_id   VARCHAR(255) NULL,
   source            VARCHAR(40) NOT NULL DEFAULT 'website',
+  -- Same meaning as on `bookings`.
+  customer_change_pending TINYINT(1) NOT NULL DEFAULT 0,
+  customer_changed_at     DATETIME NULL,
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -346,4 +381,30 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
   CONSTRAINT fk_reviews_admin
     FOREIGN KEY (moderated_by) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One-time codes that let a customer change their own booking or quote request.
+--
+-- The code goes to the email address already on the record — never one typed
+-- at the time — so knowing a reference and a phone number is not enough to
+-- rewrite someone's trip. Only a hash is stored. A code works for ten minutes
+-- and five guesses; a correct one is exchanged for a short-lived token, and
+-- that token is spent by exactly one save. Rows are kept as an audit of who
+-- asked for what, not reused.
+CREATE TABLE IF NOT EXISTS change_codes (
+  id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  subject_type      ENUM('booking','quote') NOT NULL,
+  subject_id        BIGINT UNSIGNED NOT NULL,
+  code_salt         CHAR(32) NOT NULL,
+  code_hash         CHAR(64) NOT NULL,
+  attempts          TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  expires_at        DATETIME NOT NULL,
+  verified_at       DATETIME NULL,
+  token_hash        CHAR(64) NULL,
+  token_expires_at  DATETIME NULL,
+  used_at           DATETIME NULL,
+  created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_change_codes_subject (subject_type, subject_id, created_at),
+  UNIQUE KEY uq_change_codes_token (token_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

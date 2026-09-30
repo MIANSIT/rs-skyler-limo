@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { EmailInput } from "@/components/site/email-input";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-time-field";
@@ -138,6 +139,16 @@ export function QuoteForm({
         <p className="font-display mt-6 text-[30px] leading-none font-semibold text-midnight tabular-nums">
           {state.reference}
         </p>
+        <p className="mt-6 text-[15px] leading-[1.7] text-charcoal">
+          Check where it stands any time on the{" "}
+          <Link
+            href={`/track?reference=${encodeURIComponent(state.reference)}`}
+            className="font-medium text-midnight underline underline-offset-4"
+          >
+            tracking page
+          </Link>{" "}
+          with the phone number you gave us.
+        </p>
         <p className="mt-6 text-[15px] text-charcoal">
           Need an answer sooner?{" "}
           <a
@@ -239,14 +250,11 @@ export function QuoteForm({
           className={showDate ? undefined : "sm:col-span-2"}
           error={fieldError("customerEmail")}
         >
-          <Input
+          <EmailInput
             id="quote-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
             maxLength={255}
-            {...restore("email")}
+            defaultValue={restore("email")?.defaultValue}
+            sendsWhat="our reply"
           />
         </Field>
 

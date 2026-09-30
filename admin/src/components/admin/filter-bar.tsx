@@ -13,15 +13,18 @@ export function FilterBar({
   activeStatus,
   query,
   placeholder,
+  keep = {},
 }: {
   basePath: string;
   statuses: readonly string[];
   activeStatus?: string;
   query?: string;
   placeholder: string;
+  /** Other filters that should survive a status click or a search. */
+  keep?: Record<string, string>;
 }) {
   const href = (status?: string) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(keep);
     if (status) params.set("status", status);
     if (query) params.set("q", query);
     const search = params.toString();
@@ -66,6 +69,9 @@ export function FilterBar({
         {activeStatus ? (
           <input type="hidden" name="status" value={activeStatus} />
         ) : null}
+        {Object.entries(keep).map(([key, value]) => (
+          <input key={key} type="hidden" name={key} value={value} />
+        ))}
 
         <label htmlFor="q" className="sr-only">
           Search

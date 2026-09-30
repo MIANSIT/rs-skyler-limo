@@ -2,6 +2,16 @@ import nodemailer, { type Transporter } from "nodemailer";
 
 import { buildBookingEmail } from "../emails/booking.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
+import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
+import { buildPaymentLinkEmail } from "../emails/payment.js";
+import {
+  buildBookingChangedEmail,
+  buildChangeCodeEmail,
+  buildQuoteChangedEmail,
+} from "../emails/changes.js";
+import type { FieldChange } from "./changes.js";
+import { createPaymentLink } from "../lib/payment-link.js";
+import { canPayOnline, canPayQuoteOnline } from "./payments.js";
 import { env } from "../env.js";
 import type { Booking } from "./bookings.js";
 import type { Quote } from "./quotes.js";
@@ -208,7 +218,10 @@ export async function sendQuotedEmail(booking: Booking): Promise<void> {
     vehicleName = booking.vehicleClass;
   }
 
-  const email = buildQuotedEmail(booking, vehicleName);
+  // A card customer gets the payment link in the same email, so pricing the
+  // trip and asking for payment are one step, not two.
+  const payUrl = canPayOnline(booking) ? createPaymentLink(booking).url : null;
+  const email = buildQuotedEmail(booking, vehicleName, payUrl);
 
   await send({
     to: booking.customerEmail,
@@ -217,6 +230,149 @@ export async function sendQuotedEmail(booking: Booking): Promise<void> {
     html: email.html,
     text: email.text,
   });
+}
+
+/**
+ * "Pay for your booking" — the dashboard's Send payment link. Customer only.
+ * The link is made by the caller, so the dashboard can show the operator the
+ * exact link that was sent.
+ */
+export async function sendPaymentLinkEmail(
+  booking: Booking,
+  payUrl: string,
+  expiresAt: Date,
+): Promise<void> {
+  let vehicleName: string;
+  try {
+    vehicleName =
+      (await getVehicleBySlug(booking.vehicleClass))?.name ?? booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const email = buildPaymentLinkEmail(booking, vehicleName, payUrl, expiresAt);
+  await send({
+    to: booking.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/**
+ * Tells the customer their booking moved on — confirmed, cancelled, completed
+ * or on hold — with the link to their booking. Customer only: the office made
+ * the change. Same rules as every other send.
+ */
+export async function sendBookingUpdateEmail(booking: Booking): Promise<void> {
+  let vehicleName: string;
+  try {
+    vehicleName =
+      (await getVehicleBySlug(booking.vehicleClass))?.name ?? booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const email = buildBookingUpdateEmail(booking, vehicleName);
+  await send({
+    to: booking.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/** The same for a quote request. */
+export async function sendQuoteUpdateEmail(quote: Quote): Promise<void> {
+  // A card-paid agreed price carries its payment link, signed for this
+  // request and this amount, so "here is your price" and "pay here" are one.
+  const payUrl = canPayQuoteOnline(quote)
+    ? createPaymentLink({
+        id: quote.id,
+        reference: quote.reference,
+        quotedTotalCents: quote.agreedPriceCents,
+      }).url
+    : null;
+  const email = buildQuoteUpdateEmail(quote, payUrl);
+  await send({
+    to: quote.customerEmail,
+    replyTo: env.MAIL_OPS_RECIPIENTS,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/**
+ * The one-time code for changing a booking or request. Customer only, and only
+ * to the address already on the record. Like every send it never throws; if it
+ * does not arrive, the page tells the customer how to reach the office.
+ */
+export async function sendChangeCodeEmail(input: {
+  to: string;
+  reference: string;
+  kind: "booking" | "quote";
+  customerName: string;
+  code: string;
+  expiresInMinutes: number;
+}): Promise<void> {
+  const email = buildChangeCodeEmail(input);
+  await send({ to: input.to, subject: email.subject, html: email.html, text: email.text });
+}
+
+/** "Your booking was updated" to the customer, before → after to the office. */
+export async function sendBookingChangedEmails(booking: Booking, changes: FieldChange[]): Promise<void> {
+  let vehicleName: string;
+  try {
+    vehicleName = (await getVehicleBySlug(booking.vehicleClass))?.name ?? booking.vehicleClass;
+  } catch {
+    vehicleName = booking.vehicleClass;
+  }
+
+  const customer = buildBookingChangedEmail(booking, vehicleName, changes, "customer");
+  const ops = buildBookingChangedEmail(booking, vehicleName, changes, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: booking.customerEmail,
+      replyTo: env.MAIL_OPS_RECIPIENTS,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      to: env.MAIL_OPS_RECIPIENTS,
+      replyTo: booking.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
+}
+
+/** The same for a quote request. */
+export async function sendQuoteChangedEmails(quote: Quote, changes: FieldChange[]): Promise<void> {
+  const customer = buildQuoteChangedEmail(quote, changes, "customer");
+  const ops = buildQuoteChangedEmail(quote, changes, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: quote.customerEmail,
+      replyTo: env.MAIL_OPS_RECIPIENTS,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      to: env.MAIL_OPS_RECIPIENTS,
+      replyTo: quote.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
 }
 
 function describe(error: unknown): string {

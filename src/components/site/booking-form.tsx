@@ -12,10 +12,19 @@ import {
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
+import { EmailInput } from "@/components/site/email-input";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button, ButtonOnDark } from "@/components/ui/button";
 import { DateField, TimeField } from "@/components/ui/date-time-field";
-import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
+import {
+  Checkbox,
+  Field,
+  glassCard,
+  Input,
+  RadioCards,
+  Select,
+  Textarea,
+} from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
@@ -38,6 +47,27 @@ const SERVICE_TYPES = [
   { value: "event", label: "Event" },
   { value: "other", label: "Something else" },
 ] as const;
+
+/**
+ * Mirrors `paymentMethods` in `api/src/schemas.ts`. Offered on every booking:
+ * whichever way the trip is priced, it is paid by card or in cash on the day.
+ *
+ * Card goes through Stripe Checkout: a fixed fare straight after booking, a
+ * quoted trip from the tracking page once it has a price.
+ */
+const PAYMENT_OPTIONS = [
+  {
+    value: "card",
+    label: "Card (Stripe)",
+    description:
+      "Paid securely through Stripe. A fixed fare straight after booking; a quoted trip once we price it.",
+  },
+  {
+    value: "cash",
+    label: "Cash on Delivery",
+    description: "Paid in cash to your chauffeur at the end of the trip.",
+  },
+];
 
 /**
  * The form as three short screens rather than one long one, so the hero card
@@ -286,7 +316,7 @@ export function BookingForm({
      `ui/section.tsx` already follows. */
   const divider = dark ? "border-white/15" : "border-midnight/10";
   const cardChrome = dark
-    ? "rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_30px_60px_-30px_rgba(0,0,0,0.75)]"
+    ? glassCard
     : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
   const heading = dark ? "text-white" : "text-midnight";
   const body = dark ? "text-white/75" : "text-charcoal";
@@ -329,12 +359,17 @@ export function BookingForm({
 
         <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Pick-up times are New York time.
+          {state.paymentMethod === "cash"
+            ? " You have chosen cash on delivery: pay your chauffeur at the end of the trip."
+            : state.pricingMode === "quote"
+              ? " Once we have priced the trip you can pay by card from the tracking page."
+              : " You can pay by card from the tracking page."}
         </p>
 
         <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Keep this reference. You can check it any time on the{" "}
           <Link
-            href="/track"
+            href={`/track?reference=${encodeURIComponent(state.reference)}`}
             className={clsx(
               "underline underline-offset-4",
               dark ? "text-white" : "text-midnight",
@@ -366,7 +401,7 @@ export function BookingForm({
                   ? clsx("border-gold", heading)
                   : dark
                     ? "border-transparent text-white/50 hover:text-white"
-                    : "border-transparent text-charcoal/60 hover:text-midnight",
+                    : "border-transparent text-charcoal/70 hover:text-midnight",
               )}
             >
               {option.label}
@@ -430,7 +465,7 @@ export function BookingForm({
 
         {/* Step 1 — Trip */}
         <div className={clsx("flex flex-col gap-5", step !== 1 && "hidden")}>
-        <div ref={step1Ref} className="grid gap-5 grid-cols-2">
+        <div ref={step1Ref} className="grid gap-5 sm:grid-cols-2">
           {trip === "airport" ? (
             <>
               <Field label="Airport" id="airport" tone={tone}>
@@ -478,7 +513,7 @@ export function BookingForm({
                 ? "Start typing and pick your address from the list."
                 : undefined
             }
-            className="col-span-2"
+            className="sm:col-span-2"
           >
             <AddressField
               id="cityAddress"
@@ -501,7 +536,7 @@ export function BookingForm({
               id="otherEnd"
               error={fieldError("destination")}
               tone={tone}
-              className="col-span-2"
+              className="sm:col-span-2"
             >
               <AddressField
                 id="otherEnd"
@@ -771,8 +806,18 @@ export function BookingForm({
             </Field>
 
             <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">
-              <Input id="email" name="email" type="email" tone={tone} autoComplete="email" required {...restore("email")} />
+              <EmailInput id="email" tone={tone} defaultValue={prior("email")} sendsWhat="your confirmation and any updates" />
             </Field>
+          </div>
+
+          <div className={clsx("border-t pt-5", divider)}>
+            <RadioCards
+              name="paymentMethod"
+              legend="How you will pay"
+              options={PAYMENT_OPTIONS}
+              defaultValue={prior("paymentMethod") || "card"}
+              tone={tone}
+            />
           </div>
 
           <div className={clsx("border-t pt-5", divider)}>

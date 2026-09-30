@@ -107,7 +107,7 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
               aria-checked={active}
               onClick={() => setTrip(option.value)}
               className={clsx(
-                "flex flex-col items-center gap-1 rounded-lg px-1 py-2.5 font-sans text-[11px] font-semibold tracking-[0.04em] whitespace-nowrap uppercase transition-colors sm:px-2 sm:text-[12px] sm:tracking-[0.08em]",
+                "flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2.5 text-center font-sans text-[11px] leading-tight font-semibold tracking-[0.04em] uppercase transition-colors sm:px-2 sm:text-[12px] sm:tracking-[0.08em]",
                 active
                   ? "bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
                   : "text-white/60 hover:bg-white/5 hover:text-white",
@@ -121,8 +121,8 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
       </div>
 
       {vehicle ? (
-        <div className="relative mt-3 flex items-center gap-4 sm:gap-5">
-          <div className="relative aspect-4/3 w-32 shrink-0 overflow-hidden rounded-lg bg-midnight sm:w-44">
+        <div className="relative mt-3 flex items-center gap-3 min-[375px]:gap-4 sm:gap-5">
+          <div className="relative aspect-4/3 w-28 shrink-0 overflow-hidden rounded-lg bg-midnight min-[375px]:w-36 sm:w-44">
             {fleet.map((item, itemIndex) =>
               item.primaryPhoto ? (
                 <Image
@@ -179,12 +179,12 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
               {vehicle.name}
             </p>
             <p className="mt-1.5 text-[14px] text-white/70">
-              <span className="whitespace-nowrap">
+              <span className="sm:whitespace-nowrap">
                 Up to <span className="tabular-nums">{vehicle.passengerCapacity}</span>{" "}
                 passengers
               </span>{" "}
               ·{" "}
-              <span className="whitespace-nowrap">
+              <span className="sm:whitespace-nowrap">
                 <span className="tabular-nums">{vehicle.luggageCapacity}</span> bags
               </span>
             </p>

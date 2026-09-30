@@ -63,6 +63,8 @@ export async function getStats(): Promise<DashboardStats> {
 export type BookingFilters = {
   status?: string;
   q?: string;
+  /** `"1"`: only bookings changed by the customer and not yet reviewed. */
+  changed?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -114,7 +116,7 @@ export async function getBooking(
 }
 
 export async function getQuotes(
-  filters: { status?: string; q?: string; page?: number } = {},
+  filters: { status?: string; q?: string; changed?: string; page?: number } = {},
 ): Promise<Paginated<"quotes", Quote>> {
   const { token } = await verifySession();
   return apiFetch<Paginated<"quotes", Quote>>(

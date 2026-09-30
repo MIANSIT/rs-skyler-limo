@@ -15,7 +15,7 @@ import {
   panel,
   shell,
 } from "./render.js";
-import type { BuiltEmail } from "./booking.js";
+import { PAYMENT_LABELS, type BuiltEmail } from "./booking.js";
 
 /**
  * Two emails for a quote request, one for a priced trip.
@@ -47,8 +47,9 @@ function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] || "there";
 }
 
-function trackUrl(): string {
-  return `${env.SITE_BASE_URL.replace(/\/+$/, "")}/track`;
+/** Opens the tracking page with the reference already filled in. */
+function trackUrl(reference: string): string {
+  return `${env.SITE_BASE_URL.replace(/\/+$/, "")}/track?reference=${encodeURIComponent(reference)}`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -98,6 +99,19 @@ export function buildQuoteRequestEmail(
     If the date is close, call us on
     <a href="tel:${CONTACT.phoneHref}" style="color:${BRAND.midnight};font-weight:600;">${escapeHtml(CONTACT.phone)}</a>.
     Nothing is reserved or charged until you agree the price.
+  </p>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px 0;">
+    <tr>
+      <td style="background:${BRAND.gold};">
+        <a href="${escapeHtml(trackUrl(quote.reference))}"
+           style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
+          Track this request
+        </a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
+    The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.
   </p>`;
 
   const body = [
@@ -163,6 +177,9 @@ export function buildQuoteRequestEmail(
       "",
       "A reservations agent will reply by phone or email, usually the same day.",
       "Nothing is reserved or charged until you agree the price.",
+      "",
+      `Track this request: ${trackUrl(quote.reference)}`,
+      "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.",
     );
   }
   lines.push(
@@ -190,6 +207,8 @@ export function buildQuoteRequestEmail(
 export function buildQuotedEmail(
   booking: Booking,
   vehicleName: string,
+  /** A signed payment link, present when the customer pays by card. */
+  payUrl: string | null = null,
 ): BuiltEmail {
   const fare = formatMoney(booking.quotedTotalCents) ?? "";
   const note = booking.quoteNote?.trim() ?? "";
@@ -201,7 +220,11 @@ export function buildQuotedEmail(
         <div style="font-family:${SANS_FONT};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">Your quote</div>
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
-          Nothing is charged until you confirm. Call or reply to this email to go ahead.
+          Nothing is charged until you confirm. Call or reply to this email to go ahead.${
+            booking.paymentMethod === "card"
+              ? " To pay by card, open your booking below and choose Pay by card — payment is taken securely by Stripe."
+              : " You chose cash on delivery: pay your chauffeur at the end of the trip."
+          }
         </div>
       </td>
     </tr>
@@ -220,13 +243,37 @@ export function buildQuotedEmail(
     detailRow("Date", escapeHtml(formatDate(booking.pickupAt))),
     detailRow("Time", escapeHtml(formatTime(booking.pickupAt))),
     detailRow("Vehicle", escapeHtml(vehicleName)),
+    detailRow(
+      "Payment",
+      escapeHtml(PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod),
+    ),
   ].join("");
 
-  const trackButton = `
+  // A card customer's one gold action is paying; the booking page drops to a
+  // plain link beneath it. Everyone else keeps the booking page as the button.
+  const payButton = payUrl
+    ? `
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 16px 0;">
+    <tr>
+      <td style="background:${BRAND.gold};">
+        <a href="${escapeHtml(payUrl)}"
+           style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
+          Pay ${escapeHtml(fare)} securely
+        </a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
+    Paid by card through Stripe. The link is for this booking only and works for 7 days.
+    You can also <a href="${escapeHtml(trackUrl(booking.reference))}" style="color:${BRAND.midnight};font-weight:600;">view the booking</a>.
+  </p>`
+    : null;
+
+  const trackButton = payButton ?? `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px 0;">
     <tr>
       <td style="background:${BRAND.gold};">
-        <a href="${escapeHtml(trackUrl())}"
+        <a href="${escapeHtml(trackUrl(booking.reference))}"
            style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
           View this booking
         </a>
@@ -234,7 +281,7 @@ export function buildQuotedEmail(
     </tr>
   </table>
   <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
-    You will need your reference and the phone number on the booking.
+    The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.
   </p>`;
 
   const html = shell({
@@ -262,13 +309,18 @@ export function buildQuotedEmail(
     `Pick-up:    ${booking.pickup}`,
     `Drop-off:   ${booking.destination}`,
     `Vehicle:    ${vehicleName}`,
+    `Payment:    ${PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod}`,
     "",
     `Quote:      ${fare}`,
     "Nothing is charged until you confirm. Call or reply to this email to go ahead.",
+    booking.paymentMethod === "card"
+      ? "To pay by card, open your booking below and choose Pay by card (Stripe)."
+      : "You chose cash on delivery: pay your chauffeur at the end of the trip.",
     ...(note ? ["", "NOTE", `  ${note}`] : []),
     "",
-    `View this booking: ${trackUrl()}`,
-    "You will need your reference and the phone number on the booking.",
+    ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),
+    `View this booking: ${trackUrl(booking.reference)}`,
+    "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.",
     "",
     "--",
     "RSSkyler Limo — chauffeured travel across all five boroughs.",
