@@ -74,8 +74,17 @@ CREATE TABLE IF NOT EXISTS bookings (
   customer_phone    VARCHAR(40) NOT NULL,
   notes             TEXT NULL,
   -- Money in cents. Never a float. Set at submission for `fixed`, and by an
-  -- operator for `quote` — NULL means nobody has priced it yet.
+  -- operator for `quote` — NULL means nobody has priced it yet. This is what
+  -- the customer pays, sales tax included; the fare before tax is
+  -- `quoted_total_cents - tax_cents`.
   quoted_total_cents INT UNSIGNED NULL,
+  -- The sales-tax rate this booking is charged, as a percentage (8.875 is
+  -- 8.875%). Copied from `settings.tax_rate` when the booking is made, so a
+  -- later change to the default never re-prices it; an operator may change it
+  -- per booking (0 for a tax-exempt client). `tax_cents` is the tax inside
+  -- `quoted_total_cents`, 0 while unpriced. See `services/tax.ts`.
+  tax_rate          DECIMAL(6,3) NOT NULL DEFAULT 0,
+  tax_cents         INT UNSIGNED NOT NULL DEFAULT 0,
   quoted_at         DATETIME NULL,
   quoted_by         BIGINT UNSIGNED NULL,
   -- What the operator wants the customer to read beside the number.
@@ -144,8 +153,11 @@ CREATE TABLE IF NOT EXISTS quotes (
   customer_phone    VARCHAR(40) NOT NULL,
   details           TEXT NOT NULL,
   -- The price agreed with the customer, in cents, once an operator sets it.
-  -- NULL until then. `priced_at` is when it was last set.
+  -- NULL until then. `priced_at` is when it was last set. Sales tax included,
+  -- exactly as `quoted_total_cents` on a booking; so are the two columns below.
   agreed_price_cents INT UNSIGNED NULL,
+  tax_rate          DECIMAL(6,3) NOT NULL DEFAULT 0,
+  tax_cents         INT UNSIGNED NOT NULL DEFAULT 0,
   priced_at         DATETIME NULL,
   -- How the agreed price will be paid, chosen by the operator when it is set:
   -- `card` through a Stripe payment link, `cash` on the day. NULL until then.
@@ -407,4 +419,17 @@ CREATE TABLE IF NOT EXISTS change_codes (
   PRIMARY KEY (id),
   KEY ix_change_codes_subject (subject_type, subject_id, created_at),
   UNIQUE KEY uq_change_codes_token (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Business settings an operator changes from the dashboard's Settings page.
+-- One row per setting, read through `services/settings.ts`, which also holds
+-- each setting's default for when its row has never been written.
+CREATE TABLE IF NOT EXISTS settings (
+  name              VARCHAR(60) NOT NULL,
+  value             VARCHAR(255) NOT NULL,
+  updated_by        BIGINT UNSIGNED NULL,
+  updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (name),
+  CONSTRAINT fk_settings_admin
+    FOREIGN KEY (updated_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

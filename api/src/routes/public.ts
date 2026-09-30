@@ -40,6 +40,7 @@ import {
   listActiveAirports,
 } from "../services/pricing.js";
 import { autocomplete, placesAvailable } from "../services/places.js";
+import { getDefaultTaxRate } from "../services/settings.js";
 import {
   sendBookingChangedEmails,
   sendBookingEmails,
@@ -147,6 +148,8 @@ publicRouter.get("/booking-options", async (_req, res) => {
     rates: await getPublicRates(),
     placesEnabled: placesAvailable(),
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
+    /** Sales tax the preview adds to a fixed fare. The server adds it again on submit. */
+    taxRate: await getDefaultTaxRate(),
   });
 });
 
@@ -232,6 +235,9 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     reference: booking.reference,
     pricingMode: booking.pricingMode,
     quotedTotalCents: booking.quotedTotalCents,
+    fareCents: booking.fareCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     fareReason: fare.reason,
     checkoutUrl,
   });
@@ -289,6 +295,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       serviceType: quote.serviceType,
       eventDate: quote.eventDate,
       agreedPriceCents: quote.agreedPriceCents,
+      priceCents: quote.priceCents,
+      taxRate: quote.taxRate,
+      taxCents: quote.taxCents,
       paymentMethod: quote.paymentMethod,
       paymentStatus: quote.paymentStatus,
       createdAt: quote.createdAt,
@@ -315,6 +324,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     destination: booking.destination,
     vehicleClass: booking.vehicleClass,
     quotedTotalCents: booking.quotedTotalCents,
+    fareCents: booking.fareCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     quoteNote: booking.quoteNote,
     quotedAt: booking.quotedAt,
     paymentMethod: booking.paymentMethod,
@@ -502,6 +514,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
       serviceLabel: QUOTE_SERVICE_LABEL[quote.serviceType] ?? "Chauffeured transport",
       eventDate: quote.eventDate,
       amountCents: quote.agreedPriceCents,
+      taxRate: quote.taxRate,
+      taxCents: quote.taxCents,
       paymentStatus: quote.paymentStatus,
       canPay: canPayQuoteOnline(quote),
     });
@@ -526,6 +540,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     destination: booking.destination,
     vehicleName,
     amountCents: booking.quotedTotalCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     paymentStatus: booking.paymentStatus,
     canPay: canPayOnline(booking),
   });

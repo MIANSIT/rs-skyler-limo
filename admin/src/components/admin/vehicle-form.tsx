@@ -8,6 +8,7 @@ import {
   updateVehicle,
   type FleetFormState,
 } from "@/lib/admin/fleet-actions";
+import { centsToInput } from "@/lib/admin/format";
 import type { Amenity, Vehicle, VehicleCategory } from "@/lib/api/types";
 import { clsx } from "@/lib/clsx";
 
@@ -234,7 +235,7 @@ export function VehicleForm({
           <Field
             label="From (USD)"
             id="baseFare"
-            hint="Whole dollars."
+            hint="Before tax. Cents allowed, like 95.50."
             error={fieldError("baseFareCents")}
           >
             <input
@@ -242,10 +243,11 @@ export function VehicleForm({
               name="baseFare"
               type="number"
               min={0}
-              step="1"
+              step="0.01"
+              inputMode="decimal"
               required
               defaultValue={
-                vehicle ? Math.round(vehicle.baseFareCents / 100) : 95
+                vehicle ? centsToInput(vehicle.baseFareCents) : 95
               }
               className={clsx(control, "tabular-nums")}
             />

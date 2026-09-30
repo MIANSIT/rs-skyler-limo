@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { ErrorBanner, Field, FormSection, control } from "@/components/admin/edit-fields";
+import { TaxedPriceFields } from "@/components/admin/taxed-price-fields";
 import { updateBookingDetails, type EditFormState } from "@/lib/admin/edit-actions";
 import { isoToNewYork } from "@/lib/admin/new-york-time";
 import type { Airport, Booking, Vehicle } from "@/lib/api/types";
@@ -169,25 +170,24 @@ export function BookingEditForm({
       </FormSection>
 
       <FormSection title="Fare and payment">
-        <Field
-          label="Fare (USD)"
-          id="fare"
-          error={fieldError("quotedTotalCents")}
-          hint={
-            booking.pricingMode === "fixed"
-              ? "A published fixed fare the customer agreed to. Change it only if they have agreed the new figure."
-              : "Blank means not yet priced. To send the customer a price, use Price this request on the booking page."
-          }
-          className="sm:col-span-2"
-        >
-          <input
-            id="fare"
-            name="fare"
-            inputMode="decimal"
-            defaultValue={booking.quotedTotalCents === null ? "" : (booking.quotedTotalCents / 100).toFixed(2)}
-            className={control}
+        <div className="sm:col-span-2">
+          <TaxedPriceFields
+            idPrefix="edit-fare"
+            priceName="fare"
+            priceLabel="Fare before tax (USD)"
+            defaultPriceCents={booking.fareCents}
+            defaultRate={booking.taxRate}
+            priceError={fieldError("fareCents")}
+            rateError={fieldError("taxRate")}
+            priceHint={
+              booking.paymentStatus === "paid"
+                ? "Paid, so the price is locked. Set Payment status to Unpaid in the same save to change it."
+                : booking.pricingMode === "fixed"
+                  ? "A published fixed fare the customer agreed to. Change it only if they have agreed the new figure."
+                  : "Blank means not yet priced. To send the customer a price, use Price this request on the booking page."
+            }
           />
-        </Field>
+        </div>
         <Field label="Payment method" id="paymentMethod" error={fieldError("paymentMethod")}>
           <select id="paymentMethod" name="paymentMethod" defaultValue={booking.paymentMethod} className={control}>
             <option value="card">Card (Stripe)</option>

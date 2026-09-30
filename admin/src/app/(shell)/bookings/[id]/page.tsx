@@ -14,6 +14,7 @@ import { getBooking } from "@/lib/admin/dal";
 import {
   formatDay,
   formatMoney,
+  formatRate,
   formatPickup,
   formatTrip,
   formatService,
@@ -177,11 +178,35 @@ export default async function BookingDetailPage({
                   numeric
                 />
               ) : null}
-              <DetailRow
-                label="Quoted fare"
-                value={formatMoney(booking.quotedTotalCents)}
-                numeric
-              />
+              {booking.quotedTotalCents !== null && booking.taxCents > 0 ? (
+                <>
+                  <DetailRow
+                    label="Fare before tax"
+                    value={formatMoney(booking.fareCents)}
+                    numeric
+                  />
+                  <DetailRow
+                    label={`Sales tax (${formatRate(booking.taxRate)})`}
+                    value={formatMoney(booking.taxCents)}
+                    numeric
+                  />
+                  <DetailRow
+                    label="Total"
+                    value={formatMoney(booking.quotedTotalCents)}
+                    numeric
+                  />
+                </>
+              ) : (
+                <DetailRow
+                  label={booking.quotedTotalCents === null ? "Fare" : "Total"}
+                  value={
+                    booking.quotedTotalCents === null
+                      ? `Not priced yet · ${formatRate(booking.taxRate)} tax will be added`
+                      : `${formatMoney(booking.quotedTotalCents)} · no sales tax`
+                  }
+                  numeric
+                />
+              )}
             </dl>
           </section>
 

@@ -13,7 +13,10 @@ import {
   formatMoney,
   formatTime,
   panel,
+  priceTextLines,
   shell,
+  taxLinesOnDark,
+  type Priced,
 } from "./render.js";
 import { PAYMENT_LABELS, type BuiltEmail } from "./booking.js";
 
@@ -212,6 +215,11 @@ export function buildQuotedEmail(
 ): BuiltEmail {
   const fare = formatMoney(booking.quotedTotalCents) ?? "";
   const note = booking.quoteNote?.trim() ?? "";
+  const priced: Priced = {
+    totalCents: booking.quotedTotalCents,
+    taxCents: booking.taxCents,
+    taxRate: booking.taxRate,
+  };
 
   const farePanel = `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;border-collapse:collapse;">
@@ -219,6 +227,7 @@ export function buildQuotedEmail(
       <td style="background:${BRAND.midnight};padding:20px 16px;">
         <div style="font-family:${SANS_FONT};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">Your quote</div>
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
+        ${taxLinesOnDark(priced)}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           Nothing is charged until you confirm. Call or reply to this email to go ahead.${
             booking.paymentMethod === "card"
@@ -311,7 +320,7 @@ export function buildQuotedEmail(
     `Vehicle:    ${vehicleName}`,
     `Payment:    ${PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod}`,
     "",
-    `Quote:      ${fare}`,
+    ...priceTextLines(priced, "Quote"),
     "Nothing is charged until you confirm. Call or reply to this email to go ahead.",
     booking.paymentMethod === "card"
       ? "To pay by card, open your booking below and choose Pay by card (Stripe)."

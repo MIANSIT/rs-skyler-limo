@@ -425,7 +425,15 @@ export const serviceAreas: {
   },
 ];
 
-/** Whole dollars, the way fares are shown everywhere on the site. */
+/**
+ * `$95` for a whole-dollar rate, `$108.88` for anything with cents — which is
+ * every fare once sales tax is on it. Never rounded: a customer is charged to
+ * the cent, so that is what they are shown.
+ */
 export function formatFare(cents: number): string {
-  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+  const whole = cents % 100 === 0;
+  return `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

@@ -58,6 +58,8 @@ export type BookingOptions = {
   /** False when no Google key is configured; the address field degrades. */
   placesEnabled: boolean;
   childSeatFeeCents: number;
+  /** Sales tax added to a fixed fare, a percentage (8.875). */
+  taxRate: number;
 };
 
 /** What /track returns for a booking. Still no customer contact details. */
@@ -70,7 +72,11 @@ export type TrackedBooking = {
   pickup: string;
   destination: string;
   vehicleClass: string;
+  /** What the customer pays, sales tax included. */
   quotedTotalCents: number | null;
+  fareCents: number | null;
+  taxRate: number;
+  taxCents: number;
   quoteNote: string | null;
   quotedAt: string | null;
   paymentMethod: PaymentMethod;
@@ -89,8 +95,11 @@ export type TrackedQuote = {
   serviceType: string;
   /** `YYYY-MM-DD`, or null when the customer gave no date. */
   eventDate: string | null;
-  /** Set by an operator once a price is agreed; null until then. */
+  /** Set by an operator once a price is agreed, sales tax included; null until then. */
   agreedPriceCents: number | null;
+  priceCents: number | null;
+  taxRate: number;
+  taxCents: number;
   /** Chosen with the agreed price; null until then. */
   paymentMethod: PaymentMethod | null;
   paymentStatus: "unpaid" | "paid";
@@ -125,6 +134,9 @@ export type ChangeableBooking = {
   customerPhone: string;
   pricingMode: PricingMode;
   quotedTotalCents: number | null;
+  fareCents: number | null;
+  taxRate: number;
+  taxCents: number;
   paymentStatus: "unpaid" | "paid";
 };
 
@@ -139,14 +151,20 @@ export type ChangeableQuote = {
   customerPhone: string;
   details: string;
   agreedPriceCents: number | null;
+  priceCents: number | null;
+  taxRate: number;
+  taxCents: number;
 };
 
 export type FieldChange = { label: string; before: string; after: string };
 
 export type ProposedFare = {
   pricingMode: PricingMode;
-  /** Null when the trip goes to a person to price. */
+  /** What the customer would pay, tax included. Null when a person prices it. */
   totalCents: number | null;
+  fareCents: number | null;
+  taxRate: number;
+  taxCents: number;
   reason: string;
 };
 

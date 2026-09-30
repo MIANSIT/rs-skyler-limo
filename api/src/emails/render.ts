@@ -61,6 +61,76 @@ export function formatMoney(cents: number | null | undefined): string | null {
 }
 
 /**
+ * A priced order: the total the customer pays and the sales tax inside it.
+ * Every price shown in an email is the total, with the tax named beside it.
+ */
+export type Priced = { totalCents: number | null; taxCents: number; taxRate: number };
+
+/** `8.875%`. */
+function rateLabel(rate: number): string {
+  return `${Number(rate.toFixed(3))}%`;
+}
+
+/** Fare before tax, tax line and total — or null for an unpriced or untaxed order. */
+function breakdown(priced: Priced): { fare: string; taxLabel: string; tax: string; total: string } | null {
+  if (priced.totalCents === null || (priced.taxCents === 0 && priced.taxRate === 0)) return null;
+  return {
+    fare: formatMoney(priced.totalCents - priced.taxCents) ?? "",
+    taxLabel: `Sales tax (${rateLabel(priced.taxRate)})`,
+    tax: formatMoney(priced.taxCents) ?? "",
+    total: formatMoney(priced.totalCents) ?? "",
+  };
+}
+
+/**
+ * The breakdown under a large total on a midnight panel. White at 70% on
+ * midnight, like the panel's other small print; never gold text.
+ */
+export function taxLinesOnDark(priced: Priced): string {
+  const parts = breakdown(priced);
+  if (!parts) return "";
+  const row = (label: string, value: string, strong = false) => `
+      <tr>
+        <td style="padding:3px 0;font-family:${SANS_FONT};font-size:13px;color:rgba(255,255,255,${strong ? "0.95" : "0.70"});${strong ? "font-weight:700;" : ""}">${escapeHtml(label)}</td>
+        <td align="right" style="padding:3px 0;font-family:${SANS_FONT};font-size:13px;color:rgba(255,255,255,${strong ? "0.95" : "0.70"});${strong ? "font-weight:700;" : ""}">${escapeHtml(value)}</td>
+      </tr>`;
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;border-collapse:collapse;border-top:1px solid rgba(255,255,255,0.15);">
+      ${row("Fare", parts.fare)}
+      ${row(parts.taxLabel, parts.tax)}
+      ${row("Total", parts.total, true)}
+    </table>`;
+}
+
+/** The same as label/value rows, for a light `panel`. One "Fare" row when untaxed. */
+export function priceRows(priced: Priced, label = "Fare"): string {
+  const parts = breakdown(priced);
+  if (!parts) {
+    const total = formatMoney(priced.totalCents);
+    return total ? detailRow(label, escapeHtml(total)) : "";
+  }
+  return [
+    detailRow(`${label} before tax`, escapeHtml(parts.fare)),
+    detailRow(parts.taxLabel, escapeHtml(parts.tax)),
+    detailRow("Total", escapeHtml(parts.total)),
+  ].join("");
+}
+
+/** The plain-text part's lines, aligned with the other `Label:     value` lines. */
+export function priceTextLines(priced: Priced, label = "Fare"): string[] {
+  const parts = breakdown(priced);
+  if (!parts) {
+    const total = formatMoney(priced.totalCents);
+    return total ? [`${`${label}:`.padEnd(12)}${total}`] : [];
+  }
+  return [
+    `${`${label}:`.padEnd(12)}${parts.fare}`,
+    `${"Tax:".padEnd(12)}${parts.tax} (${rateLabel(priced.taxRate)} sales tax)`,
+    `${"Total:".padEnd(12)}${parts.total}`,
+  ];
+}
+
+/**
  * Timestamps are UTC in the database. A chauffeur booking is meaningless in any
  * zone but the one the car turns up in, so everything a person reads is New
  * York time and says so.

@@ -146,12 +146,12 @@ export async function sendQuote(
     return { status: "error", message: "Unknown booking." };
   }
 
-  const totalCents = toCents(String(formData.get("total") ?? ""));
-  if (totalCents === null) {
+  const fareCents = toCents(String(formData.get("fare") ?? ""));
+  if (fareCents === null) {
     return {
       status: "error",
-      message: "Enter the fare you are quoting.",
-      fields: { total: "Enter an amount in dollars." },
+      message: "Enter the fare before tax.",
+      fields: { fareCents: "Enter an amount in dollars." },
     };
   }
 
@@ -159,7 +159,15 @@ export async function sendQuote(
     await apiFetch(`/api/admin/bookings/${id}/quote`, {
       method: "POST",
       token,
-      body: { totalCents, note: String(formData.get("note") ?? "").trim() || null },
+      body: {
+        // Before tax; the API adds the rate and stores the total.
+        fareCents,
+        // Only when typed: a blank would reach the API as 0%, not "unchanged".
+        ...(String(formData.get("taxRate") ?? "").trim()
+          ? { taxRate: String(formData.get("taxRate")).trim() }
+          : {}),
+        note: String(formData.get("note") ?? "").trim() || null,
+      },
     });
   } catch (error) {
     return toFormState(error);
@@ -168,6 +176,7 @@ export async function sendQuote(
   revalidatePath(`/bookings/${id}`);
   revalidatePath("/bookings");
   revalidatePath("/");
+  revalidatePath("/today");
 
   return {
     status: "saved",

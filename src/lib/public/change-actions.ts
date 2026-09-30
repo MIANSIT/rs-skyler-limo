@@ -52,7 +52,8 @@ export type ChangeState =
       details: ChangeableBooking;
       values: Values;
       fare: ProposedFare;
-      previous: { pricingMode: "fixed" | "quote"; totalCents: number | null };
+      /** `totalCents` includes `taxCents`, as on every price the API returns. */
+      previous: { pricingMode: "fixed" | "quote"; totalCents: number | null; taxCents: number };
       error?: string;
     }
   | {
@@ -121,7 +122,11 @@ function quoteBody(values: Values) {
 
 type SaveResponse =
   | { outcome: "saved"; reference: string; status: string; statusChanged: boolean; changes: FieldChange[] }
-  | { outcome: "confirm-fare"; fare: ProposedFare; previous: { pricingMode: "fixed" | "quote"; totalCents: number | null } }
+  | {
+      outcome: "confirm-fare";
+      fare: ProposedFare;
+      previous: { pricingMode: "fixed" | "quote"; totalCents: number | null; taxCents: number };
+    }
   | { outcome: "confirm-price-reset"; agreedPriceCents: number };
 
 export async function changeStep(previous: ChangeState, formData: FormData): Promise<ChangeState> {

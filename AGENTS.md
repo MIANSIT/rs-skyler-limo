@@ -65,6 +65,19 @@ Things that are easy to get wrong here:
   everything else is `quote`. Adding a booking status means updating the
   `Record<BookingStatus, …>` maps in `admin/src/components/admin/booking-actions.tsx`
   — and `admin/src/lib/api/types.ts`, or TypeScript will not tell you.
+- **Every price is stored with sales tax already in it.** `quoted_total_cents`
+  and `agreed_price_cents` are what the customer pays; each order also stores its
+  own `tax_rate` (a percentage, copied from the `settings` table's default —
+  8.875% — when the order comes in) and `tax_cents`. The price before tax is
+  derived: total − tax. Everything that sets a price takes it *before* tax and
+  adds tax with `withTax` in `api/src/lib/tax.ts` (`decideFare` returns
+  `fareCents`, pre-tax), so Stripe, payment links and reports only ever read
+  the stored total. Admins change the default at `/settings` and one order's
+  rate beside its price; a paid order's price is locked. The arithmetic is
+  mirrored in `admin/src/lib/admin/tax.ts` and `src/lib/public/tax.ts` for
+  previews only. Reports' "Sales tax to pay" counts by `paid_at` (tax is owed
+  on money received), while the rest of Reports counts by order date — keep it
+  that way.
 - **Timestamps are UTC in the database**, converted to `America/New_York` at
   the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
   anything with a date in it. Money is integer cents.

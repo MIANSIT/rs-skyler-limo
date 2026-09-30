@@ -19,8 +19,10 @@ export type BookingFormState =
       status: "success";
       reference: string;
       pricingMode: PricingMode;
-      /** Present only on a fixed-fare booking. */
+      /** Present only on a fixed-fare booking. Sales tax included. */
       quotedTotalCents: number | null;
+      /** The sales tax inside it. */
+      taxCents: number;
       paymentMethod: PaymentMethod;
     }
   | {
@@ -165,6 +167,7 @@ export async function submitBooking(
       reference: string;
       pricingMode: PricingMode;
       quotedTotalCents: number | null;
+      taxCents: number;
       checkoutUrl: string | null;
     }>("/api/bookings", {
       method: "POST",
@@ -204,6 +207,7 @@ export async function submitBooking(
         reference: result.reference,
         pricingMode: result.pricingMode,
         quotedTotalCents: result.quotedTotalCents,
+        taxCents: result.taxCents,
         paymentMethod: text("paymentMethod") === "cash" ? "cash" : "card",
       };
     }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { todayInNewYork } from "./lib/new-york.js";
+import { MAX_TAX_RATE } from "./lib/tax.js";
 
 import { AMENITY_KEYS, VEHICLE_CATEGORIES } from "./vehicles/amenities.js";
 
@@ -154,13 +155,30 @@ export const createQuoteSchema = z.object({
 
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 
+/**
+ * A sales-tax percentage: 0 to 25, at most three decimals (8.875). Tax is
+ * always added to a price *before* tax — see `lib/tax.ts`.
+ */
+export const taxRateField = z.coerce
+  .number({ error: "Enter the tax rate as a percentage, like 8.875." })
+  .min(0, "The tax rate cannot be negative.")
+  .max(MAX_TAX_RATE, `The tax rate cannot be over ${MAX_TAX_RATE}%.`)
+  .refine((value) => Math.abs(value * 1000 - Math.round(value * 1000)) < 1e-6, {
+    error: "Use at most three decimals, like 8.875.",
+  });
+
+export const updateSettingsSchema = z.object({ taxRate: taxRateField });
+
 export const updateBookingSchema = z
   .object({
     status: z.enum(bookingStatuses).optional(),
     note: z.string().trim().max(2000).optional(),
     pickupAt: z.iso.datetime({ offset: true }).optional(),
     vehicleClass: trimmed(60).optional(),
-    quotedTotalCents: z.coerce.number().int().min(0).optional().nullable(),
+    /** The fare before tax, in cents. Null clears the price. Tax is added. */
+    fareCents: z.coerce.number().int().min(0).max(100_000_00).optional().nullable(),
+    /** This booking's tax rate. Re-applied to the fare when it changes. */
+    taxRate: taxRateField.optional(),
     paymentMethod: z.enum(paymentMethods).optional(),
     paymentStatus: z.enum(paymentStatuses).optional(),
     /** Email the customer about a status change. Opt-in per request, so only
@@ -197,8 +215,10 @@ export const updateQuoteSchema = z
     note: z.string().trim().max(2000).optional(),
     notifyCustomer: z.boolean().optional(),
 
-    /** The price agreed with the customer, in cents. Null clears it. */
-    agreedPriceCents: z.coerce.number().int().min(0).max(100_000_000).nullable().optional(),
+    /** The agreed price before tax, in cents. Null clears it. Tax is added. */
+    priceCents: z.coerce.number().int().min(0).max(100_000_000).nullable().optional(),
+    /** This request's tax rate. Re-applied to the price when it changes. */
+    taxRate: taxRateField.optional(),
     /** How that price will be paid; chosen with it. */
     paymentMethod: z.enum(paymentMethods).nullable().optional(),
     paymentStatus: z.enum(paymentStatuses).optional(),
@@ -216,6 +236,16 @@ export const updateQuoteSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, {
     error: "Nothing to update.",
+  });
+
+/** Inclusive New York dates. Omit `from` for all time, `to` for today. */
+export const reportSchema = z
+  .object({
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+  })
+  .refine((value) => !value.from || !value.to || value.from <= value.to, {
+    error: "The start date must be on or before the end date.",
   });
 
 export const listBookingsSchema = z.object({
@@ -239,8 +269,10 @@ export const listQuotesSchema = z.object({
 });
 
 export const sendQuoteSchema = z.object({
-  /** Whole dollars from the operator's form, converted before it arrives. */
-  totalCents: z.coerce.number().int().min(0).max(100_000_00),
+  /** The fare before tax, from the operator's form, in cents. Tax is added. */
+  fareCents: z.coerce.number().int().min(0).max(100_000_00),
+  /** Omitted: the booking's own rate, which it took from Settings when made. */
+  taxRate: taxRateField.optional(),
   note: z.string().trim().max(2000).optional().nullable(),
 });
 
