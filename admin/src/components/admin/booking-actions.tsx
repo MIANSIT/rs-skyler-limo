@@ -125,9 +125,22 @@ export function BookingActions({
             id="status-note"
             name="note"
             rows={2}
-            placeholder="Optional note for the record"
+            placeholder="Optional note for the record — never emailed"
             className="w-full resize-y rounded-sm border border-midnight/20 bg-white px-3 py-2 font-sans text-[14px] text-midnight placeholder:text-charcoal/40 focus:border-midnight focus:outline-none"
           />
+
+          {/* Ticked by default: a customer should hear when their booking is
+              confirmed, cancelled or finished. Untick to correct a mistake
+              quietly. Statuses that tell the customer nothing never email. */}
+          <label className="flex items-start gap-2.5 font-sans text-[14px] leading-normal text-charcoal">
+            <input
+              type="checkbox"
+              name="notify"
+              defaultChecked
+              className="mt-0.5 h-4 w-4 shrink-0 accent-midnight"
+            />
+            Email the customer about this change, with their tracking link
+          </label>
 
           {primary ? (
             <StatusButton

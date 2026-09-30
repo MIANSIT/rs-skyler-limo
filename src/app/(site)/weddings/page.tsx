@@ -11,6 +11,7 @@ import {
   SectionHeading,
 } from "@/components/ui/section";
 import { weddingPackages } from "@/lib/content";
+import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
   title: "Weddings & Events",
@@ -50,7 +51,7 @@ export default function WeddingsPage() {
             >
               <span
                 aria-hidden
-                className="font-display text-[26px] leading-none font-semibold text-gold tabular-nums"
+                className="font-display text-[26px] leading-none font-semibold text-midnight tabular-nums"
               >
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -170,6 +171,8 @@ export default function WeddingsPage() {
           </div>
         </Reveal>
       </Section>
+
+      <CtaBand eyebrow="Every detail, minded" title="Tell us about the day, or book a single car now." primary="none" quoteHref="#enquire" />
     </>
   );
 }

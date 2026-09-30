@@ -317,7 +317,7 @@ export function VehicleForm({
               />
               <label
                 htmlFor={`amenity-${amenity.key}`}
-                className="cursor-pointer font-sans text-[15px] leading-[1.5] text-midnight"
+                className="cursor-pointer font-sans text-[15px] leading-normal text-midnight"
               >
                 {amenity.label}
                 {amenity.hint ? (
@@ -347,7 +347,7 @@ export function VehicleForm({
             />
             <label
               htmlFor="isActive"
-              className="cursor-pointer font-sans text-[15px] leading-[1.5] text-midnight"
+              className="cursor-pointer font-sans text-[15px] leading-normal text-midnight"
             >
               Show on the website
               <span className="block text-[13px] text-charcoal/60">

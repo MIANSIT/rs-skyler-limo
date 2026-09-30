@@ -2,6 +2,8 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { clsx } from "@/lib/clsx";
 
+export type SectionTone = "light" | "grey" | "dark" | "deep";
+
 export function Container({
   children,
   className,
@@ -17,8 +19,17 @@ export function Container({
 }
 
 /**
- * Sections alternate ground to hold the 60/30/10 ratio across a long page.
- * `grey` breaks up consecutive light sections without introducing a sixth colour.
+ * Sections alternate ground to hold a page's own ratio across a long scroll.
+ * `grey` breaks up consecutive light sections without introducing a sixth
+ * colour; `deep` does the identical job for a dark-first page (the
+ * homepage, at the client's request) — it alternates against `dark`
+ * (midnight) the way `grey` alternates against `light` (white). `deep` is
+ * `midnight-deep`, a darker shade of midnight in the same hue, not a new
+ * colour. It replaced `charcoal` here: a neutral grey beside a saturated navy
+ * read as two temperatures, not two depths of one ground. A dark-first page
+ * spends more of its 100% on midnight than on white, which is a deliberate
+ * brand decision recorded in `AGENTS.md`, not a silent departure from the
+ * guide's 60/30/10 note.
  */
 export function Section({
   tone = "light",
@@ -26,7 +37,7 @@ export function Section({
   className,
   id,
 }: {
-  tone?: "light" | "grey" | "dark";
+  tone?: SectionTone;
   children: ReactNode;
   className?: string;
   id?: string;
@@ -37,6 +48,7 @@ export function Section({
       className={clsx(
         "py-20 md:py-28",
         tone === "dark" && "bg-midnight text-white",
+        tone === "deep" && "bg-midnight-deep text-white",
         tone === "grey" && "bg-grey",
         tone === "light" && "bg-white",
         className,
@@ -126,17 +138,34 @@ export function Rule({ tone = "light" }: { tone?: "light" | "dark" }) {
 /** Fraunces italic on grey — the guide's own rationale-note device. */
 export function RationaleNote({
   label,
+  tone = "light",
   children,
 }: {
   label: string;
+  tone?: "light" | "dark";
   children: ReactNode;
 }) {
   return (
-    <div className="border-l-2 border-gold bg-grey px-6 py-5">
-      <p className="font-sans text-[13px] font-semibold tracking-wide text-midnight">
+    <div
+      className={clsx(
+        "border-l-2 border-gold px-6 py-5",
+        tone === "dark" ? "bg-white/5" : "bg-grey",
+      )}
+    >
+      <p
+        className={clsx(
+          "font-sans text-[13px] font-semibold tracking-wide",
+          tone === "dark" ? "text-white" : "text-midnight",
+        )}
+      >
         {label}
       </p>
-      <p className="font-display mt-2 text-[16px] leading-[1.7] text-charcoal italic">
+      <p
+        className={clsx(
+          "font-display mt-2 text-[16px] leading-[1.7] italic",
+          tone === "dark" ? "text-white/80" : "text-charcoal",
+        )}
+      >
         {children}
       </p>
     </div>

@@ -55,3 +55,36 @@ export function newYorkToIso(date: string, time: string): string | null {
 
   return new Date(instant).toISOString();
 }
+
+const dayFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const clockFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Today's date in New York as `YYYY-MM-DD`, whatever zone the browser is in. */
+export function todayInNewYork(): string {
+  return dayFormat.format(new Date());
+}
+
+/** The current New York time as `HH:MM`. */
+export function nowInNewYork(): string {
+  return clockFormat.format(new Date());
+}
+
+/**
+ * `2026-10-12T10:00:00.000Z` → `{ date: "2026-10-12", time: "06:00" }`: an
+ * instant as the New York date and clock a form field shows.
+ */
+export function isoToNewYork(iso: string): { date: string; time: string } {
+  const instant = new Date(iso);
+  return { date: dayFormat.format(instant), time: clockFormat.format(instant) };
+}

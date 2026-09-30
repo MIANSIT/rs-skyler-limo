@@ -56,8 +56,8 @@ const schema = z.object({
   /**
    * Google Places, used for address autocomplete and for deciding whether an
    * address is inside New York City. Optional: without it the booking form
-   * falls back to a plain address field and a borough selector, and fixed
-   * airport fares still work.
+   * falls back to a plain address field and every airport transfer is
+   * quoted, since nothing proves the address is inside the city.
    *
    * Server-side only — it must never be exposed with a NEXT_PUBLIC_ prefix.
    */
@@ -77,6 +77,13 @@ const schema = z.object({
    * not code. Unset, the button does not appear and `sameAs` is omitted.
    */
   GOOGLE_PLACE_ID: z.string().min(1).optional(),
+
+  /**
+   * Signs the anti-spam tokens the public forms carry. Optional: unset, a random
+   * secret is generated on each start, so a form opened before a restart fails
+   * once and works after a reload. Set it to keep tokens valid across restarts.
+   */
+  FORM_TOKEN_SECRET: z.string().min(16).optional(),
 
   /* ---------------------------------------------------------------- mail */
 
@@ -132,6 +139,34 @@ const schema = z.object({
    * Where a "track this booking" link should point. Used only in email bodies.
    */
   SITE_BASE_URL: z.string().min(1).default("http://localhost:3000"),
+
+  /**
+   * Stripe, for card payment on a priced booking. Optional: unset, the card
+   * option is still offered and the office takes payment when it confirms, as
+   * before. Server-side only — the browser is sent to Stripe's own hosted page,
+   * so no key of any kind reaches the public site.
+   *
+   * Use an `sk_test_` key everywhere but production.
+   */
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/, "Expected a Stripe secret key.")
+    .optional(),
+
+  /**
+   * Signs the webhook that marks a booking paid even when the customer closes
+   * the tab before returning from Stripe. Optional: without it, payment is
+   * still recorded when the customer lands back on the site.
+   */
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+
+  /**
+   * Signs the payment links operators send customers (`/pay/RS-…?token=…`).
+   * Optional: unset, a key is derived from STRIPE_SECRET_KEY, which is secret
+   * and stable across restarts. Set it to rotate links independently — every
+   * outstanding link stops working the moment it changes.
+   */
+  PAYMENT_LINK_SECRET: z.string().min(32).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

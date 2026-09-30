@@ -145,6 +145,13 @@ export async function saveRates(
   });
 }
 
+/**
+ * Per child seat, added to a fixed fare. Kept beside the fare logic rather than
+ * in the site's content file: this number is charged, so it belongs where the
+ * charging happens.
+ */
+export const CHILD_SEAT_FEE_CENTS = 3500;
+
 export type FareDecision = {
   pricingMode: "fixed" | "quote";
   /** Set only when `fixed`. */
@@ -173,8 +180,6 @@ export async function decideFare(input: {
   childSeatFeeCents: number;
   pickupPlaceId?: string | null;
   destinationPlaceId?: string | null;
-  /** Used when Places is unavailable and the customer chose a borough. */
-  statedBorough?: string | null;
   sessionToken: string;
 }): Promise<FareDecision> {
   const resolve = async (placeId?: string | null) =>
@@ -205,13 +210,9 @@ export async function decideFare(input: {
   const cityEnd =
     input.airportDirection === "to-airport" ? pickupPlace : destinationPlace;
 
-  const insideCity = cityEnd
-    ? cityEnd.isNewYorkCity
-    : // No resolved place: fall back to what the customer selected. This is the
-      // path taken when no Places key is configured.
-      Boolean(input.statedBorough);
-
-  if (!insideCity) {
+  // No resolved place — including when no Places key is configured — means
+  // nothing proves the trip is inside the city, so it is quoted.
+  if (!cityEnd?.isNewYorkCity) {
     return quote(
       "Fixed airport fares cover the five boroughs. We will price this one for you.",
     );

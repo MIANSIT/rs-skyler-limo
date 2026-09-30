@@ -75,6 +75,16 @@ Things that are easy to get wrong here:
   `MAIL_USER` — **never `MAIL`**, which is a POSIX shell variable holding the
   user's mail spool that dotenv refuses to overwrite. Anything a customer typed
   is escaped before it reaches the markup.
+- **Customers can change their own booking or quote request** from `/track`
+  (`api/src/services/changes.ts`, `src/components/site/change-record.tsx`). A
+  6-digit code goes to the email *already on the record* — never one typed then,
+  and email is not editable here — and a correct code buys one save. The same row
+  is updated (reference unchanged), `decideFare` runs again (a moved fare is shown
+  and must be accepted; a paid fare cannot move), a confirmed booking drops to
+  `pending`, and a priced quote loses its price. The row gets
+  `customer_change_pending`, shown as "Changed by customer" in the admin until
+  someone marks it reviewed; the before → after lives in `activity_log`
+  (`customer_changed`, `admin_user_id` NULL). No changes within 12 hours of pickup.
 
 See the README for setup and `deploy/nginx.conf` for the two server blocks.
 
@@ -94,6 +104,29 @@ The three rules broken most often:
 `/styleguide` renders every component with its contrast table — check changes
 there. Fonts are loaded once in `src/app/layout.tsx`; colour tokens live in the
 `@theme` block in `src/app/globals.css`.
+
+**The homepage is dark-first, at the client's request (Sept 2026), inspired by
+fiveborolimo.com.** Its sections alternate `midnight` and `midnight-deep` — the
+`deep` tone on `Section` in `ui/section.tsx` — rather than the `white`/`grey`
+alternation every other page still uses. `midnight-deep` (`#07152B`) is a
+darker shade of midnight in the same hue, not a sixth colour. It replaced
+`charcoal` as the secondary ground because the neutral grey clashed with the
+saturated navy, so don't put charcoal back as a background on a midnight page.
+This is a deliberate, page-scoped exception to the 60/30/10 ratio, not a
+departure from it everywhere: white still carries every other page. The hero
+no longer embeds the booking form: `HeroBookingCard`
+(`src/components/site/hero-booking-card.tsx`) picks a trip type and a vehicle
+and links to `/book?trip=…&vehicle=…`, which pre-fills the form. The form
+lives only at `/book`. `BookingForm` still has a `tone="dark"` prop (a
+frosted-glass card: `bg-midnight-deep/55 backdrop-blur-2xl`) threaded down
+through `Field`/`Input`/`Select`/`Textarea`/`Checkbox` in `ui/field.tsx`;
+only `/book` passes it, and only pass it where the client has approved the look.
+`/book` and `/track` have since joined it: a `deep` section with the hero's
+faint gold wash, the form and results as `glassCard` (`ui/field.tsx`), every
+field on `tone="dark"`, and non-gold buttons as `ButtonOnDark`/`ButtonLinkOnDark`
+(`ui/button.tsx`) — a midnight fill disappears on glass. The page's one gold
+action (Book / Show my booking) keeps the gold. Other pages are still light;
+use the same pieces when a page goes dark rather than reinventing them.
 
 The logo lockup is `src/components/brand/logo.tsx` (RS monogram + wordmark).
 Favicon and app icon are `src/app/icon.png` / `src/app/apple-icon.png` — Next

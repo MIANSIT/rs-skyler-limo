@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /** Reviewed alongside the terms; change both together. */
-const LAST_UPDATED = "17 September 2026";
+const LAST_UPDATED = "24 September 2026";
 
 /**
  * Written against what the system actually does.
@@ -53,7 +53,7 @@ const collected = [
   {
     term: "Payment details",
     detail:
-      "Card details are entered with our payment processor and are never stored on our systems. We keep the authorisation reference and the last four digits, which is what appears on your invoice.",
+      "Whether you chose to pay by card or cash on delivery, and whether the trip has been paid. Card details are entered on Stripe's page and never reach our systems. We keep only Stripe's reference for the payment, so we can find it if you ask.",
   },
 ];
 
@@ -78,10 +78,10 @@ const thirdParties = [
       "After you send a review to us we may offer a link to Google's own review form. Following it takes you to Google, where its terms and privacy policy apply. We send Google nothing about you or your booking.",
   },
   {
-    name: "Our payment processor",
-    what: "Taking payment.",
+    name: "Stripe",
+    what: "Taking card payment, if you choose to pay by card.",
     detail:
-      "Card details go directly to the processor and never touch our servers. We receive only a reference and the last four digits.",
+      "You pay on Stripe's own page, so card details go directly to Stripe and never touch our servers. We send Stripe your email address, the amount, the vehicle and your booking reference — not your addresses. Stripe's privacy policy applies to what you enter there.",
   },
   {
     name: "Our hosting provider",
@@ -181,6 +181,47 @@ export default function PrivacyPage() {
         </Reveal>
       </Section>
 
+      <Section tone="light">
+        <Reveal>
+          <SectionHeading
+            eyebrow="How we protect it"
+            title="Encrypted in transit, restricted at rest"
+            intro="Security is a practice, not a promise, so this describes what actually runs rather than a general assurance."
+            data-reveal
+          />
+
+          <ul data-reveal className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-2">
+            {[
+              {
+                title: "Every connection is encrypted",
+                body: "The site, the booking form and the reservations dashboard are only ever served over HTTPS. A browser that tries plain HTTP is redirected before any data leaves it.",
+              },
+              {
+                title: "Passwords are never stored in the clear",
+                body: "A staff member's password is one-way hashed before it touches the database. Nobody on our team, including us, can read it back.",
+              },
+              {
+                title: "The database is not reachable from the internet",
+                body: "It sits behind the reservations API on a private connection, with no public address of its own, and only that API can query it.",
+              },
+              {
+                title: "Access is by named staff account",
+                body: "Every login is tied to one person, expires automatically, and every change to a booking is recorded against whoever made it.",
+              },
+            ].map((item) => (
+              <li key={item.title} className="border-t border-midnight/10 pt-6">
+                <h3 className="font-sans text-[17px] font-semibold text-midnight">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
+                  {item.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </Section>
+
       <Section tone="grey">
         <Reveal>
           <SectionHeading
@@ -220,8 +261,8 @@ export default function PrivacyPage() {
             data-reveal
           />
 
-          <div data-reveal className="relative mt-10 overflow-x-auto">
-            <table className="w-full min-w-[36rem] border-collapse text-left">
+          <div tabIndex={0} role="region" aria-label="Retention table" data-reveal className="relative mt-10 overflow-x-auto">
+            <table className="w-full min-w-xl border-collapse text-left">
               <caption className="sr-only">Retention periods</caption>
               <thead>
                 <tr className="border-b border-midnight/15">
@@ -274,7 +315,7 @@ export default function PrivacyPage() {
             <SectionHeading
               eyebrow="Cookies"
               title="None that follow you"
-              intro="The public site sets no analytics or advertising cookies. The only cookie in the system is the one that keeps a member of staff signed in to the reservations dashboard, which is a different site you will never see."
+              intro="The public site sets no tracking or advertising cookies. The only cookie in the system is the one that keeps a member of staff signed in to the reservations dashboard, which is a different site you will never see. If we ever add analytics here, it will only run once you have said yes on the cookie banner — your choice is remembered in your browser, not sent to us, and you can change it any time from Cookie Preferences in the footer."
               data-reveal
             />
           </Reveal>

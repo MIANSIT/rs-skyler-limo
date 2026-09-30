@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 
+import { clsx } from "@/lib/clsx";
 import { gsap, useGSAP } from "@/lib/gsap";
 
 /**
@@ -33,9 +34,13 @@ const steps = [
 /**
  * The gold rule fills as the section scrolls — the numerals are the one place
  * Chapter 2 explicitly sanctions gold at display size on a light ground, since
- * a large decorative numeral is a graphic element rather than text.
+ * a large decorative numeral is a graphic element rather than text. That
+ * sanction holds just the same on a dark ground — gold at display size reads
+ * as a graphic there too — so `tone="dark"` only changes the rail, the ring
+ * behind each marker dot, and the body copy.
  */
-export function HowItWorks() {
+export function HowItWorks({ tone = "light" }: { tone?: "light" | "dark" }) {
+  const dark = tone === "dark";
   const scope = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -88,10 +93,13 @@ export function HowItWorks() {
       where the rail passes it, which is what the numeral and the line were
       both trying to say separately.
     */
-    <div ref={scope} className="relative mt-14 pl-[70px] md:pl-24">
+    <div ref={scope} className="relative mt-14 pl-17.5 md:pl-24">
       <div
         aria-hidden
-        className="absolute top-2 bottom-2 left-[48px] w-px bg-midnight/10 md:left-[64px]"
+        className={clsx(
+          "absolute top-2 bottom-2 left-12 w-px md:left-16",
+          dark ? "bg-white/15" : "bg-midnight/10",
+        )}
       >
         <div data-progress className="h-full w-full origin-top bg-gold" />
       </div>
@@ -103,7 +111,7 @@ export function HowItWorks() {
                 decorative numeral — it is a graphic element, not text. */}
             <span
               aria-hidden
-              className="font-display absolute top-0 -left-[70px] text-[26px] leading-none font-semibold text-gold tabular-nums md:-left-24 md:text-[34px]"
+              className="font-display absolute top-0 -left-17.5 text-[26px] leading-none font-semibold text-gold tabular-nums md:-left-24 md:text-[34px]"
             >
               {String(index + 1).padStart(2, "0")}
             </span>
@@ -111,19 +119,22 @@ export function HowItWorks() {
             {/*
               The marker on the rail. Centred on the 1px line: half the dot's
               10px width to the left of it, so it reads as sitting on the rule
-              rather than beside it. The white ring punches the rail out behind
-              the dot — the section ground is white, so the rule appears to pass
-              behind rather than through.
+              rather than beside it. The ring punches the rail out behind the
+              dot, in whatever colour the section ground actually is, so the
+              rule appears to pass behind rather than through.
             */}
             <span
               aria-hidden
-              className="absolute top-2 -left-[27px] h-2.5 w-2.5 rounded-full bg-gold ring-4 ring-white md:top-3 md:-left-[37px]"
+              className={clsx(
+                "absolute top-2 -left-6.75 h-2.5 w-2.5 rounded-full bg-gold ring-4 md:top-3 md:-left-9.25",
+                dark ? "ring-midnight-deep" : "ring-white",
+              )}
             />
 
-            <h3 className="font-sans text-[17px] font-semibold text-midnight">
+            <h3 className={clsx("font-sans text-[17px] font-semibold", dark ? "text-white" : "text-midnight")}>
               {step.title}
             </h3>
-            <p className="mt-2 max-w-xl text-[15px] leading-[1.7] text-charcoal">
+            <p className={clsx("mt-2 max-w-xl text-[15px] leading-[1.7]", dark ? "text-white/75" : "text-charcoal")}>
               {step.body}
             </p>
           </li>

@@ -88,6 +88,15 @@ sends a price — it is re-derived on every submission against the live rate car
 so a stale tab or an edited request cannot book a Sprinter at a sedan fare. The
 form's on-screen figure is a preview of the same calculation.
 
+A pick-up in the past cannot be booked. The date field locks earlier days and the
+time field refuses an earlier time today, judged in New York time, and the API
+rejects a past `pickupAt` too (with two minutes of grace, so booking for "now"
+is not refused by a few seconds). The optional event date on the quote and
+wedding forms follows the same rule.
+Pick-ups are always New York time, never the customer's device time. For someone
+booking from another time zone the form shows New York's current time and, once
+a time is chosen, what it is on their own device (a hint only, never sent).
+
 The rate card is `admin.rsskylerlimo.com/rates`: one price per airport per
 vehicle, covering all five boroughs. An empty cell is not an error — that
 combination quotes instead, which is the safe direction to be unsure in.
@@ -119,6 +128,79 @@ alone travels in email and on paper and would otherwise expose a customer's name
 and route to anyone who read one. Numbers are compared on their last ten digits,
 so `+1 (212) 555-0123` and `212-555-0123` are the same line.
 
+## Payment: card (Stripe) or cash on delivery
+
+The customer chooses on the booking form's last step. The choice is stored on
+the booking as `payment_method` (`card` or `cash`), and whether the money is in
+as `payment_status` (`unpaid` or `paid`), with `paid_at` stamped when it lands.
+
+- **Cash on delivery** is paid to the chauffeur at the end of the trip. An
+  operator records it with **Mark paid** on the booking's Payment panel.
+- **Card** goes through Stripe Checkout, so card details never touch our
+  servers. A fixed fare sends the customer to Stripe straight after booking.
+  A quoted trip is paid from `/track` once an operator has priced it. The
+  lookup there needs the reference and phone number, same as tracking. The
+  amount is always the fare stored on the booking, never a figure from the
+  browser.
+- **Recording the payment.** When Stripe sends the customer back to
+  `/pay/complete`, the API asks Stripe whether that session was paid before
+  marking anything. A reload, or a made-up session id, cannot mark a booking
+  paid. The webhook (`/api/stripe/webhook` on the public site, relayed to the
+  API) does the same for a customer who closes the tab before returning.
+  Recording is idempotent, so both arriving is fine.
+- **Payment links.** For a priced, unpaid card booking the booking's Payment
+  panel has **Email link** and **Get link to copy** (for a text or WhatsApp
+  message). The link opens `/pay/RS-…?token=…`: the booking, the amount, and
+  one Pay button to Stripe. Nothing to type. The token is an HMAC over the
+  booking id, reference, amount and expiry (`api/src/lib/payment-link.ts`), so
+  a link cannot be forged or moved to another booking, stops working when the
+  price changes, and expires after 7 days. The "Your quote is ready" email
+  carries the same link for card customers, so pricing a trip and asking for
+  payment are one step. Signed with `PAYMENT_LINK_SECRET`, or a key derived
+  from `STRIPE_SECRET_KEY` when that is unset. Changing either invalidates
+  every outstanding link.
+- **Quote requests (`RQ-…`) are paid the same way.** When an operator sets
+  the agreed price they choose Card (Stripe payment link) or Cash on
+  delivery. With card and the email box ticked, the "Your price" email
+  carries the Pay button. The request's Payment panel has Mark paid, switch
+  method, and Email or Copy payment link. The link opens `/pay/RQ-…` and a
+  Stripe payment marks the request paid. Once paid, the price is locked.
+- Refunds are done in the Stripe Dashboard. The booking's Payment panel shows
+  the PaymentIntent id to search for.
+
+Configuration is in `api/.env` only; no key reaches either Next.js app:
+
+| Variable | |
+|---|---|
+| `STRIPE_SECRET_KEY` | `sk_test_…` everywhere except production. Unset, card is still offered but nothing opens Stripe. |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…`. In development, from `stripe listen --forward-to localhost:3000/api/stripe/webhook`; in production, from a Dashboard endpoint pointing at `https://rsskylerlimo.com/api/stripe/webhook` with `checkout.session.completed` and `checkout.session.async_payment_succeeded`. |
+| `PAYMENT_LINK_SECRET` | Optional, 32+ characters. Signs payment links; unset, a key is derived from `STRIPE_SECRET_KEY`. |
+
+`SITE_BASE_URL` must be the public site's real origin, because it builds
+Stripe's success and cancel URLs.
+
+## Spam protection and double bookings
+
+The public forms (booking, quote, review) are protected by rate limiting plus two
+invisible checks that need no third-party service, so the privacy policy gains no
+new vendor. Each form carries a hidden trap field called `website` and a signed
+token fetched from `GET /api/form-token` when the page loads. The API
+(`api/src/lib/form-guard.ts`) refuses a submission that fills the trap, has no
+valid token, or arrives within three seconds of the page loading. Tokens last six
+hours. Set `FORM_TOKEN_SECRET` in `api/.env` to keep them valid across an API
+restart; unset, a random secret is used and a form opened before a restart needs
+one reload. This stops cheap scripts. It does not stop one that drives a real
+browser, which only a CAPTCHA would, and it is meant to sit behind the rate limit,
+not replace it. An identical booking (same email, pick-up time and vehicle class)
+sent twice within ten minutes is refused as a duplicate.
+
+Double bookings are flagged for the operator, not blocked. The dashboard shows a
+"Possible clash" badge in the bookings list, and the booking page names the other
+bookings, when another live booking for the same vehicle class is within three
+hours (`CLASH_WINDOW_MINUTES` in `api/src/services/bookings.ts`, plus the matching
+`180` in `listBookings`). Blocking a customer would need the number of cars per
+class, which this system does not hold.
+
 ## Google Places
 
 Address autocomplete and the "is this inside New York City" test both run
@@ -126,8 +208,9 @@ through `GOOGLE_MAPS_API_KEY`, set on the **API** and never exposed to a
 browser — autocomplete fires on every keystroke, and a key in the browser is a
 key on someone else's bill.
 
-Without a key the booking form falls back to a plain address field plus a
-borough selector, and fixed airport fares still work. Enable "Places API (New)"
+Without a key the booking form falls back to a plain address field, and every
+airport transfer is quoted — nothing proves the address is inside the city, so
+no fixed fare is offered. Enable "Places API (New)"
 in a Google Cloud project with billing, restrict the key to that one API, and
 put it in `api/.env`.
 

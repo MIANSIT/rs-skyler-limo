@@ -25,8 +25,10 @@ export function AddressField({
   defaultValue = "",
   enabled,
   sessionToken,
+  tone = "light",
   onResolve,
   onTypingStart,
+  onTextChange,
 }: {
   id: string;
   name: string;
@@ -35,10 +37,16 @@ export function AddressField({
   defaultValue?: string;
   enabled: boolean;
   sessionToken: string;
+  /** Only the text field itself — the suggestion list below stays a plain
+   *  light popover regardless, the same way a native or Google address
+   *  dropdown always does, so it reads clearly over any page. */
+  tone?: "light" | "dark";
   /** Called with the chosen place id, or null when the text is typed freehand. */
   onResolve?: (placeId: string | null) => void;
   /** Fired on the first keystroke so the parent can open a billing session. */
   onTypingStart?: () => void;
+  /** The text as it stands, typed or picked — for a live trip summary. */
+  onTextChange?: (text: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -117,6 +125,7 @@ export function AddressField({
       .join(", ");
 
     setValue(text);
+    onTextChange?.(text);
     setPlaceId(suggestion.placeId);
     onResolve?.(suggestion.placeId);
     setOpen(false);
@@ -131,6 +140,7 @@ export function AddressField({
         value={value}
         placeholder={placeholder}
         required={required}
+        tone={tone}
         autoComplete="off"
         role={enabled ? "combobox" : undefined}
         aria-expanded={enabled ? open : undefined}
@@ -139,6 +149,7 @@ export function AddressField({
         onChange={(event) => {
           onTypingStart?.();
           setValue(event.target.value);
+          onTextChange?.(event.target.value);
           // Editing the text invalidates the resolved place, and with it the
           // fixed fare that depended on knowing the borough.
           if (placeId) {
@@ -194,7 +205,7 @@ export function AddressField({
                   {suggestion.primary}
                 </span>
                 {suggestion.secondary ? (
-                  <span className="block text-[13px] text-charcoal/60">
+                  <span className="block text-[13px] text-charcoal/70">
                     {suggestion.secondary}
                   </span>
                 ) : null}

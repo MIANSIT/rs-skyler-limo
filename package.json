@@ -24,6 +24,7 @@
     "check": "npm run lint && npm run typecheck && npm --prefix admin run lint && npm --prefix admin run typecheck && npm --prefix api run typecheck",
     "build:all": "npm run build && npm run admin:build && npm run api:build",
     "api:seed-fleet": "npm --prefix api run seed-fleet",
+    "api:seed-zone-rates": "npm --prefix api run seed-zone-rates",
     "db:tunnel": "./scripts/db-tunnel.sh",
     "db:shell": "./scripts/db-tunnel.sh --mysql"
   },

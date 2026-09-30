@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { FormGuard } from "@/components/site/form-guard";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { submitReview, type ReviewFormState } from "@/lib/public/actions";
@@ -108,6 +109,7 @@ export function ReviewForm({ initialReference }: { initialReference: string }) {
       key={key}
       className="flex flex-col gap-6 border border-midnight/10 p-6 md:p-8"
     >
+      <FormGuard />
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
           label="Booking reference"

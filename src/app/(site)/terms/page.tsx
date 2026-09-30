@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 /** Reviewed with the terms; change both together. */
-const LAST_UPDATED = "9 September 2026";
+const LAST_UPDATED = "24 September 2026";
 
 const cancellation = [
   {
@@ -34,7 +34,7 @@ const cancellation = [
   {
     when: "No-show",
     fee: "100%",
-    note: "Treated as a late cancellation. Tell us you are delayed and we will wait — see below.",
+    note: "You left the pickup location, or never came to it, without telling the driver or dispatch you were delayed. Call or text the moment you are running behind and this does not apply — see waiting, below.",
   },
 ];
 
@@ -80,7 +80,7 @@ const collected = [
   {
     term: "Payment details",
     detail:
-      "Card details are entered with our payment processor and are never stored on our systems. We keep only the authorisation reference and the last four digits, which is what appears on your invoice.",
+      "If you pay by card, you enter your card details on Stripe's page and they never reach our systems. We keep only Stripe's reference for the payment.",
   },
 ];
 
@@ -102,8 +102,8 @@ export default function TermsPage() {
             data-reveal
           />
 
-          <div data-reveal className="relative mt-10 overflow-x-auto">
-            <table className="w-full min-w-[36rem] border-collapse text-left">
+          <div tabIndex={0} role="region" aria-label="Cancellation fees table" data-reveal className="relative mt-10 overflow-x-auto">
+            <table className="w-full min-w-xl border-collapse text-left">
               <caption className="sr-only">Cancellation fees</caption>
               <thead>
                 <tr className="border-b border-midnight/15">
@@ -241,6 +241,10 @@ export default function TermsPage() {
                 body: "Added at cost, and only where they were not already included in your quoted fare. We do not mark them up.",
               },
               {
+                title: "Damage and cleaning",
+                body: "Smoking is not permitted in any vehicle. Excessive mess, spillage or smoking is billed at the cost of professional cleaning, charged to the card on file.",
+              },
+              {
                 title: "Your receipt",
                 body: "A final invoice is issued once the trip closes, showing the quoted fare and every adjustment on its own line.",
               },
@@ -302,7 +306,7 @@ export default function TermsPage() {
               {
                 term: "Payment",
                 detail:
-                  "A card authorisation or deposit hold is placed at booking. Nothing is captured until the trip is complete and the final fare is settled.",
+                  "Card (Stripe) or cash on delivery, chosen when you book. By card, you pay through Stripe's secure page: a fixed fare straight after booking, a quoted fare once we have priced it and you accept, from the tracking page. Cash on delivery is paid to your chauffeur at the end of the trip, in US dollars, and covers the fare plus anything added to it on the day.",
               },
               {
                 term: "Confirmation",

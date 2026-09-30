@@ -4,6 +4,16 @@ import type { ActivityEntry } from "@/lib/api/types";
 const actionLabels: Record<string, string> = {
   status_changed: "Status changed",
   updated: "Note added",
+  payment_paid: "Marked paid",
+  payment_unpaid: "Marked unpaid",
+  payment_method_cash: "Payment changed to cash on delivery",
+  payment_method_card: "Payment changed to card",
+  details_updated: "Details edited",
+  payment_link_sent: "Payment link emailed",
+  payment_link_created: "Payment link created",
+  price_set: "Agreed price",
+  customer_changed: "Changed by customer",
+  change_reviewed: "Customer change reviewed",
 };
 
 export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {
@@ -32,12 +42,13 @@ export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {
                   ) : null}
                 </span>
                 <span className="font-sans text-[13px] text-charcoal/50">
-                  {entry.actor ?? "System"} · {formatRelative(entry.createdAt)}
+                  {entry.actor ?? (entry.action === "customer_changed" ? "Customer" : "System")} ·{" "}
+                  {formatRelative(entry.createdAt)}
                 </span>
               </div>
 
               {entry.note ? (
-                <p className="mt-1.5 font-sans text-[14px] break-words text-charcoal/80">
+                <p className="mt-1.5 font-sans text-[14px] break-words whitespace-pre-line text-charcoal/80">
                   {entry.note}
                 </p>
               ) : null}

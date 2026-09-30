@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { MaskedWords } from "@/components/motion/masked-words";
-import { BookingForm } from "@/components/site/booking-form";
-import { ButtonLink, ButtonLinkOnDark } from "@/components/ui/button";
-import type { BookingOptions, FleetVehicle, HeroMediaItem } from "@/lib/api/types";
+import { BookingSheet } from "@/components/site/booking-sheet";
+import { HeroBookingCard } from "@/components/site/hero-booking-card";
+import type { FleetVehicle, HeroMediaItem } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
-import { bookingAirports, contact } from "@/lib/content";
+import { bookingAirports } from "@/lib/content";
 
 /**
  * The hero's background slides, when the dashboard has uploaded any.
@@ -42,14 +42,10 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
   return (
     <>
       {/*
-        Plain full-bleed at every width. This used to need a capped height
-        below `lg`, because the multi-step booking form stacked directly
-        under the copy made the section balloon well past what a background
-        image could cover sensibly. Below `lg` the hero card is a CTA now,
-        not the form (see the `data-hero-card` block below), so the section
-        is back to a normal, copy-driven height and `inset-0` covers it
-        properly at every width without cropping a landscape image or video
-        down to a sliver.
+        Plain full-bleed at every width. The hero holds a compact booking
+        card rather than the multi-step form, so the section keeps a
+        copy-driven height and `inset-0` covers it without cropping a
+        landscape image or video down to a sliver.
       */}
       <div aria-hidden className="absolute inset-0 z-0 overflow-hidden bg-midnight">
         {media.map((item, itemIndex) => (
@@ -82,9 +78,16 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
           </div>
         ))}
       </div>
+      {/* A deeper midnight blended in at the bottom — the near-black fade the
+          client asked for, kept in the navy's own hue so it does not turn
+          grey against the midnight above it. */}
       <div
         aria-hidden
-        className="absolute inset-0 z-0 bg-gradient-to-r from-midnight/90 via-midnight/75 to-midnight/50"
+        className="absolute inset-0 z-0 bg-linear-to-r from-midnight/92 via-midnight/78 to-midnight/55"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 bg-linear-to-t from-midnight-deep/80 via-transparent to-transparent"
       />
     </>
   );
@@ -101,11 +104,9 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
  */
 export function Hero({
   fleet,
-  bookingOptions,
   media,
 }: {
   fleet: FleetVehicle[];
-  bookingOptions: BookingOptions;
   media: HeroMediaItem[];
 }) {
   const scope = useRef<HTMLElement>(null);
@@ -189,12 +190,12 @@ export function Hero({
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-gold/40 to-transparent"
       />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-6">
+        <div className="grid items-end gap-14 lg:min-h-140 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-7">
             <p
               data-hero-eyebrow
               className="font-sans text-[13px] font-medium tracking-[0.16em] text-gold uppercase"
@@ -216,25 +217,17 @@ export function Hero({
               data-hero-copy
               className="mt-8 max-w-lg text-[17px] leading-[1.7] text-white/75"
             >
-              Private, punctual, genuinely welcoming — whether that is a 6 a.m.
-              run to JFK or a wedding motorcade through Brooklyn. One standard,
-              every borough.
+              Luxury chauffeur service throughout New York City, Westchester,
+              New Jersey &amp; Connecticut.
+            </p>
+            <p
+              data-hero-copy
+              className="mt-3 max-w-lg text-[17px] leading-[1.7] text-white/75"
+            >
+              Airport Transfers &bull; Corporate Travel &bull; Special Events
             </p>
 
-            <div
-              data-hero-copy
-              className="mt-9 flex flex-wrap items-center gap-4"
-            >
-              <ButtonLinkOnDark href="/fleet">See the fleet</ButtonLinkOnDark>
-              <a
-                href={contact.phoneHref}
-                className="inline-block py-2 font-sans text-[15px] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
-              >
-                Or call <span className="tabular-nums">{contact.phone}</span>
-              </a>
-            </div>
-
-            <dl className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-white/15 pt-8">
+            <dl className="mt-14 grid max-w-md grid-cols-[repeat(3,auto)] justify-between gap-4 border-t sm:gap-6 border-white/15 pt-8">
               {/* The airport count said 3 while the booking form has offered
                   5 since Teterboro and Westchester were added, and "24/7
                   Dispatch" was a staffing claim nothing here backs up.
@@ -253,71 +246,49 @@ export function Hero({
             </dl>
           </div>
 
-          <div data-hero-card className="lg:col-span-6">
+          {/*
+            The booking card, not the form. The multi-step form made the hero
+            a wall of fields; the card keeps the two choices that matter up
+            front — trip type and car — and hands them to `/book`. Sits low
+            on the right at `lg`, beneath the headline's line of sight, the
+            way the client's reference hero places its fleet card.
+          */}
+          {/* Hidden below `md`: on a phone the card lives in `BookingSheet`,
+              opened from the Book button in the bottom bar. */}
+          <div data-hero-card className="hidden w-full max-w-md md:block lg:col-span-5 lg:col-start-8 lg:justify-self-end">
+            <HeroBookingCard fleet={fleet} />
             {/*
-              Below `lg` this is a CTA, not the multi-step form. The form's
-              own height is what was forcing the mobile hero section so tall
-              that the background media had to be capped short of it — and a
-              five-field-per-screen form stacked under a full hero is a lot
-              to scroll past before a customer even sees "Airport". The full
-              form lives at `/book`; this is one tap away from it, matching
-              how fiveborolimo.com's own hero works (a quote button, not an
-              embedded form). Desktop keeps the form inline — there it sits
-              beside the copy rather than under it, so it never dominates the
-              section the way it does stacked on a phone.
+              A second path, not a second gold action: weddings, corporate
+              accounts and events go through `/quote`, a genuinely different
+              form. Plain text link, so the card's gold action stays the only
+              one in the hero.
             */}
-            <div className="lg:hidden">
-              <div className="bg-white p-6 text-center shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)] md:p-8">
-                <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase">
-                  Get a fare in under a minute
-                </p>
-                <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
-                  Airport, point to point or hourly. Fixed fares within the
-                  five boroughs are shown before you book.
-                </p>
-                <ButtonLink href="/book" variant="cta" size="lg" className="mt-6 w-full">
-                  Book a car
-                </ButtonLink>
-                {/*
-                  A second path, not a second gold action: `/book` is for
-                  the trip types above (airport, point to point, hourly).
-                  Weddings, corporate accounts and events go through `/quote`
-                  instead — a genuinely different, simpler form. Plain text
-                  link, same weight as the "Or call…" link beside the
-                  headline, so the one gold action above stays the only one.
-                */}
-                <Link
-                  href="/quote"
-                  className="mt-4 inline-block font-sans text-[14px] text-midnight underline-offset-4 hover:underline"
-                >
-                  Need a custom quote instead?
-                </Link>
-              </div>
-            </div>
-
-            <div className="hidden lg:block">
-              <BookingForm fleet={fleet} options={bookingOptions} />
-              <p className="mt-4 text-center text-[13px] text-white/55">
-                A fare and a confirmed pickup in under a minute.
-              </p>
-            </div>
+            <Link
+              href="/quote"
+              className="mt-4 inline-block font-sans text-[14px] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              Wedding, event or corporate account? Request a quote
+            </Link>
           </div>
         </div>
       </div>
+      <BookingSheet fleet={fleet} />
     </section>
   );
 }
 
 function HeroStat({ value, label }: { value: string; label: string }) {
   return (
-    <div data-hero-stat>
-      <dt className="sr-only">{label}</dt>
-      <dd className="font-display text-[28px] leading-none font-semibold text-white tabular-nums">
+    // The label is the <dt> and comes first in the DOM, as a definition list
+    // requires; `order-first` keeps the number above it on screen, top-aligned
+    // with its neighbours even when a label wraps to two lines on a phone.
+    <div data-hero-stat className="flex flex-col">
+      <dt className="mt-2 font-sans text-[12px] tracking-widest text-white/55 uppercase sm:text-[13px] sm:whitespace-nowrap">
+        {label}
+      </dt>
+      <dd className="font-display order-first text-[28px] leading-none font-semibold text-white tabular-nums">
         {value}
       </dd>
-      <p className="mt-2 font-sans text-[13px] tracking-widest text-white/55 uppercase">
-        {label}
-      </p>
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { BookingActions } from "@/components/admin/booking-actions";
+import { ChangedTag } from "@/components/admin/changed-tag";
+import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
+import { PaymentPanel } from "@/components/admin/payment-panel";
 import { QuotePanel } from "@/components/admin/quote-panel";
 import { DetailRow } from "@/components/admin/detail-row";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -41,7 +44,7 @@ export default async function BookingDetailPage({
   const result = await getBooking(numericId);
   if (!result) notFound();
 
-  const { booking, activity } = result;
+  const { booking, activity, clashes } = result;
 
   return (
     <div className="flex flex-col gap-8">
@@ -58,6 +61,13 @@ export default async function BookingDetailPage({
             {booking.reference}
           </h1>
           <StatusBadge status={booking.status} />
+          {booking.customerChangePending ? <ChangedTag /> : null}
+          <Link
+            href={`/bookings/${booking.id}/edit`}
+            className="ml-auto rounded-sm border border-midnight/25 bg-white px-4 py-2 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey"
+          >
+            Edit details
+          </Link>
         </div>
 
         <p className="mt-3 font-sans text-[15px] text-charcoal/70">
@@ -65,6 +75,46 @@ export default async function BookingDetailPage({
           {formatDay(booking.createdAt)} · {booking.source}
         </p>
       </div>
+
+      {booking.customerChangePending ? (
+        <CustomerChangePanel kind="booking" id={booking.id} activity={activity} />
+      ) : null}
+
+      {clashes.length > 0 ? (
+        <section className="border-l-2 border-gold bg-white px-6 py-5">
+          <h2 className="font-sans text-[13px] font-semibold tracking-[0.08em] text-midnight uppercase">
+            Possible clash
+          </h2>
+          <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/80">
+            {clashes.length === 1
+              ? "Another booking for the same vehicle class is"
+              : `${clashes.length} other bookings for the same vehicle class are`}{" "}
+            within three hours of this pickup. Check a second car is free
+            before you confirm.
+          </p>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {clashes.map((clash) => (
+              <li
+                key={clash.id}
+                className="font-sans text-[14px] text-charcoal/80 tabular-nums"
+              >
+                <Link
+                  href={`/bookings/${clash.id}`}
+                  className="font-semibold text-midnight underline underline-offset-4"
+                >
+                  {clash.reference}
+                </Link>
+                {" · "}
+                {formatPickup(clash.pickupAt)}
+                {" · "}
+                {clash.customerName}
+                {" · "}
+                <span className="capitalize">{clash.status}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-8">
@@ -161,6 +211,8 @@ export default async function BookingDetailPage({
           {booking.pricingMode === "quote" ? (
             <QuotePanel booking={booking} />
           ) : null}
+
+          <PaymentPanel booking={booking} />
 
           <ActivityTrail entries={activity} />
         </div>

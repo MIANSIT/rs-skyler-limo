@@ -14,10 +14,12 @@ import type {
   FleetMeta,
   HeroMediaItem,
   Paginated,
+  PossibleClash,
   Quote,
   RateGrid,
   ReviewStatus,
   Vehicle,
+  ZoneRateGrid,
 } from "@/lib/api/types";
 
 import { getSessionToken } from "./session";
@@ -61,6 +63,8 @@ export async function getStats(): Promise<DashboardStats> {
 export type BookingFilters = {
   status?: string;
   q?: string;
+  /** `"1"`: only bookings changed by the customer and not yet reviewed. */
+  changed?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -87,11 +91,19 @@ export async function getBookings(
 
 export async function getBooking(
   id: number,
-): Promise<{ booking: Booking; activity: ActivityEntry[] } | null> {
+): Promise<{
+  booking: Booking;
+  activity: ActivityEntry[];
+  clashes: PossibleClash[];
+} | null> {
   const { token } = await verifySession();
 
   try {
-    return await apiFetch<{ booking: Booking; activity: ActivityEntry[] }>(
+    return await apiFetch<{
+      booking: Booking;
+      activity: ActivityEntry[];
+      clashes: PossibleClash[];
+    }>(
       `/api/admin/bookings/${id}`,
       { token },
     );
@@ -104,7 +116,7 @@ export async function getBooking(
 }
 
 export async function getQuotes(
-  filters: { status?: string; q?: string; page?: number } = {},
+  filters: { status?: string; q?: string; changed?: string; page?: number } = {},
 ): Promise<Paginated<"quotes", Quote>> {
   const { token } = await verifySession();
   return apiFetch<Paginated<"quotes", Quote>>(
@@ -196,6 +208,12 @@ export async function getAirports(): Promise<AdminAirport[]> {
 export async function getRateGrid(): Promise<RateGrid> {
   const { token } = await verifySession();
   return apiFetch<RateGrid>("/api/admin/rates", { token });
+}
+
+/** The regional reference card — see the note on `saveZoneRates`. */
+export async function getZoneRateGrid(): Promise<ZoneRateGrid> {
+  const { token } = await verifySession();
+  return apiFetch<ZoneRateGrid>("/api/admin/zone-rates", { token });
 }
 
 export async function getReviews(status?: ReviewStatus): Promise<AdminReview[]> {

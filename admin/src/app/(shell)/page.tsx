@@ -38,6 +38,43 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      {stats.bookings.changed + stats.quotes.changed > 0 ? (
+        <section className="flex flex-wrap items-center gap-x-6 gap-y-2 border-l-2 border-midnight bg-white px-6 py-4">
+          <h2 className="font-sans text-[15px] font-semibold text-midnight">Changed by customer</h2>
+          <p className="font-sans text-[15px] text-charcoal/80 tabular-nums">
+            {[
+              stats.bookings.changed > 0
+                ? `${stats.bookings.changed} ${stats.bookings.changed === 1 ? "booking" : "bookings"}`
+                : null,
+              stats.quotes.changed > 0
+                ? `${stats.quotes.changed} quote ${stats.quotes.changed === 1 ? "request" : "requests"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" and ")}{" "}
+            changed by customers, waiting for review.
+          </p>
+          <div className="flex gap-4 sm:ml-auto">
+            {stats.bookings.changed > 0 ? (
+              <Link
+                href="/bookings?changed=1"
+                className="font-sans text-[14px] font-medium text-midnight underline underline-offset-4"
+              >
+                Review bookings
+              </Link>
+            ) : null}
+            {stats.quotes.changed > 0 ? (
+              <Link
+                href="/quotes?changed=1"
+                className="font-sans text-[14px] font-medium text-midnight underline underline-offset-4"
+              >
+                Review quotes
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-px overflow-hidden rounded-sm border border-midnight/10 bg-midnight/10 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="New requests" value={stats.bookings.new} emphasis />
         <StatCard label="Pickups today" value={stats.bookings.today} />

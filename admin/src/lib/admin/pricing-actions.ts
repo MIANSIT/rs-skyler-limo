@@ -86,6 +86,55 @@ export async function saveAirportRates(
   };
 }
 
+/**
+ * The regional reference card. Unlike `saveAirportRates`, nothing here is read
+ * by the booking form or `decideFare` — it exists so staff pricing a quote by
+ * hand have the client's own numbers in front of them, so no revalidation of
+ * the public site is needed.
+ */
+export async function saveZoneRates(
+  _previous: PricingFormState,
+  formData: FormData,
+): Promise<PricingFormState> {
+  const { token } = await verifySession();
+
+  // Each cell posts as `zone-rate:<AIRPORT>:<zoneKey>:<vehicleId>`.
+  const rates: {
+    airportCode: string;
+    zoneKey: string;
+    vehicleId: number;
+    priceCents: number | null;
+  }[] = [];
+
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("zone-rate:")) continue;
+
+    const [, airportCode, zoneKey, vehicleId] = key.split(":");
+    if (!airportCode || !zoneKey || !vehicleId) continue;
+
+    rates.push({
+      airportCode,
+      zoneKey,
+      vehicleId: Number(vehicleId),
+      priceCents: toCents(String(value)),
+    });
+  }
+
+  if (rates.length === 0) {
+    return { status: "error", message: "Nothing to save." };
+  }
+
+  try {
+    await apiFetch("/api/admin/zone-rates", { method: "PUT", token, body: { rates } });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidatePath("/rates");
+
+  return { status: "saved", message: "Reference rates saved." };
+}
+
 export async function sendQuote(
   _previous: PricingFormState,
   formData: FormData,

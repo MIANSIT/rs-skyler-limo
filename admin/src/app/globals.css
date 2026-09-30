@@ -19,6 +19,8 @@
   --color-gold: #d4a017;
   --color-charcoal: #2c2c2f;
   --color-grey: #f5f5f5;
+  /* Mirrors src/app/globals.css: midnight at 65% lightness, same hue. */
+  --color-midnight-deep: #07152b;
 
   --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;

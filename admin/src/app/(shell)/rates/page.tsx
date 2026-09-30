@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { RateGridForm } from "@/components/admin/rate-grid-form";
-import { getRateGrid } from "@/lib/admin/dal";
+import { ZoneRateGridForm } from "@/components/admin/zone-rate-grid-form";
+import { getRateGrid, getZoneRateGrid } from "@/lib/admin/dal";
 
 export const metadata: Metadata = { title: "Airport rates" };
 
 export default async function RatesPage() {
-  const grid = await getRateGrid();
+  const [grid, zoneGrid] = await Promise.all([getRateGrid(), getZoneRateGrid()]);
   const published = grid.rates.filter((rate) => rate.isActive).length;
   const cells = grid.airports.length * grid.vehicles.length;
 
@@ -48,6 +49,22 @@ export default async function RatesPage() {
       ) : (
         <RateGridForm grid={grid} />
       )}
+
+      <div className="mt-4 border-t border-midnight/10 pt-8">
+        <h2 className="font-display text-[24px] leading-tight font-semibold text-midnight">
+          Regional rate reference
+        </h2>
+        <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/70">
+          Your own price list for trips outside the five boroughs — Nassau,
+          Suffolk and Westchester in New York, and the NJ and CT counties.
+          Nothing on this card is published to customers or booked
+          automatically; every one of these still arrives as a quote request,
+          exactly as it does today. This is only here so whoever is pricing
+          that request by phone or email has your numbers in front of them.
+        </p>
+      </div>
+
+      {zoneGrid.vehicles.length > 0 ? <ZoneRateGridForm grid={zoneGrid} /> : null}
     </div>
   );
 }

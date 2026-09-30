@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { EmailInput } from "@/components/site/email-input";
+import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
+import { DateField } from "@/components/ui/date-time-field";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
 import { submitQuote, type QuoteFormState } from "@/lib/public/actions";
+import {
+  pickupProblems,
+  shortDay,
+  useNewYorkClock,
+} from "@/lib/public/use-new-york-clock";
 
 /**
  * The public end of the quote pipeline.
@@ -86,6 +94,20 @@ export function QuoteForm({
     { status: "idle" },
   );
 
+  const dateRef = useRef<HTMLInputElement>(null);
+
+  // New York's date, known in the browser only. Empty until then.
+  const { today } = useNewYorkClock();
+
+  // Controlled, so the reason a past date is refused is shown as soon as it is
+  // chosen. The same message is set on the input so the form will not send.
+  const [eventDate, setEventDate] = useState("");
+  const dateProblem = pickupProblems(eventDate, "", today, "").date;
+
+  useEffect(() => {
+    dateRef.current?.setCustomValidity(dateProblem);
+  }, [dateProblem]);
+
   const fieldError = (name: string) =>
     state.status === "error" ? state.fields?.[name] : undefined;
 
@@ -117,6 +139,16 @@ export function QuoteForm({
         <p className="font-display mt-6 text-[30px] leading-none font-semibold text-midnight tabular-nums">
           {state.reference}
         </p>
+        <p className="mt-6 text-[15px] leading-[1.7] text-charcoal">
+          Check where it stands any time on the{" "}
+          <Link
+            href={`/track?reference=${encodeURIComponent(state.reference)}`}
+            className="font-medium text-midnight underline underline-offset-4"
+          >
+            tracking page
+          </Link>{" "}
+          with the phone number you gave us.
+        </p>
         <p className="mt-6 text-[15px] text-charcoal">
           Need an answer sooner?{" "}
           <a
@@ -138,6 +170,7 @@ export function QuoteForm({
       className="flex flex-col gap-5"
       noValidate={false}
     >
+      <FormGuard />
       {lockService ? (
         <input type="hidden" name="serviceType" value={defaultServiceType} />
       ) : null}
@@ -217,14 +250,11 @@ export function QuoteForm({
           className={showDate ? undefined : "sm:col-span-2"}
           error={fieldError("customerEmail")}
         >
-          <Input
+          <EmailInput
             id="quote-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
             maxLength={255}
-            {...restore("email")}
+            defaultValue={restore("email")?.defaultValue}
+            sendsWhat="our reply"
           />
         </Field>
 
@@ -232,14 +262,22 @@ export function QuoteForm({
           <Field
             label="Date"
             id="quote-date"
-            hint="Optional if it is not fixed yet."
-            error={fieldError("eventDate")}
+            hint={
+              today
+                ? `Optional. Today is ${shortDay(today)} in New York.`
+                : "Optional if it is not fixed yet."
+            }
+            error={fieldError("eventDate") ?? (dateProblem || undefined)}
           >
-            <Input
+            <DateField
               id="quote-date"
               name="eventDate"
-              type="date"
-              {...restore("eventDate")}
+              ref={dateRef}
+              min={today || undefined}
+              value={eventDate}
+              onChange={(event) => setEventDate(event.target.value)}
+              aria-invalid={dateProblem ? true : undefined}
+              aria-describedby={dateProblem ? "quote-date-error" : undefined}
             />
           </Field>
         ) : null}
