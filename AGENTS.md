@@ -15,7 +15,8 @@ chauffeur service. **Three separate apps**, each with its own `package.json`,
 deployed onto one server:
 
 - **`src/`** — the public site. Next.js App Router, Tailwind v4, GSAP. `:3000`,
-  rsskylerlimo.com. Pages live under `src/app/(site)/`.
+  www.rsskylerlimo.com (the apex 301s to it). Pages live under
+  `src/app/(site)/`.
 - **`admin/`** — the reservations dashboard. Next.js App Router, Tailwind v4.
   `:3001`, admin.rsskylerlimo.com. Its routes sit at *its own root*: `/`,
   `/bookings`, `/login` — there is no `/admin` prefix anywhere.
@@ -42,13 +43,21 @@ Things that are easy to get wrong here:
   table via `GET /api/fleet`; `src/lib/content.ts` must never describe a vehicle
   again. The public page caches under the `fleet` tag and the admin app clears
   it through `POST /api/revalidate`.
+- **Structured data is derived, never typed.** The LocalBusiness node in
+  `src/components/site/local-business-schema.tsx` is built from `content.ts`
+  and `src/lib/site.ts`, so it cannot contradict the rendered page. It has no
+  `address`, `openingHours` or `aggregateRating` on purpose — none is
+  confirmed, and the header of that file says what to add once they are.
+  Do not satisfy a validator by inventing one.
 - **Airports are data too.** The `airports` table, managed at `/airports` in the
   admin (`api/src/services/airports.ts`). There is no airport list in code;
   `decideFare` checks the table, so a hidden airport quotes.
 - **Reviews are moderated data.** `reviews` table, `api/src/services/reviews.ts`,
   `/review` on the site, `/reviews` in the admin. Completed bookings only, one
   per booking, `pending` until an operator publishes. `GOOGLE_PLACE_ID` (in
-  `api/.env`) only builds the "Review us on Google" link. Never invent reviews:
+  `api/.env`) builds the "Review us on Google" link *and* the `sameAs` Maps URL
+  in the site's structured data — both from `GET /api/reviews`, so the Place ID
+  has exactly one home. Never invent reviews:
   `demoReviews` in `content.ts` is development-only.
 - **The server decides the fare, never the browser.** `decideFare` in
   `api/src/services/pricing.ts` re-derives it on every submission; the form's

@@ -131,4 +131,10 @@ export type ReviewsResponse = {
   average: number | null;
   /** Google's review form for the business, or null until a Place ID is set. */
   googleReviewUrl: string | null;
+  /**
+   * The business's Google Maps listing, or null until a Place ID is set.
+   * Published as `sameAs` in the LocalBusiness structured data — see
+   * `src/components/site/local-business-schema.tsx`.
+   */
+  googleProfileUrl: string | null;
 };

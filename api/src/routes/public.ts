@@ -15,6 +15,7 @@ import { createBooking, getBookingByReference } from "../services/bookings.js";
 import { createQuote } from "../services/quotes.js";
 import {
   createReview,
+  googleProfileUrl,
   googleReviewUrl,
   listApprovedReviews,
 } from "../services/reviews.js";
@@ -218,9 +219,21 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
   });
 });
 
-/** Approved reviews, plus where to send a customer who wants to review on Google. */
+/**
+ * Approved reviews, plus where to send a customer who wants to review on
+ * Google, plus the listing itself.
+ *
+ * `googleProfileUrl` is not review data and rides along here because this is
+ * the one public endpoint already derived from `GOOGLE_PLACE_ID`, and the site
+ * caches it under the `reviews` tag. A second endpoint would mean a second
+ * round trip on every page render to publish one URL.
+ */
 publicRouter.get("/reviews", async (_req, res) => {
-  res.json({ ...(await listApprovedReviews()), googleReviewUrl: googleReviewUrl() });
+  res.json({
+    ...(await listApprovedReviews()),
+    googleReviewUrl: googleReviewUrl(),
+    googleProfileUrl: googleProfileUrl(),
+  });
 });
 
 publicRouter.post("/reviews", submitLimit, async (req, res) => {

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "Review your trip",
   description:
     "Tell us how your trip went. Use your booking reference and the phone number on the booking.",
+  /* Reached from an email link with `?ref=`, one customer at a time. See the
+     note in `track/page.tsx`. */
+  robots: { index: false, follow: true },
 };
 
 /**

@@ -7,7 +7,7 @@ Three applications, deployed as separate units onto one server:
 
 | | | | |
 |---|---|---|---|
-| **Web** — `src/` | Next.js 16, App Router, Tailwind v4, GSAP | `:3000` | rsskylerlimo.com |
+| **Web** — `src/` | Next.js 16, App Router, Tailwind v4, GSAP | `:3000` | www.rsskylerlimo.com |
 | **Admin** — `admin/` | Next.js 16, App Router, Tailwind v4 | `:3001` | admin.rsskylerlimo.com |
 | **API** — `api/` | Express 5, MySQL, Zod | `:4000` | not exposed |
 

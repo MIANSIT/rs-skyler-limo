@@ -1,0 +1,90 @@
+# RSSkyler Limo — Caddy front end. ALTERNATIVE to `nginx.conf`, not an addition.
+#
+# `nginx.conf` is what the server runs. This file exists so that switching is a
+# decision rather than a rewrite, and it is kept behaviourally identical: same
+# canonical host, same uploads handling, same headers on the dashboard.
+#
+# Run one or the other. Both want :80 and :443, and the second to start fails.
+#
+# The trade:
+#   + Automatic certificates and renewal, no certbot, no cron, no snippets.
+#   + Roughly a third of the configuration, and HTTP→HTTPS is implicit.
+#   - Caddy's ACME issuance cannot use HTTP-01 through Cloudflare's proxy while
+#     the orange cloud is on. Either set the DNS to "DNS only" during issuance,
+#     or build Caddy with the Cloudflare DNS plugin for a DNS-01 challenge
+#     (`xcaddy build --with github.com/caddy-dns/cloudflare`) — the stock
+#     binary from apt will not do it.
+#   - The runbook, the systemd units and the release script all name nginx.
+#
+# Nothing here changes what search engines see: the canonicalisation that
+# matters is the apex→www redirect, which both servers do identically.
+
+# --- Canonical host ----------------------------------------------------------
+#
+# `www` answers; the apex only redirects. Exactly one hostname serving 200 is
+# the whole point — see the long note in `nginx.conf`. `redir` defaults to 301.
+
+rsskylerlimo.com {
+	redir https://www.rsskylerlimo.com{uri} permanent
+}
+
+# --- Public site -------------------------------------------------------------
+
+www.rsskylerlimo.com {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+	}
+
+	# Uploaded vehicle photography, served off disk rather than through Node.
+	# The relaxed CORP is what lets the dashboard on admin.rsskylerlimo.com
+	# render the same files in an <img>.
+	handle_path /uploads/* {
+		root * /var/lib/rsskyler/uploads
+		header {
+			# Filenames are content-addressed on upload, so they never change.
+			Cache-Control "public, max-age=2592000, immutable"
+			Cross-Origin-Resource-Policy "cross-origin"
+		}
+		file_server
+	}
+
+	handle {
+		# The booking form forwards X-Forwarded-For to the API's rate limiter,
+		# so a missing header means every visitor shares one bucket. Caddy sets
+		# the X-Forwarded-* family by default; nginx has to be told.
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	request_body {
+		max_size 2MB
+	}
+}
+
+# --- Reservations dashboard --------------------------------------------------
+
+admin.rsskylerlimo.com {
+	encode zstd gzip
+
+	# This host serves customer names, phone numbers and home addresses. Keep it
+	# out of every index and every referrer, whatever a page forgets to set.
+	header {
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# Optional, and worth doing: the dashboard has no reason to be reachable
+	# from outside the office or the VPN. Uncomment and set real ranges.
+	# @offsite not remote_ip 203.0.113.0/24
+	# respond @offsite 403
+
+	reverse_proxy 127.0.0.1:3001
+}
+
+# The API deliberately has no site block. It listens on 127.0.0.1 and is reached
+# only by the two Next.js servers, from the same host.

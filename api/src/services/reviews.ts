@@ -41,6 +41,25 @@ export function googleReviewUrl(): string | null {
     : null;
 }
 
+/**
+ * The business's Google Maps listing, or null when no Place ID is configured.
+ *
+ * A second URL from the same Place ID rather than a reuse of the one above:
+ * `writereview` is a deep link into a form and is not where the business
+ * *is*. The public site publishes this one as `sameAs` in its LocalBusiness
+ * structured data, which is the statement "the entity on this page and the
+ * entity in that listing are the same" — and a form URL does not make it.
+ *
+ * `?q=place_id:` is the documented stable form. The long `/maps/place/Name/@…`
+ * URL a browser shows carries a name and coordinates that change when the
+ * client edits their profile.
+ */
+export function googleProfileUrl(): string | null {
+  return env.GOOGLE_PLACE_ID
+    ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(env.GOOGLE_PLACE_ID)}`
+    : null;
+}
+
 /** "Jane Smith" becomes "Jane S." A customer's full name is not published by default. */
 function shortName(full: string): string {
   const [first = "", ...rest] = full.trim().split(/\s+/);

@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: "Track a ride",
   description:
     "Enter a booking reference to see your driver's live position, vehicle and ETA. No app required.",
+  /* Per-customer and gated on a reference plus the phone number on the booking:
+     there is nothing here to rank for. Matches the disallow in `robots.ts` — a
+     disallowed page can still be indexed from an inbound link, and this is the
+     half that actually keeps it out of the results. */
+  robots: { index: false, follow: true },
 };
 
 export default async function TrackPage() {

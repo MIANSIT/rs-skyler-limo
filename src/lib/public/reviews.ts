@@ -23,6 +23,12 @@ export async function getReviewsSafely(): Promise<ReviewsResponse> {
     return await getReviews();
   } catch (error) {
     console.error("Could not load reviews:", error);
-    return { reviews: [], count: 0, average: null, googleReviewUrl: null };
+    return {
+      reviews: [],
+      count: 0,
+      average: null,
+      googleReviewUrl: null,
+      googleProfileUrl: null,
+    };
   }
 }

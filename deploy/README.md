@@ -182,25 +182,56 @@ this one is on the outside, where the customers are.
 
 In order, because the middle step is easy to get wrong:
 
+**`www.rsskylerlimo.com` is the canonical host.** The apex answers only with a
+301 to it. That choice is written into four places and they have to agree:
+`deploy/nginx.conf`, `SITE_BASE_URL`, `metadataBase` in `src/app/layout.tsx`
+(via `src/lib/site.ts`), and the URLs in `src/app/sitemap.ts`. If you would
+rather canonicalise on the apex, invert all four together — what breaks SEO is
+not which one you pick, it is two hostnames both serving 200.
+
 1. Point `rsskylerlimo.com`, `www` and `admin.rsskylerlimo.com` at
-   `184.94.215.246`. Cloudflare DNS, proxied.
-2. Issue certificates. Use the **DNS-01** challenge, not HTTP-01 — DNS-01
-   proves ownership through a TXT record, so certificates exist before anything
-   is publicly reachable.
+   `184.94.215.246`. Cloudflare DNS, proxied. Set the SSL/TLS mode to **Full
+   (strict)** — "Flexible" makes Cloudflare fetch over plain HTTP, which turns
+   the `:80` block's redirect into a loop and strips `X-Forwarded-Proto`.
+2. Issue certificates covering **both** the apex and `www` in one certificate.
+   Use the **DNS-01** challenge, not HTTP-01 — DNS-01 proves ownership through
+   a TXT record, so certificates exist before anything is publicly reachable,
+   and it is the only challenge that works through a proxied record.
+
+   The apex needs a certificate even though it only redirects: TLS is
+   negotiated before the redirect is sent, so a missing SAN fails the handshake
+   and the visitor sees a security warning instead of the site.
 3. Replace `/etc/nginx/sites-available/rsskyler` with `deploy/nginx.conf`,
-   which already has the two name-based server blocks on 443.
+   which has the apex redirect and the two name-based server blocks on 443.
+
+   `deploy/Caddyfile` is an equivalent configuration for Caddy, kept in step as
+   an alternative. Run one or the other, never both — they contend for :80 and
+   :443. The header of that file explains what the switch costs.
 4. **Remove `COOKIE_INSECURE=true` from `/srv/rsskyler/app/admin/.env.local`**
    and restart `rsskyler-admin`. See the warning below.
-5. Update the URLs that currently name the IP:
-   - `api/.env` → `CORS_ORIGINS`, `UPLOADS_BASE_URL`, **`SITE_BASE_URL`**
+5. Update the URLs that currently name the IP. Every one of them takes the
+   canonical `www` host — a value naming the apex still works, but costs a
+   redirect on every image and every emailed link:
+   - `api/.env` → `CORS_ORIGINS`
+     (`https://www.rsskylerlimo.com,https://admin.rsskylerlimo.com`),
+     `UPLOADS_BASE_URL`, **`SITE_BASE_URL`**
    - `.env.local` → `UPLOADS_BASE_URL`
    - `admin/.env.local` → `WEB_REVALIDATE_URL` stays on loopback
+
+   `SITE_BASE_URL` is read by the public app too, and is what `metadataBase`,
+   `sitemap.xml` and `robots.txt` are built from. It falls back to the
+   production `www` URL in `src/lib/site.ts`, so leaving it unset is safe in
+   production and wrong everywhere else.
 
    `SITE_BASE_URL` is the one that reaches customers: it is the "track this
    booking" link in every confirmation email. Left on the IP, those links keep
    working but advertise a bare address, and they break the day the IP changes.
 6. Close port 8080 in the firewall — the dashboard moves to its own hostname on
    443 and no longer needs it.
+7. Submit `https://www.rsskylerlimo.com/sitemap.xml` in Google Search Console,
+   verifying the `www` property. Verify the apex as well and leave it
+   redirecting — Search Console treats the two as separate properties, and the
+   301 is what consolidates them.
 
 ### The one thing that must not be forgotten
 

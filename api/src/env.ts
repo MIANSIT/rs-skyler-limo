@@ -64,11 +64,17 @@ const schema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 
   /**
-   * The business's Google Place ID. When set, the review page offers a "Review
-   * us on Google" button that opens Google's own review form for that place.
-   * Not a secret (it is visible in the link), but it belongs to whichever
+   * The business's Google Place ID. Two things are derived from it, both in
+   * `services/reviews.ts` and both served by `GET /api/reviews`:
+   *
+   * - `googleReviewUrl` — the "Review us on Google" button on the review page.
+   * - `googleProfileUrl` — the Maps listing, published as `sameAs` in the
+   *   public site's LocalBusiness structured data, which is what tells Google
+   *   that this site and that listing are one business.
+   *
+   * Not a secret (it is visible in both links), but it belongs to whichever
    * Google Business Profile the client hands over, so it is configuration and
-   * not code. Unset, the button simply does not appear.
+   * not code. Unset, the button does not appear and `sameAs` is omitted.
    */
   GOOGLE_PLACE_ID: z.string().min(1).optional(),
 
