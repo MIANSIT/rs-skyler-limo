@@ -12,7 +12,10 @@ import {
   formatMoney,
   formatTime,
   panel,
+  priceRows,
+  priceTextLines,
   shell,
+  type Priced,
 } from "./render.js";
 
 /**
@@ -123,7 +126,11 @@ function bookingCopy(booking: Booking): BookingCopy {
 export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): BuiltEmail {
   const copy = bookingCopy(booking);
   const completed = booking.status === "completed";
-  const fare = formatMoney(booking.quotedTotalCents);
+  const priced: Priced = {
+    totalCents: booking.quotedTotalCents,
+    taxCents: booking.taxCents,
+    taxRate: booking.taxRate,
+  };
   const trackUrl = siteUrl(`/track?reference=${encodeURIComponent(booking.reference)}`);
   const reviewUrl = siteUrl(`/review?reference=${encodeURIComponent(booking.reference)}`);
 
@@ -133,7 +140,7 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
     detailRow("Date", escapeHtml(formatDate(booking.pickupAt))),
     detailRow("Time", escapeHtml(formatTime(booking.pickupAt))),
     detailRow("Vehicle", escapeHtml(vehicleName)),
-    fare ? detailRow("Fare", escapeHtml(fare)) : "",
+    priceRows(priced),
     detailRow(
       "Payment",
       escapeHtml(
@@ -181,7 +188,7 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
     `Pick-up:    ${booking.pickup}`,
     `Drop-off:   ${booking.destination}`,
     `Vehicle:    ${vehicleName}`,
-    ...(fare ? [`Fare:       ${fare}`] : []),
+    ...priceTextLines(priced),
     `Payment:    ${PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod}${
       booking.paymentStatus === "paid" ? " (paid)" : ""
     }`,
@@ -218,7 +225,9 @@ function quoteCopy(quote: Quote): BookingCopy {
         headline: "We have priced your request.",
         intro:
           quote.agreedPriceCents !== null
-            ? `Thank you, ${name}. The price for your request is ${formatMoney(quote.agreedPriceCents)}. The details are below.`
+            ? `Thank you, ${name}. The price for your request is ${formatMoney(quote.agreedPriceCents)}${
+                quote.taxCents > 0 ? ", sales tax included" : ""
+              }. The details are below.`
             : `Thank you, ${name}. A reservations agent has worked out a price for your request and sends it to you by phone or email.`,
         after:
           quote.paymentMethod === "cash"
@@ -260,6 +269,11 @@ export function buildQuoteUpdateEmail(
   const service = QUOTE_SERVICE_LABELS[quote.serviceType] ?? quote.serviceType;
   const trackUrl = siteUrl(`/track?reference=${encodeURIComponent(quote.reference)}`);
   const eventDay = quote.eventDate ? formatDate(`${quote.eventDate}T12:00:00Z`) : "Not given yet";
+  const quotePriced: Priced = {
+    totalCents: quote.agreedPriceCents,
+    taxCents: quote.taxCents,
+    taxRate: quote.taxRate,
+  };
 
   const html = shell({
     preheader: `${quote.reference} · ${copy.headline}`,
@@ -277,9 +291,7 @@ export function buildQuoteUpdateEmail(
         [
           detailRow("Service", escapeHtml(service)),
           detailRow("Event date", escapeHtml(eventDay)),
-          quote.agreedPriceCents !== null
-            ? detailRow("Price", escapeHtml(formatMoney(quote.agreedPriceCents) ?? ""))
-            : "",
+          priceRows(quotePriced, "Price"),
         ].join(""),
       ),
       copy.after ? paragraph(escapeHtml(copy.after)) : "",
@@ -305,7 +317,7 @@ export function buildQuoteUpdateEmail(
     `Reference:  ${quote.reference}`,
     `Service:    ${service}`,
     `Event date: ${eventDay}`,
-    ...(quote.agreedPriceCents !== null ? [`Price:      ${formatMoney(quote.agreedPriceCents)}`] : []),
+    ...priceTextLines(quotePriced, "Price"),
     ...(copy.after ? ["", copy.after] : []),
     "",
     ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),

@@ -13,6 +13,7 @@ import { ApiError } from "../lib/http.js";
 import { todayInNewYork } from "../lib/new-york.js";
 import { samePhone } from "../lib/phone.js";
 import { isReference } from "../lib/reference.js";
+import { withTax } from "../lib/tax.js";
 import type { ChangeBookingInput, ChangeQuoteInput } from "../schemas.js";
 import { getBookingById, getBookingByReference, type Booking } from "./bookings.js";
 import { CHILD_SEAT_FEE_CENTS, decideFare, type FareDecision } from "./pricing.js";
@@ -333,6 +334,9 @@ export function bookingEditable(booking: Booking) {
     customerPhone: booking.customerPhone,
     pricingMode: booking.pricingMode,
     quotedTotalCents: booking.quotedTotalCents,
+    fareCents: booking.fareCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     paymentStatus: booking.paymentStatus,
   };
 }
@@ -349,6 +353,9 @@ export function quoteEditable(quote: Quote) {
     customerPhone: quote.customerPhone,
     details: quote.details,
     agreedPriceCents: quote.agreedPriceCents,
+    priceCents: quote.priceCents,
+    taxRate: quote.taxRate,
+    taxCents: quote.taxCents,
   };
 }
 
@@ -390,9 +397,11 @@ function clip(value: string, max = 300): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
-function fareLabel(mode: string, cents: number | null): string {
+/** A total, with the tax inside it named: `$146.81 (incl. $11.98 tax)`. */
+function fareLabel(mode: string, cents: number | null, taxCents = 0): string {
   if (cents === null) return mode === "fixed" ? "Fixed fare" : "To be priced by our team";
-  return formatMoney(cents) ?? "";
+  const total = formatMoney(cents) ?? "";
+  return taxCents > 0 ? `${total} (incl. ${formatMoney(taxCents)} tax)` : total;
 }
 
 async function vehicleName(slug: string): Promise<string> {
@@ -422,13 +431,24 @@ function historyNote(changes: FieldChange[]): string {
 /* Saving a booking change                                                    */
 /* -------------------------------------------------------------------------- */
 
-export type ProposedFare = { pricingMode: "fixed" | "quote"; totalCents: number | null; reason: string };
+/**
+ * `totalCents` is what the customer pays, tax included — the figure they
+ * accept and send back. `fareCents` and `taxCents` are shown beside it.
+ */
+export type ProposedFare = {
+  pricingMode: "fixed" | "quote";
+  totalCents: number | null;
+  fareCents: number | null;
+  taxRate: number;
+  taxCents: number;
+  reason: string;
+};
 
 export type BookingChangeResult =
   | {
       outcome: "confirm-fare";
       fare: ProposedFare;
-      previous: { pricingMode: "fixed" | "quote"; totalCents: number | null };
+      previous: { pricingMode: "fixed" | "quote"; totalCents: number | null; taxCents: number };
     }
   | { outcome: "saved"; booking: Booking; changes: FieldChange[]; statusChanged: boolean };
 
@@ -532,8 +552,10 @@ export async function changeBooking(
   const fareInputs = FARE_KEYS.filter((key) => changed.has(key));
 
   /* ---- The fare, decided again on the server ---- */
+  // Worked out before tax, then taxed at this booking's own rate — the one it
+  // was made with, or the one an operator set for it — never today's default.
   let nextMode = booking.pricingMode;
-  let nextTotal = booking.quotedTotalCents;
+  let nextFare = booking.fareCents;
   let reason = "Your fare is unchanged.";
   let resolved: FareDecision | null = null;
 
@@ -542,11 +564,11 @@ export async function changeBooking(
       fareInputs.length === 1 &&
       fareInputs[0] === "childSeats" &&
       booking.pricingMode === "fixed" &&
-      booking.quotedTotalCents !== null
+      booking.fareCents !== null
     ) {
       // Only the seats moved on a fixed fare: no need to ask Google again.
-      nextTotal = booking.quotedTotalCents + (next.childSeats - booking.childSeats) * CHILD_SEAT_FEE_CENTS;
-      reason = "Fixed fare, including the child seats you asked for.";
+      nextFare = booking.fareCents + (next.childSeats - booking.childSeats) * CHILD_SEAT_FEE_CENTS;
+      reason = "Fixed fare, including the child seats you asked for, plus sales tax.";
     } else {
       const stored = await queryOne<
         RowDataPacket & { pickup_place_id: string | null; destination_place_id: string | null }
@@ -566,14 +588,18 @@ export async function changeBooking(
         sessionToken: input.placesSessionToken ?? randomUUID(),
       });
       nextMode = resolved.pricingMode;
-      nextTotal = resolved.totalCents;
+      nextFare = resolved.fareCents;
       reason = resolved.reason;
     }
   } else if (booking.pricingMode === "quote" && booking.quotedTotalCents !== null && tripChanged) {
     // The operator priced the old trip, not this one.
-    nextTotal = null;
+    nextFare = null;
     reason = "Our team will price the changed trip and let you know.";
   }
+
+  const taxed = nextFare === null ? null : withTax(nextFare, booking.taxRate);
+  const nextTotal = taxed?.totalCents ?? null;
+  const nextTax = taxed?.taxCents ?? 0;
 
   const fareChanged = nextMode !== booking.pricingMode || nextTotal !== booking.quotedTotalCents;
 
@@ -587,16 +613,27 @@ export async function changeBooking(
   if (fareChanged && !(accepted && accepted.pricingMode === nextMode && accepted.totalCents === nextTotal)) {
     return {
       outcome: "confirm-fare",
-      fare: { pricingMode: nextMode, totalCents: nextTotal, reason },
-      previous: { pricingMode: booking.pricingMode, totalCents: booking.quotedTotalCents },
+      fare: {
+        pricingMode: nextMode,
+        totalCents: nextTotal,
+        fareCents: nextFare,
+        taxRate: booking.taxRate,
+        taxCents: nextTax,
+        reason,
+      },
+      previous: {
+        pricingMode: booking.pricingMode,
+        totalCents: booking.quotedTotalCents,
+        taxCents: booking.taxCents,
+      },
     };
   }
 
   if (fareChanged) {
     changes.push({
       label: "Fare",
-      before: fareLabel(booking.pricingMode, booking.quotedTotalCents),
-      after: fareLabel(nextMode, nextTotal),
+      before: fareLabel(booking.pricingMode, booking.quotedTotalCents, booking.taxCents),
+      after: fareLabel(nextMode, nextTotal, nextTax),
     });
   }
 
@@ -618,6 +655,7 @@ export async function changeBooking(
               vehicle_class = :vehicleClass, airline = :airline, flight_number = :flightNumber,
               notes = :notes, customer_name = :customerName, customer_phone = :customerPhone,
               pricing_mode = :pricingMode, quoted_total_cents = :quotedTotalCents,
+              tax_cents = :taxCents,
               ${priceCleared ? "quoted_at = NULL, quoted_by = NULL, quote_note = NULL," : ""}
               ${
                 changed.has("pickup")
@@ -649,6 +687,7 @@ export async function changeBooking(
         customerPhone: next.customerPhone,
         pricingMode: nextMode,
         quotedTotalCents: nextTotal,
+        taxCents: nextTax,
         pickupPlaceId: opt(input.pickupPlaceId),
         pickupLocality: resolved?.pickupPlace?.locality ?? null,
         pickupRegion: resolved?.pickupPlace?.region ?? null,
@@ -748,7 +787,7 @@ export async function changeQuote(quote: Quote, input: ChangeQuoteInput): Promis
       `UPDATE quotes
           SET event_date = :eventDate, passengers = :passengers, company = :company,
               customer_name = :customerName, customer_phone = :customerPhone, details = :details,
-              ${priceReset ? "agreed_price_cents = NULL, priced_at = NULL, payment_method = NULL," : ""}
+              ${priceReset ? "agreed_price_cents = NULL, tax_cents = 0, priced_at = NULL, payment_method = NULL," : ""}
               status = :status,
               customer_change_pending = 1,
               customer_changed_at = UTC_TIMESTAMP()

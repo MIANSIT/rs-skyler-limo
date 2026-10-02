@@ -347,10 +347,13 @@ function CalendarPopup({
               aria-label={formatDisplay(ymd)}
               aria-selected={isSelected}
               aria-current={isToday ? "date" : undefined}
-              aria-disabled={disabledDay || !inMonth || undefined}
+              aria-disabled={disabledDay || undefined}
               tabIndex={isFocusable ? 0 : -1}
               disabled={disabledDay}
-              onClick={() => inMonth && onCommit(ymd)}
+              // A day from the next or previous month is still a real day: on
+              // Sep 30, "tomorrow" is the Oct 1 in the last row, and making the
+              // customer turn the page to reach it is a step for nothing.
+              onClick={() => onCommit(ymd)}
               onFocus={() => setFocusDay(ymd)}
               onKeyDown={(event) => {
                 const steps: Record<string, () => void> = {
@@ -381,7 +384,17 @@ function CalendarPopup({
               className={clsx(
                 "mx-auto flex h-8 w-8 items-center justify-center rounded-full font-sans text-[13px] tabular-nums transition-colors",
                 disabledDay && "cursor-not-allowed",
-                !inMonth && (tone === "dark" ? "text-white/20" : "text-charcoal/25"),
+                // Outside this month: dimmer than this month's days, but a
+                // bookable one still reads as clickable.
+                !inMonth &&
+                  disabledDay &&
+                  (tone === "dark" ? "text-white/20" : "text-charcoal/25"),
+                !inMonth &&
+                  !disabledDay &&
+                  !isSelected &&
+                  (tone === "dark"
+                    ? "text-white/55 hover:bg-white/10 hover:text-white"
+                    : "text-charcoal/55 hover:bg-grey hover:text-midnight"),
                 inMonth &&
                   disabledDay &&
                   (tone === "dark" ? "text-white/25" : "text-charcoal/30"),

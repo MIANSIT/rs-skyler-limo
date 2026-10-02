@@ -63,7 +63,7 @@ export async function updateBookingDetails(
 
   const fare = dollarsToCents(text(formData, "fare"));
   if (Number.isNaN(fare)) {
-    return { status: "error", message: "Check the fare.", fields: { quotedTotalCents: "Enter an amount like 125 or 125.50." } };
+    return { status: "error", message: "Check the fare.", fields: { fareCents: "Enter an amount like 125 or 125.50." } };
   }
 
   const tripType = text(formData, "tripType");
@@ -93,7 +93,10 @@ export async function updateBookingDetails(
         airline: optional(formData, "airline"),
         flightNumber: optional(formData, "flightNumber"),
         customerNotes: optional(formData, "customerNotes"),
-        quotedTotalCents: fare,
+        // Before tax; the API adds this booking's rate and stores the total.
+        fareCents: fare,
+        // Only when typed: a blank would reach the API as 0%, not "unchanged".
+        ...(text(formData, "taxRate") ? { taxRate: text(formData, "taxRate") } : {}),
         paymentMethod: text(formData, "paymentMethod"),
         paymentStatus: text(formData, "paymentStatus"),
         ...(text(formData, "note") ? { note: text(formData, "note") } : {}),
@@ -106,6 +109,7 @@ export async function updateBookingDetails(
   revalidatePath(`/bookings/${id}`);
   revalidatePath("/bookings");
   revalidatePath("/");
+  revalidatePath("/today");
   redirect(`/bookings/${id}`);
 }
 
@@ -167,7 +171,7 @@ export async function setQuotePrice(
 
   const cents = dollarsToCents(text(formData, "price"));
   if (Number.isNaN(cents)) {
-    return { status: "error", message: "Enter an amount like 450 or 450.00.", fields: { agreedPriceCents: "Enter an amount like 450 or 450.00." } };
+    return { status: "error", message: "Enter an amount like 450 or 450.00.", fields: { priceCents: "Enter an amount like 450 or 450.00." } };
   }
 
   const status = text(formData, "currentStatus");
@@ -180,7 +184,9 @@ export async function setQuotePrice(
       method: "PATCH",
       token,
       body: {
-        agreedPriceCents: cents,
+        // Before tax; the API adds the rate and stores the agreed total.
+        priceCents: cents,
+        ...(text(formData, "taxRate") ? { taxRate: text(formData, "taxRate") } : {}),
         ...(method === "card" || method === "cash" ? { paymentMethod: method } : {}),
         ...(moveToQuoted ? { status: "quoted" } : {}),
         notifyCustomer: notify,

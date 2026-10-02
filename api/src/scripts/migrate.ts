@@ -158,6 +158,44 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
               ADD COLUMN customer_changed_at DATETIME NULL AFTER customer_change_pending`,
     },
     {
+      // Existing rows get a 0% rate and no tax: their totals were agreed as
+      // totals, so nothing already priced changes. `settings` itself is a new
+      // table and arrives through schema.sql.
+      description: "bookings.tax_rate, tax_cents",
+      check: () => columnMissing(connection, "bookings", "tax_rate"),
+      sql: `ALTER TABLE bookings
+              ADD COLUMN tax_rate DECIMAL(6,3) NOT NULL DEFAULT 0 AFTER quoted_total_cents,
+              ADD COLUMN tax_cents INT UNSIGNED NOT NULL DEFAULT 0 AFTER tax_rate`,
+    },
+    {
+      description: "quotes.tax_rate, tax_cents",
+      check: () => columnMissing(connection, "quotes", "tax_rate"),
+      sql: `ALTER TABLE quotes
+              ADD COLUMN tax_rate DECIMAL(6,3) NOT NULL DEFAULT 0 AFTER agreed_price_cents,
+              ADD COLUMN tax_cents INT UNSIGNED NOT NULL DEFAULT 0 AFTER tax_rate`,
+    },
+    {
+      // Orders from before tax existed came in at 0%. An unpriced one has told
+      // the customer no figure yet, so it takes the default and its price box
+      // opens on the right rate. Priced orders are left alone: their totals
+      // were given as totals. Runs once, recorded in `settings`, so an
+      // operator's deliberate 0% on an unpriced order is never overwritten.
+      description: "unpriced orders at 0% take the default tax rate (once)",
+      check: async () => {
+        const [rows] = await connection.query<mysql.RowDataPacket[]>(
+          `SELECT 1 FROM settings WHERE name = 'backfill_unpriced_tax_rate'`,
+        );
+        return rows.length === 0;
+      },
+      sql: `UPDATE bookings
+               SET tax_rate = COALESCE((SELECT CAST(value AS DECIMAL(6,3)) FROM settings WHERE name = 'tax_rate'), 8.875)
+             WHERE tax_rate = 0 AND tax_cents = 0 AND quoted_total_cents IS NULL;
+            UPDATE quotes
+               SET tax_rate = COALESCE((SELECT CAST(value AS DECIMAL(6,3)) FROM settings WHERE name = 'tax_rate'), 8.875)
+             WHERE tax_rate = 0 AND tax_cents = 0 AND agreed_price_cents IS NULL;
+            INSERT INTO settings (name, value) VALUES ('backfill_unpriced_tax_rate', 'done')`,
+    },
+    {
       // Widening an ENUM is safe to repeat, but only run it when needed so the
       // table is not rebuilt on every deploy.
       description: "activity_log.subject_type += 'vehicle'",

@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { clsx } from "@/lib/clsx";
 
 const links = [
-  { href: "/", label: "Today" },
+  { href: "/", label: "Reports" },
+  { href: "/today", label: "Today" },
   { href: "/bookings", label: "Bookings" },
   { href: "/quotes", label: "Quotes" },
   { href: "/fleet", label: "Fleet" },
@@ -14,6 +15,7 @@ const links = [
   { href: "/rates", label: "Rates" },
   { href: "/airports", label: "Airports" },
   { href: "/reviews", label: "Reviews" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 /**
@@ -41,7 +43,7 @@ export function AdminNav() {
       className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {links.map((link) => {
-        // "Today" is the root, so it would prefix-match every other route.
+        // "Reports" is the root, so it would prefix-match every other route.
         const active =
           link.href === "/"
             ? pathname === "/"

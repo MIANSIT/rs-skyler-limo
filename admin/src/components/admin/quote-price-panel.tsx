@@ -3,8 +3,10 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PriceBreakdown } from "@/components/admin/price-breakdown";
+import { TaxedPriceFields } from "@/components/admin/taxed-price-fields";
 import { setQuotePrice, type PriceFormState } from "@/lib/admin/edit-actions";
-import { formatMoney, formatPickup } from "@/lib/admin/format";
+import { formatPickup } from "@/lib/admin/format";
 import type { Quote } from "@/lib/api/types";
 
 function SaveButton({ label }: { label: string }) {
@@ -48,9 +50,12 @@ export function QuotePricePanel({ quote }: { quote: Quote }) {
       </div>
 
       {priced ? (
-        <p className="font-display mt-3 text-[34px] leading-none font-semibold text-midnight tabular-nums">
-          {formatMoney(quote.agreedPriceCents)}
-        </p>
+        <PriceBreakdown
+          totalCents={quote.agreedPriceCents!}
+          taxCents={quote.taxCents}
+          taxRate={quote.taxRate}
+          label="Price"
+        />
       ) : (
         <p className="mt-2 max-w-2xl font-sans text-[14px] leading-[1.7] text-charcoal/80">
           No price yet. Enter the figure agreed with the customer.
@@ -69,23 +74,18 @@ export function QuotePricePanel({ quote }: { quote: Quote }) {
         <input type="hidden" name="id" value={quote.id} />
         <input type="hidden" name="currentStatus" value={quote.status} />
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="price"
-              className="font-sans text-[13px] font-medium tracking-[0.06em] text-charcoal/70 uppercase"
-            >
-              {priced ? "Change price (USD)" : "Price (USD)"}
-            </label>
-            <input
-              id="price"
-              name="price"
-              inputMode="decimal"
-              placeholder="450"
-              defaultValue={priced ? (quote.agreedPriceCents! / 100).toFixed(2) : ""}
-              className="w-40 rounded-sm border border-midnight/20 bg-white px-4 py-2.5 font-sans text-[15px] text-midnight tabular-nums focus:border-midnight focus:outline-none"
-            />
-          </div>
+        {/* The estimate is typed before tax; the rate is this request's own and
+            can be changed for it alone. Blank clears the price. */}
+        <TaxedPriceFields
+          idPrefix="agreed"
+          priceName="price"
+          priceLabel={priced ? "Change price before tax (USD)" : "Price before tax (USD)"}
+          defaultPriceCents={quote.priceCents}
+          defaultRate={quote.taxRate}
+          priceError={state.status === "error" ? state.fields?.priceCents : undefined}
+          rateError={state.status === "error" ? state.fields?.taxRate : undefined}
+        />
+        <div>
           <SaveButton label={priced ? "Update price" : "Save price"} />
         </div>
 

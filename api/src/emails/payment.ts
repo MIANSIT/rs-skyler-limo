@@ -11,7 +11,10 @@ import {
   formatMoney,
   formatTime,
   panel,
+  priceTextLines,
   shell,
+  taxLinesOnDark,
+  type Priced,
 } from "./render.js";
 
 /**
@@ -34,6 +37,11 @@ export function buildPaymentLinkEmail(
 ): BuiltEmail {
   const fare = formatMoney(booking.quotedTotalCents) ?? "";
   const expires = formatDate(expiresAt.toISOString());
+  const priced: Priced = {
+    totalCents: booking.quotedTotalCents,
+    taxCents: booking.taxCents,
+    taxRate: booking.taxRate,
+  };
 
   const farePanel = `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;border-collapse:collapse;">
@@ -41,6 +49,7 @@ export function buildPaymentLinkEmail(
       <td style="background:${BRAND.midnight};padding:20px 16px;">
         <div style="font-family:${SANS_FONT};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">Amount due</div>
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
+        ${taxLinesOnDark(priced)}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           Paid by card through Stripe. Your card details go to Stripe, never to us.
         </div>
@@ -91,7 +100,7 @@ export function buildPaymentLinkEmail(
     "RSSKYLER LIMO — PAY FOR YOUR BOOKING",
     "",
     `Reference:  ${booking.reference}`,
-    `Amount:     ${fare}`,
+    ...priceTextLines(priced, "Amount"),
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     `Pick-up:    ${booking.pickup}`,

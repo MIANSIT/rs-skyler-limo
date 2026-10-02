@@ -106,6 +106,7 @@ export async function updateBookingStatus(
   revalidatePath(`/bookings/${id}`);
   revalidatePath("/bookings");
   revalidatePath("/");
+  revalidatePath("/today");
 
   return undefined;
 }
@@ -206,6 +207,7 @@ export async function updateQuoteStatus(
   revalidatePath(`/quotes/${id}`);
   revalidatePath("/quotes");
   revalidatePath("/");
+  revalidatePath("/today");
 
   return undefined;
 }
@@ -238,5 +240,6 @@ export async function markChangeReviewed(
   revalidatePath(`${base}/${id}`);
   revalidatePath(base);
   revalidatePath("/");
+  revalidatePath("/today");
   return undefined;
 }

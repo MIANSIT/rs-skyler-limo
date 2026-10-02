@@ -17,7 +17,9 @@ import type {
   PossibleClash,
   Quote,
   RateGrid,
+  Report,
   ReviewStatus,
+  Settings,
   Vehicle,
   ZoneRateGrid,
 } from "@/lib/api/types";
@@ -58,6 +60,18 @@ export const verifySession = cache(async (): Promise<{
 export async function getStats(): Promise<DashboardStats> {
   const { token } = await verifySession();
   return apiFetch<DashboardStats>("/api/admin/stats", { token });
+}
+
+export async function getSettings(): Promise<Settings> {
+  const { token } = await verifySession();
+  const { settings } = await apiFetch<{ settings: Settings }>("/api/admin/settings", { token });
+  return settings;
+}
+
+/** Inclusive New York dates; omit `from` for all time. */
+export async function getReport(range: { from?: string; to?: string }): Promise<Report> {
+  const { token } = await verifySession();
+  return apiFetch<Report>(`/api/admin/reports${toQueryString(range)}`, { token });
 }
 
 export type BookingFilters = {

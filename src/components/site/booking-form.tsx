@@ -37,6 +37,8 @@ import {
 } from "@/lib/public/use-new-york-clock";
 
 import { type TripType, tripTypes } from "@/lib/public/trip-types";
+import { formatRate, withTax } from "@/lib/public/tax";
+import { formatFare } from "@/lib/content";
 import { TripSummary } from "@/components/site/trip-summary";
 
 /** Mirrors `bookingServiceTypes` in `api/src/schemas.ts`. */
@@ -241,8 +243,12 @@ export function BookingForm({
   // Places every airport trip is quoted.
   const isFixed = Boolean(published) && Boolean(cityPlaceId);
 
-  const seatFee = (seatsInRange * options.childSeatFeeCents) / 100;
-  const fareTotal = published ? published.priceCents / 100 + seatFee : null;
+  const seatFeeCents = seatsInRange * options.childSeatFeeCents;
+  // The rate plus child seats, then sales tax on the lot — the same sum the
+  // server does on submission, at the rate the API published with the rates.
+  const fare = published
+    ? withTax(published.priceCents + seatFeeCents, options.taxRate)
+    : null;
 
   /**
    * Which end of the trip each address box is.
@@ -345,9 +351,10 @@ export function BookingForm({
           <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
             Your fare is{" "}
             <strong className={clsx("font-semibold tabular-nums", heading)}>
-              ${Math.round(state.quotedTotalCents / 100)}
+              {formatFare(state.quotedTotalCents)}
             </strong>
-            , fixed. A reservations agent confirms every booking by reply.
+            {state.taxCents > 0 ? ` including ${formatFare(state.taxCents)} sales tax` : ""}, fixed. A
+            reservations agent confirms every booking by reply.
           </p>
         ) : (
           <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
@@ -735,7 +742,7 @@ export function BookingForm({
               label="Child seats"
               id="childSeats"
               tone={tone}
-              hint={`$${options.childSeatFeeCents / 100} each, up to ${maxChildSeats}.`}
+              hint={`${formatFare(options.childSeatFeeCents)} each, up to ${maxChildSeats}.`}
             >
               <Select
                 id="childSeats"
@@ -861,7 +868,7 @@ export function BookingForm({
 
           <div className={clsx("flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between", divider)}>
             <div>
-              {isFixed && fareTotal !== null ? (
+              {isFixed && fare !== null ? (
                 <>
                   <p
                     className={clsx(
@@ -872,11 +879,15 @@ export function BookingForm({
                     Fixed fare · {selected?.name}
                   </p>
                   <p className={clsx("font-display mt-1 text-[30px] leading-none font-semibold tabular-nums", heading)}>
-                    ${fareTotal}
+                    {formatFare(fare.totalCents)}
                   </p>
-                  <p className={clsx("mt-2 text-[13px]", dark ? "text-white/55" : "text-charcoal/70")}>
+                  <p className={clsx("mt-2 text-[13px] tabular-nums", dark ? "text-white/55" : "text-charcoal/70")}>
+                    {formatFare(fare.subtotalCents)} fare
+                    {seatFeeCents > 0 ? ` (incl. ${formatFare(seatFeeCents)} child seats)` : ""} +{" "}
+                    {formatFare(fare.taxCents)} sales tax ({formatRate(fare.taxRate)}).
+                  </p>
+                  <p className={clsx("mt-1 text-[13px]", dark ? "text-white/55" : "text-charcoal/70")}>
                     Tolls and gratuity included. Not an estimate.
-                    {seatFee > 0 ? ` Includes $${seatFee} for child seats.` : ""}
                   </p>
                 </>
               ) : (
@@ -934,7 +945,7 @@ export function BookingForm({
           otherText={trip === "airport" ? "" : otherText}
           date={pickupDate}
           time={pickupTime}
-          fixedFare={isFixed && fareTotal !== null ? fareTotal : null}
+          fare={isFixed ? fare : null}
         />
       </div>
     </div>

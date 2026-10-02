@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { RationaleNote, Section, SectionHeading } from "@/components/ui/section";
 import { getFleetSafely } from "@/lib/public/fleet";
-import { contact } from "@/lib/content";
+import { contact, formatFare } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
@@ -15,9 +15,8 @@ export const metadata: Metadata = {
     "Every vehicle class with real passenger and luggage capacities, child-seat availability and starting fares. Stated plainly, before you book.",
 };
 
-function fare(cents: number): string {
-  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
-}
+/** Exact to the cent: `$95` or `$95.50`, never rounded. */
+const fare = formatFare;
 
 export default async function FleetPage() {
   const fleet = await getFleetSafely();

@@ -68,6 +68,9 @@ export async function getBookingOptionsSafely(): Promise<BookingOptions> {
       rates: [],
       placesEnabled: false,
       childSeatFeeCents: 3500,
+      // With no rates nothing is fixed, so this is never shown; it only keeps
+      // the shape. The API's own default is 8.875 (services/settings.ts).
+      taxRate: 8.875,
     };
   }
 }

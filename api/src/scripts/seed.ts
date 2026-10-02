@@ -145,7 +145,8 @@ async function main() {
       // Sample data stands in for both paths so the dashboard has something of
       // each to show.
       pricingMode: sample.tripType === "airport" ? "fixed" : "quote",
-      totalCents: sample.tripType === "airport" ? sample.seedFareCents : null,
+      // Before tax; `createBooking` adds the default rate as for a real one.
+      fareCents: sample.tripType === "airport" ? sample.seedFareCents : null,
       reason: "seed",
       pickupPlace: null,
       destinationPlace: null,
