@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@/lib/public/reference";
 
 import Link from "next/link";
 import { useActionState } from "react";
@@ -149,7 +150,7 @@ export function TrackForm({
           tone="dark"
           label="Booking reference"
           id="reference"
-          hint="From your confirmation: RS-… for a booking, RQ-… for a quote request."
+          hint="From your confirmation: the number from your confirmation, like #66465."
         >
           <Input
             tone="dark"
@@ -158,7 +159,7 @@ export function TrackForm({
             required
             autoComplete="off"
             spellCheck={false}
-            placeholder="RS-4K2P9WD"
+            placeholder="#66465"
             className="font-mono tracking-[0.08em] uppercase"
             defaultValue={prior("reference")}
             key={`reference:${prior("reference")}`}
@@ -199,7 +200,7 @@ export function TrackForm({
           className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
           <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {state.quote.reference} · Quote request
+            {formatReference(state.quote.reference)} · Quote request
           </p>
           <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {quoteStatusCopy[state.quote.status] ?? "We have your request."}
@@ -268,7 +269,7 @@ export function TrackForm({
           className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
           <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {state.booking.reference}
+            {formatReference(state.booking.reference)}
           </p>
           <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {statusCopy[state.booking.status] ?? "We have your booking."}

@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@/lib/public/reference";
 
 import Link from "next/link";
 import {
@@ -379,7 +380,7 @@ export function BookingForm({
             heading,
           )}
         >
-          {state.reference}
+          {formatReference(state.reference)}
         </p>
 
         {state.pricingMode === "fixed" && state.quotedTotalCents !== null ? (

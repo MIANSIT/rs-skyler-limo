@@ -1,3 +1,4 @@
+import { formatReference } from "../lib/reference.js";
 import type { Booking } from "../services/bookings.js";
 import type { BuiltEmail } from "./booking.js";
 import {
@@ -77,19 +78,19 @@ export function buildPaymentLinkEmail(
     </tr>
   </table>
   <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
-    This link is for booking ${escapeHtml(booking.reference)} only and works until ${escapeHtml(expires)}.
+    This link is for booking ${escapeHtml(formatReference(booking.reference))} only and works until ${escapeHtml(expires)}.
     If the price changes we send a new one.
   </p>`;
 
   const html = shell({
-    preheader: `${booking.reference} · ${fare} · pay securely by card`,
+    preheader: `${formatReference(booking.reference)} · ${fare} · pay securely by card`,
     eyebrow: "Payment",
     headline: "Pay for your booking.",
     intro: `Thank you, ${firstName(booking.customerName)}. Your trip is priced and ready to pay. One tap below takes you to Stripe's secure page.`,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
-      { label: "Reference", value: booking.reference },
+      { label: "Reference", value: formatReference(booking.reference) },
     ],
     body: [farePanel, payButton, panel("The trip", tripRows)].join(""),
     footerNote:
@@ -99,7 +100,7 @@ export function buildPaymentLinkEmail(
   const text = [
     "RSSKYLER LIMO — PAY FOR YOUR BOOKING",
     "",
-    `Reference:  ${booking.reference}`,
+    `Reference:  ${formatReference(booking.reference)}`,
     ...priceTextLines(priced, "Amount"),
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
@@ -115,5 +116,5 @@ export function buildPaymentLinkEmail(
     `${CONTACT.phone} · ${CONTACT.email}`,
   ].join("\n");
 
-  return { subject: `Pay for your booking — ${booking.reference}`, html, text };
+  return { subject: `Pay for your booking — ${formatReference(booking.reference)}`, html, text };
 }

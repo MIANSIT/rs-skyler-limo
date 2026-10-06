@@ -2,7 +2,7 @@ import { env } from "../env.js";
 import { execute, query, queryOne, type RowDataPacket } from "../db.js";
 import { ApiError } from "../lib/http.js";
 import { samePhone } from "../lib/phone.js";
-import { isReference } from "../lib/reference.js";
+import { isReference, normalizeReference } from "../lib/reference.js";
 import { getBookingByReference } from "./bookings.js";
 
 export type ReviewStatus = "pending" | "approved" | "hidden";
@@ -114,7 +114,7 @@ export async function createReview(input: {
 }): Promise<void> {
   const notFound = () => ApiError.notFound("No booking matches those details.");
 
-  if (!isReference(input.reference.toUpperCase())) throw notFound();
+  if (!isReference(normalizeReference(input.reference))) throw notFound();
 
   const booking = await getBookingByReference(input.reference);
   if (!booking || !samePhone(booking.customerPhone, input.phone)) throw notFound();

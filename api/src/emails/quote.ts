@@ -1,3 +1,4 @@
+import { formatReference } from "../lib/reference.js";
 import { env } from "../env.js";
 import type { Booking } from "../services/bookings.js";
 import type { Quote } from "../services/quotes.js";
@@ -129,10 +130,10 @@ export function buildQuoteRequestEmail(
   const html = shell({
     preheader: isOps
       ? `${quote.customerName} · ${service} · ${eventDay(quote.eventDate)}`
-      : `Reference ${quote.reference} · we will price your ${service.toLowerCase()} and come back to you`,
+      : `Reference ${formatReference(quote.reference)} · we will price your ${service.toLowerCase()} and come back to you`,
     eyebrow: isOps ? "Reservations desk" : "Quote request",
     headline: isOps
-      ? `New quote request — ${quote.reference}`
+      ? `New quote request — ${formatReference(quote.reference)}`
       : "We have your request.",
     intro: isOps
       ? `Submitted ${formatDateTime(created)} from the ${quote.source} form. It needs a price and a reply.`
@@ -140,7 +141,7 @@ export function buildQuoteRequestEmail(
     headerFacts: [
       { label: "Service", value: service },
       { label: "Event date", value: eventDay(quote.eventDate) },
-      { label: "Reference", value: quote.reference },
+      { label: "Reference", value: formatReference(quote.reference) },
     ],
     body,
     footerNote: isOps
@@ -149,15 +150,15 @@ export function buildQuoteRequestEmail(
   });
 
   const subject = isOps
-    ? `[QUOTE] ${quote.reference} · ${service} · ${quote.customerName}`
-    : `Request received — ${quote.reference}`;
+    ? `[QUOTE] ${formatReference(quote.reference)} · ${service} · ${quote.customerName}`
+    : `Request received — ${formatReference(quote.reference)}`;
 
   const lines = [
     isOps
-      ? `NEW QUOTE REQUEST — ${quote.reference}`
+      ? `NEW QUOTE REQUEST — ${formatReference(quote.reference)}`
       : "RSSKYLER LIMO — REQUEST RECEIVED",
     "",
-    `Reference:  ${quote.reference}`,
+    `Reference:  ${formatReference(quote.reference)}`,
     `Service:    ${service}`,
     `Event date: ${eventDay(quote.eventDate)}`,
   ];
@@ -294,14 +295,14 @@ export function buildQuotedEmail(
   </p>`;
 
   const html = shell({
-    preheader: `Reference ${booking.reference} · ${fare} · ${booking.pickup} to ${booking.destination}`,
+    preheader: `Reference ${formatReference(booking.reference)} · ${fare} · ${booking.pickup} to ${booking.destination}`,
     eyebrow: "Your quote",
     headline: "Your quote is ready.",
     intro: `Thank you, ${firstName(booking.customerName)}. We have priced your trip. The details are below.`,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
-      { label: "Reference", value: booking.reference },
+      { label: "Reference", value: formatReference(booking.reference) },
     ],
     body: [farePanel, noteBlock, panel("The trip", tripRows), trackButton].join(""),
     footerNote:
@@ -311,7 +312,7 @@ export function buildQuotedEmail(
   const text = [
     "RSSKYLER LIMO — YOUR QUOTE IS READY",
     "",
-    `Reference:  ${booking.reference}`,
+    `Reference:  ${formatReference(booking.reference)}`,
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     "",
@@ -336,5 +337,5 @@ export function buildQuotedEmail(
     `${CONTACT.phone} · ${CONTACT.email}`,
   ].join("\n");
 
-  return { subject: `Your quote — ${booking.reference}`, html, text };
+  return { subject: `Your quote — ${formatReference(booking.reference)}`, html, text };
 }

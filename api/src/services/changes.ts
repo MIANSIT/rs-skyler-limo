@@ -12,7 +12,7 @@ import { CONTACT, formatMoney, titleCase } from "../emails/render.js";
 import { ApiError } from "../lib/http.js";
 import { todayInNewYork } from "../lib/new-york.js";
 import { samePhone } from "../lib/phone.js";
-import { isReference } from "../lib/reference.js";
+import { isQuoteReference, isReference, normalizeReference } from "../lib/reference.js";
 import { withTax } from "../lib/tax.js";
 import type { ChangeBookingInput, ChangeQuoteInput } from "../schemas.js";
 import { getBookingById, getBookingByReference, type Booking } from "./bookings.js";
@@ -63,10 +63,10 @@ function subjectKey(subject: ChangeSubject): { type: "booking" | "quote"; id: nu
 
 /** The same two factors, and the same single "no match" message, as /track. */
 export async function findChangeSubject(reference: string, phone: string): Promise<ChangeSubject> {
-  const ref = reference.trim().toUpperCase();
+  const ref = normalizeReference(reference);
   if (!isReference(ref)) throw ApiError.notFound(NO_MATCH);
 
-  if (ref.startsWith("RQ-")) {
+  if (isQuoteReference(ref)) {
     const quote = await getQuoteByReference(ref);
     if (!quote || !samePhone(quote.customerPhone, phone)) throw ApiError.notFound(NO_MATCH);
     return { kind: "quote", quote };

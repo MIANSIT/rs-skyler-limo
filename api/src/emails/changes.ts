@@ -1,3 +1,4 @@
+import { formatReference } from "../lib/reference.js";
 import { env } from "../env.js";
 import type { FieldChange } from "../services/changes.js";
 import type { Booking } from "../services/bookings.js";
@@ -85,7 +86,7 @@ export function buildChangeCodeEmail(input: {
   expiresInMinutes: number;
 }): BuiltEmail {
   const noun = input.kind === "booking" ? "booking" : "request";
-  const subject = `Your code to change ${input.reference}: ${input.code}`;
+  const subject = `Your code to change ${formatReference(input.reference)}: ${input.code}`;
   const intro = `${firstName(input.customerName)}, here is the code to change your ${noun}. Enter it on the page you have open. It works for ${input.expiresInMinutes} minutes, once.`;
   const warning = `If you did not ask for this, ignore this email. Nothing on your ${noun} changes without this code.`;
 
@@ -94,7 +95,7 @@ export function buildChangeCodeEmail(input: {
     eyebrow: input.kind === "booking" ? "Change your booking" : "Change your request",
     headline: "Your code",
     intro,
-    headerFacts: [{ label: "Reference", value: input.reference }],
+    headerFacts: [{ label: "Reference", value: formatReference(input.reference) }],
     body: [
       // Midnight numerals on grey, spaced for reading aloud. Gold stays a rule.
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;border-collapse:collapse;">
@@ -115,7 +116,7 @@ export function buildChangeCodeEmail(input: {
     intro,
     "",
     `Code:       ${input.code}`,
-    `Reference:  ${input.reference}`,
+    `Reference:  ${formatReference(input.reference)}`,
     "",
     warning,
     "We will never ask you for this code by phone.",
@@ -140,12 +141,12 @@ export function buildBookingChangedEmail(
   const ops = audience === "ops";
 
   const subject = ops
-    ? `Customer changed ${booking.reference} — ${booking.customerName}`
-    : `Your booking was updated — ${booking.reference}`;
+    ? `Customer changed ${formatReference(booking.reference)} — ${booking.customerName}`
+    : `Your booking was updated — ${formatReference(booking.reference)}`;
   const headline = ops ? "A customer changed their booking." : "Your booking is updated.";
   const intro = ops
-    ? `${booking.customerName} changed ${booking.reference} from the tracking page, after confirming the email on the booking. It is tagged in the dashboard until someone marks it reviewed.`
-    : `Thank you, ${firstName(booking.customerName)}. We have saved your changes to ${booking.reference}. The reference stays the same.`;
+    ? `${booking.customerName} changed ${formatReference(booking.reference)} from the tracking page, after confirming the email on the booking. It is tagged in the dashboard until someone marks it reviewed.`
+    : `Thank you, ${firstName(booking.customerName)}. We have saved your changes to ${formatReference(booking.reference)}. The reference stays the same.`;
   const after = ops
     ? reconfirm
       ? "The trip details moved, so the booking is back to Pending. Re-confirm it once a car is set."
@@ -170,14 +171,14 @@ export function buildBookingChangedEmail(
   ].join("");
 
   const html = shell({
-    preheader: `${booking.reference} · ${changes.map((change) => change.label).join(", ")}`,
+    preheader: `${formatReference(booking.reference)} · ${changes.map((change) => change.label).join(", ")}`,
     eyebrow: ops ? "Changed by customer" : "Your booking",
     headline,
     intro,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
-      { label: "Reference", value: booking.reference },
+      { label: "Reference", value: formatReference(booking.reference) },
     ],
     body: [
       panel("What changed", changeRows(changes)),
@@ -201,7 +202,7 @@ export function buildBookingChangedEmail(
     "What changed:",
     ...changeText(changes),
     "",
-    `Reference:  ${booking.reference}`,
+    `Reference:  ${formatReference(booking.reference)}`,
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     `Pick-up:    ${booking.pickup}`,
@@ -230,12 +231,12 @@ export function buildQuoteChangedEmail(
   const repriced = changes.some((change) => change.label === "Agreed price");
 
   const subject = ops
-    ? `Customer changed ${quote.reference} — ${quote.customerName}`
-    : `Your request was updated — ${quote.reference}`;
+    ? `Customer changed ${formatReference(quote.reference)} — ${quote.customerName}`
+    : `Your request was updated — ${formatReference(quote.reference)}`;
   const headline = ops ? "A customer changed their request." : "Your request is updated.";
   const intro = ops
-    ? `${quote.customerName} changed ${quote.reference} from the tracking page, after confirming the email on the request. It is tagged in the dashboard until someone marks it reviewed.`
-    : `Thank you, ${firstName(quote.customerName)}. We have saved your changes to ${quote.reference}. The reference stays the same.`;
+    ? `${quote.customerName} changed ${formatReference(quote.reference)} from the tracking page, after confirming the email on the request. It is tagged in the dashboard until someone marks it reviewed.`
+    : `Thank you, ${firstName(quote.customerName)}. We have saved your changes to ${formatReference(quote.reference)}. The reference stays the same.`;
   const after = repriced
     ? ops
       ? "The request changed after it was priced, so the agreed price was cleared and it is back to New. Price it again."
@@ -243,11 +244,11 @@ export function buildQuoteChangedEmail(
     : "";
 
   const html = shell({
-    preheader: `${quote.reference} · ${changes.map((change) => change.label).join(", ")}`,
+    preheader: `${formatReference(quote.reference)} · ${changes.map((change) => change.label).join(", ")}`,
     eyebrow: ops ? "Changed by customer" : "Your request",
     headline,
     intro,
-    headerFacts: [{ label: "Reference", value: quote.reference }],
+    headerFacts: [{ label: "Reference", value: formatReference(quote.reference) }],
     body: [
       panel("What changed", changeRows(changes)),
       ops

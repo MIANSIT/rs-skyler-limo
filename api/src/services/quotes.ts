@@ -10,7 +10,7 @@ import {
   type RowDataPacket,
 } from "../db.js";
 import { ApiError } from "../lib/http.js";
-import { makeReference } from "../lib/reference.js";
+import { makeQuoteReference } from "../lib/reference.js";
 import { formatRate, normaliseRate, withTax } from "../lib/tax.js";
 import { getDefaultTaxRate } from "./settings.js";
 import type {
@@ -106,7 +106,7 @@ export async function createQuote(
   const taxRate = await getDefaultTaxRate();
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const reference = makeReference("RQ");
+    const reference = makeQuoteReference();
     try {
       const result = await execute(
         `INSERT INTO quotes
