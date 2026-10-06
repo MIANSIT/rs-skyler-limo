@@ -17,6 +17,7 @@ import {
   paymentConfirmSchema,
   paymentLinkSchema,
   placesAutocompleteSchema,
+  placesResolveSchema,
   trackSchema,
 } from "../schemas.js";
 import {
@@ -39,7 +40,7 @@ import {
   getPublicRates,
   listActiveAirports,
 } from "../services/pricing.js";
-import { autocomplete, placesAvailable } from "../services/places.js";
+import { autocomplete, placesAvailable, resolvePlace } from "../services/places.js";
 import { getDefaultTaxRate } from "../services/settings.js";
 import {
   sendBookingChangedEmails,
@@ -163,6 +164,18 @@ publicRouter.get("/places/autocomplete", placesLimit, async (req, res) => {
 
   const { q, session } = placesAutocompleteSchema.parse(req.query);
   res.json({ suggestions: await autocomplete(q, session), available: true });
+});
+
+/**
+ * Whether a chosen address is inside the five boroughs — the one fact the
+ * form's fare preview cannot know on its own. Only the yes/no leaves: the
+ * address itself is already in the customer's field. `null` means we could
+ * not tell, which the form treats as a quote, the same as the server does.
+ */
+publicRouter.get("/places/resolve", placesLimit, async (req, res) => {
+  const { placeId, session } = placesResolveSchema.parse(req.query);
+  const place = await resolvePlace(placeId, session).catch(() => null);
+  res.json({ isNewYorkCity: place ? place.isNewYorkCity : null });
 });
 
 publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) => {
