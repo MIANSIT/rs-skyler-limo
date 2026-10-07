@@ -57,6 +57,8 @@ export type BookingOptions = {
   rates: PublishedRate[];
   /** False when no Google key is configured; the address field degrades. */
   placesEnabled: boolean;
+  /** False when no Stripe key is configured; the card option is not offered. */
+  cardPaymentsEnabled: boolean;
   childSeatFeeCents: number;
   /** Sales tax added to a fixed fare, a percentage (8.875). */
   taxRate: number;

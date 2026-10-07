@@ -319,6 +319,19 @@ export function BookingForm({
 
   const restore = (name: string) => ({ defaultValue: prior(name) });
 
+  /**
+   * Card is offered only when the API says Stripe is configured. `prior` is
+   * filtered through the same list so a restored "card" from a submission made
+   * before the key was removed cannot select an option that is no longer there.
+   */
+  const paymentOptions = useMemo(
+    () =>
+      PAYMENT_OPTIONS.filter(
+        (option) => option.value !== "card" || options.cardPaymentsEnabled,
+      ),
+    [options.cardPaymentsEnabled],
+  );
+
   const formKey = state.status === "error" ? state.attempt : 0;
 
   /**
@@ -853,12 +866,25 @@ export function BookingForm({
             </Field>
           </div>
 
+          {/*
+            Only the methods that actually work.
+
+            With no Stripe key configured the API cannot issue a payment link,
+            so offering "Card (Stripe)" produced a booking saved as `card` that
+            could never be paid. The server decides, via `cardPaymentsEnabled`
+            on `/api/booking-options`; add the key and the option returns with
+            no code change.
+          */}
           <div className={clsx("border-t pt-5", divider)}>
             <RadioCards
               name="paymentMethod"
               legend="How you will pay"
-              options={PAYMENT_OPTIONS}
-              defaultValue={prior("paymentMethod") || "card"}
+              options={paymentOptions}
+              defaultValue={
+                paymentOptions.some((o) => o.value === prior("paymentMethod"))
+                  ? prior("paymentMethod")
+                  : (paymentOptions[0]?.value ?? "cash")
+              }
               tone={tone}
             />
           </div>
