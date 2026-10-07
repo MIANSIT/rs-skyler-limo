@@ -3,7 +3,7 @@ import { Router } from "express";
 import { env } from "../env.js";
 import { ApiError } from "../lib/http.js";
 import { samePhone } from "../lib/phone.js";
-import { isReference } from "../lib/reference.js";
+import { isQuoteReference, isReference, normalizeReference } from "../lib/reference.js";
 import { issueFormToken, requireFormGuard } from "../lib/form-guard.js";
 import { rateLimit } from "../middleware.js";
 import {
@@ -17,6 +17,7 @@ import {
   paymentConfirmSchema,
   paymentLinkSchema,
   placesAutocompleteSchema,
+  placesResolveSchema,
   trackSchema,
 } from "../schemas.js";
 import {
@@ -39,7 +40,8 @@ import {
   getPublicRates,
   listActiveAirports,
 } from "../services/pricing.js";
-import { autocomplete, placesAvailable } from "../services/places.js";
+import { autocomplete, placesAvailable, resolvePlace } from "../services/places.js";
+import { getDefaultTaxRate } from "../services/settings.js";
 import {
   sendBookingChangedEmails,
   sendBookingEmails,
@@ -147,6 +149,8 @@ publicRouter.get("/booking-options", async (_req, res) => {
     rates: await getPublicRates(),
     placesEnabled: placesAvailable(),
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
+    /** Sales tax the preview adds to a fixed fare. The server adds it again on submit. */
+    taxRate: await getDefaultTaxRate(),
   });
 });
 
@@ -160,6 +164,18 @@ publicRouter.get("/places/autocomplete", placesLimit, async (req, res) => {
 
   const { q, session } = placesAutocompleteSchema.parse(req.query);
   res.json({ suggestions: await autocomplete(q, session), available: true });
+});
+
+/**
+ * Whether a chosen address is inside the five boroughs — the one fact the
+ * form's fare preview cannot know on its own. Only the yes/no leaves: the
+ * address itself is already in the customer's field. `null` means we could
+ * not tell, which the form treats as a quote, the same as the server does.
+ */
+publicRouter.get("/places/resolve", placesLimit, async (req, res) => {
+  const { placeId, session } = placesResolveSchema.parse(req.query);
+  const place = await resolvePlace(placeId, session).catch(() => null);
+  res.json({ isNewYorkCity: place ? place.isNewYorkCity : null });
 });
 
 publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) => {
@@ -232,6 +248,9 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     reference: booking.reference,
     pricingMode: booking.pricingMode,
     quotedTotalCents: booking.quotedTotalCents,
+    fareCents: booking.fareCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     fareReason: fare.reason,
     checkoutUrl,
   });
@@ -266,9 +285,11 @@ publicRouter.post("/quotes", submitLimit, requireFormGuard, async (req, res) => 
  * alone.
  */
 publicRouter.post("/track", lookupLimit, async (req, res) => {
-  const { reference, phone } = trackSchema.parse(req.body);
+  const body = trackSchema.parse(req.body);
+  const { phone } = body;
+  const reference = normalizeReference(body.reference);
 
-  if (!isReference(reference.toUpperCase())) {
+  if (!isReference(reference)) {
     throw ApiError.notFound("No booking matches those details.");
   }
 
@@ -277,7 +298,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
    * customer gets — booking or request — can point at the one tracking page.
    * It carries no route or fare, so the response is short.
    */
-  if (reference.toUpperCase().startsWith("RQ-")) {
+  if (isQuoteReference(reference)) {
     const quote = await getQuoteByReference(reference);
     if (!quote || !samePhone(quote.customerPhone, phone)) {
       throw ApiError.notFound("No booking matches those details.");
@@ -289,6 +310,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       serviceType: quote.serviceType,
       eventDate: quote.eventDate,
       agreedPriceCents: quote.agreedPriceCents,
+      priceCents: quote.priceCents,
+      taxRate: quote.taxRate,
+      taxCents: quote.taxCents,
       paymentMethod: quote.paymentMethod,
       paymentStatus: quote.paymentStatus,
       createdAt: quote.createdAt,
@@ -315,6 +339,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     destination: booking.destination,
     vehicleClass: booking.vehicleClass,
     quotedTotalCents: booking.quotedTotalCents,
+    fareCents: booking.fareCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     quoteNote: booking.quoteNote,
     quotedAt: booking.quotedAt,
     paymentMethod: booking.paymentMethod,
@@ -433,9 +460,11 @@ publicRouter.post("/change/quote", changeLimit, async (req, res) => {
  * someone else's trip from a reference alone.
  */
 publicRouter.post("/payments/checkout", lookupLimit, async (req, res) => {
-  const { reference, phone } = trackSchema.parse(req.body);
+  const body = trackSchema.parse(req.body);
+  const { phone } = body;
+  const reference = normalizeReference(body.reference);
 
-  const booking = isReference(reference.toUpperCase())
+  const booking = isReference(reference)
     ? await getBookingByReference(reference)
     : null;
   if (!booking || !samePhone(booking.customerPhone, phone)) {
@@ -461,10 +490,10 @@ const INVALID = "This payment link is not valid. Call us and we will send a new 
  * request the agreed price stands where a booking's fare would.
  */
 async function payableForLink(reference: string, token: string) {
-  const ref = reference.toUpperCase();
+  const ref = normalizeReference(reference);
   if (!isReference(ref)) throw ApiError.notFound(INVALID);
 
-  if (ref.startsWith("RQ-")) {
+  if (isQuoteReference(ref)) {
     const quote = await getQuoteByReference(ref);
     const check = quote
       ? checkPaymentLink({ id: quote.id, reference: quote.reference, quotedTotalCents: quote.agreedPriceCents }, token)
@@ -502,6 +531,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
       serviceLabel: QUOTE_SERVICE_LABEL[quote.serviceType] ?? "Chauffeured transport",
       eventDate: quote.eventDate,
       amountCents: quote.agreedPriceCents,
+      taxRate: quote.taxRate,
+      taxCents: quote.taxCents,
       paymentStatus: quote.paymentStatus,
       canPay: canPayQuoteOnline(quote),
     });
@@ -526,6 +557,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     destination: booking.destination,
     vehicleName,
     amountCents: booking.quotedTotalCents,
+    taxRate: booking.taxRate,
+    taxCents: booking.taxCents,
     paymentStatus: booking.paymentStatus,
     canPay: canPayOnline(booking),
   });

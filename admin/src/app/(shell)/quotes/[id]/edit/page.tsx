@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,7 +13,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const result = await getQuote(Number(id));
-  return { title: result ? `Edit ${result.quote.reference}` : "Edit quote" };
+  return { title: result ? `Edit ${formatReference(result.quote.reference)}` : "Edit quote" };
 }
 
 export default async function EditQuotePage({
@@ -36,7 +37,7 @@ export default async function EditQuotePage({
           href={`/quotes/${quote.id}`}
           className="font-sans text-[14px] text-charcoal/60 underline-offset-4 hover:text-midnight hover:underline"
         >
-          ← {quote.reference}
+          ← {formatReference(quote.reference)}
         </Link>
         <h1 className="font-display mt-4 text-[34px] leading-none font-semibold text-midnight">
           Edit quote request

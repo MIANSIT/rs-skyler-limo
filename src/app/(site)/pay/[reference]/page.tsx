@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/public/reference";
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/site/page-header";
@@ -6,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import { contact, formatFare } from "@/lib/content";
+import { formatRate } from "@/lib/public/tax";
 
 export const metadata: Metadata = {
   title: "Pay for your booking",
@@ -19,7 +21,10 @@ type LinkedBooking = {
   kind: "booking" | "quote";
   reference: string;
   status: string;
+  /** Sales tax included. */
   amountCents: number | null;
+  taxRate: number;
+  taxCents: number;
   paymentStatus: "paid" | "unpaid";
   canPay: boolean;
   // Bookings:
@@ -110,7 +115,7 @@ export default async function PayLinkPage({
   return (
     <>
       <PageHeader
-        eyebrow={`Payment · ${booking.reference}`}
+        eyebrow={`Payment · ${formatReference(booking.reference)}`}
         title={
           paid
             ? `This ${booking.kind === "quote" ? "request" : "booking"} is paid`
@@ -132,7 +137,7 @@ export default async function PayLinkPage({
               ? [
                   { label: "Service", value: booking.serviceLabel ?? "" },
                   { label: "Date", value: booking.eventDate ? day(booking.eventDate) : "To be confirmed" },
-                  { label: "Reference", value: booking.reference },
+                  { label: "Reference", value: formatReference(booking.reference) },
                 ]
               : [
                   { label: "Pick-up", value: `${when(booking.pickupAt ?? "")} (New York time)` },
@@ -158,6 +163,13 @@ export default async function PayLinkPage({
               <p className="font-display mt-2 text-[40px] leading-none font-semibold text-midnight tabular-nums">
                 {amount ?? "—"}
               </p>
+              {booking.amountCents !== null && booking.taxCents > 0 ? (
+                <p className="mt-3 font-sans text-[14px] text-charcoal tabular-nums">
+                  {formatFare(booking.amountCents - booking.taxCents)}{" "}
+                  {booking.kind === "quote" ? "price" : "fare"} + {formatFare(booking.taxCents)} sales
+                  tax ({formatRate(booking.taxRate)})
+                </p>
+              ) : null}
               <div className="mt-8">
                 {paid ? (
                   <ButtonLink

@@ -13,8 +13,9 @@ import type {
   ChangeableQuote,
   FleetVehicle,
 } from "@/lib/api/types";
-import { contact } from "@/lib/content";
+import { contact, formatFare } from "@/lib/content";
 import { changeStep, type ChangeState } from "@/lib/public/change-actions";
+import { formatRate } from "@/lib/public/tax";
 import { isoToNewYork, todayInNewYork } from "@/lib/public/new-york-time";
 
 /**
@@ -27,7 +28,7 @@ import { isoToNewYork, todayInNewYork } from "@/lib/public/new-york-time";
  */
 
 function money(cents: number | null): string {
-  return cents === null ? "" : `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  return cents === null ? "" : formatFare(cents);
 }
 
 function Submit({
@@ -162,6 +163,12 @@ export function ChangeRecord({
                 </dd>
               </div>
             </dl>
+            {state.fare.totalCents !== null && state.fare.taxCents > 0 ? (
+              <p className="mt-2 text-[14px] text-white/75 tabular-nums">
+                {money(state.fare.fareCents)} fare + {money(state.fare.taxCents)} sales tax (
+                {formatRate(state.fare.taxRate)}).
+              </p>
+            ) : null}
             <p className="mt-3 max-w-lg text-[15px] leading-[1.7] text-white/75">{state.fare.reason}</p>
           </div>
           {state.error ? <Alert>{state.error}</Alert> : null}

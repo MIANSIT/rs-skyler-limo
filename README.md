@@ -218,7 +218,7 @@ put it in `api/.env`.
 
 A customer submits the booking form. A Server Action posts it to
 `POST /api/bookings`, which validates it, writes it, and returns a reference such
-as `RS-4K2P9WD`. The customer sees that reference; `/track` exchanges it for a
+as `66465` (shown `#66465`). The customer sees that reference; `/track` exchanges it for a
 status. Nothing else about the booking is readable without signing in.
 
 An operator signs in at `admin.rsskylerlimo.com`. The API returns an opaque bearer token;

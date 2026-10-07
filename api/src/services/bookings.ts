@@ -10,7 +10,9 @@ import {
   type RowDataPacket,
 } from "../db.js";
 import { ApiError } from "../lib/http.js";
-import { makeReference } from "../lib/reference.js";
+import { makeBookingReference, normalizeReference } from "../lib/reference.js";
+import { formatRate, normaliseRate, withTax } from "../lib/tax.js";
+import { getDefaultTaxRate } from "./settings.js";
 import type {
   createBookingSchema,
   listBookingsSchema,
@@ -51,6 +53,8 @@ type BookingRow = RowDataPacket & {
   customer_phone: string;
   notes: string | null;
   quoted_total_cents: number | null;
+  tax_rate: number;
+  tax_cents: number;
   source: string;
   customer_change_pending: number;
   customer_changed_at: Date | null;
@@ -93,7 +97,14 @@ function toBooking(row: BookingRow) {
     customerEmail: row.customer_email,
     customerPhone: row.customer_phone,
     notes: row.notes,
+    /** What the customer pays, sales tax included. Null until priced. */
     quotedTotalCents: row.quoted_total_cents,
+    /** The fare before tax. Null until priced. */
+    fareCents:
+      row.quoted_total_cents === null ? null : row.quoted_total_cents - row.tax_cents,
+    /** This booking's own rate, as a percentage. */
+    taxRate: Number(row.tax_rate),
+    taxCents: row.tax_cents,
     source: row.source,
     /** The customer changed it from /track and no operator has reviewed that yet. */
     customerChangePending: row.customer_change_pending === 1,
@@ -106,7 +117,7 @@ function toBooking(row: BookingRow) {
 const SELECT_COLUMNS = `id, reference, status, trip_type, pricing_mode, pickup,
   destination, pickup_at, passengers, bags, child_seats, vehicle_class,
   service_type, airline, flight_number, customer_name, customer_email, customer_phone, notes,
-  quoted_total_cents, quoted_at, quote_note,
+  quoted_total_cents, tax_rate, tax_cents, quoted_at, quote_note,
   payment_method, payment_status, paid_at, stripe_payment_intent_id,
   pickup_locality, pickup_region, destination_locality, destination_region,
   airport_code, airport_direction,
@@ -121,24 +132,30 @@ export async function createBooking(
    */
   fare: FareDecision,
 ): Promise<Booking> {
+  // The booking keeps the rate of the day it was made, priced or not, so an
+  // operator who quotes it next week adds the tax the customer was told about.
+  const taxRate = await getDefaultTaxRate();
+  const taxed = fare.fareCents === null ? null : withTax(fare.fareCents, taxRate);
+
   // A reference collision is a ~1-in-34-billion event, but a booking lost to
   // one is a customer standing on a kerb, so retry rather than assume.
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const reference = makeReference("RS");
+    const reference = makeBookingReference();
     try {
       const result = await execute(
         `INSERT INTO bookings
            (reference, trip_type, pricing_mode, pickup, destination, pickup_at,
             passengers, bags, child_seats, vehicle_class, service_type, payment_method,
             airline, flight_number, customer_name, customer_email, customer_phone, notes,
-            quoted_total_cents, pickup_place_id, pickup_locality, pickup_region,
+            quoted_total_cents, tax_rate, tax_cents,
+            pickup_place_id, pickup_locality, pickup_region,
             destination_place_id, destination_locality, destination_region,
             airport_code, airport_direction, source)
          VALUES
            (:reference, :tripType, :pricingMode, :pickup, :destination, :pickupAt,
             :passengers, :bags, :childSeats, :vehicleClass, :serviceType, :paymentMethod,
             :airline, :flightNumber, :customerName, :customerEmail, :customerPhone, :notes,
-            :quotedTotalCents, :pickupPlaceId, :pickupLocality, :pickupRegion,
+            :quotedTotalCents, :taxRate, :taxCents, :pickupPlaceId, :pickupLocality, :pickupRegion,
             :destinationPlaceId, :destinationLocality, :destinationRegion,
             :airportCode, :airportDirection, :source)`,
         {
@@ -160,7 +177,9 @@ export async function createBooking(
           customerPhone: input.customerPhone,
           notes: input.notes ?? null,
           pricingMode: fare.pricingMode,
-          quotedTotalCents: fare.totalCents,
+          quotedTotalCents: taxed?.totalCents ?? null,
+          taxRate,
+          taxCents: taxed?.taxCents ?? 0,
           pickupPlaceId: input.pickupPlaceId ?? null,
           pickupLocality: fare.pickupPlace?.locality ?? null,
           pickupRegion: fare.pickupPlace?.region ?? null,
@@ -207,7 +226,7 @@ export async function getBookingByReference(
 ): Promise<Booking | null> {
   const row = await queryOne<BookingRow>(
     `SELECT ${SELECT_COLUMNS} FROM bookings WHERE reference = :reference LIMIT 1`,
-    { reference: reference.toUpperCase() },
+    { reference: normalizeReference(reference) },
   );
   return row ? toBooking(row) : null;
 }
@@ -421,13 +440,30 @@ export async function updateBooking(
       (patch.paymentMethod !== undefined && patch.paymentMethod !== existing.paymentMethod) ||
       (patch.paymentStatus !== undefined && patch.paymentStatus !== existing.paymentStatus);
 
-    if (
-      patch.quotedTotalCents !== undefined &&
-      patch.quotedTotalCents !== existing.quotedTotalCents
-    ) {
-      assignments.push("quoted_total_cents = :quotedTotalCents");
-      params.quotedTotalCents = patch.quotedTotalCents;
-      changed.push("fare");
+    // The operator edits the fare before tax and the rate; the total and the
+    // tax are worked out here, so the three can never disagree.
+    const fareMoved = patch.fareCents !== undefined && patch.fareCents !== existing.fareCents;
+    const rateMoved =
+      patch.taxRate !== undefined && normaliseRate(patch.taxRate) !== existing.taxRate;
+    if (fareMoved || rateMoved) {
+      if (existing.paymentStatus === "paid" && patch.paymentStatus !== "unpaid") {
+        throw ApiError.conflict(
+          "This booking is paid, so its price is locked. Mark it unpaid first to change it.",
+        );
+      }
+      const fare = patch.fareCents !== undefined ? patch.fareCents : existing.fareCents;
+      const rate = normaliseRate(patch.taxRate ?? existing.taxRate);
+      const taxed = fare === null ? null : withTax(fare, rate);
+      assignments.push(
+        "quoted_total_cents = :quotedTotalCents",
+        "tax_rate = :taxRate",
+        "tax_cents = :taxCents",
+      );
+      params.quotedTotalCents = taxed?.totalCents ?? null;
+      params.taxRate = rate;
+      params.taxCents = taxed?.taxCents ?? 0;
+      if (fareMoved) changed.push("fare");
+      if (rateMoved) changed.push(`tax rate (${formatRate(existing.taxRate)} → ${formatRate(rate)})`);
     }
     if (patch.paymentMethod !== undefined && patch.paymentMethod !== existing.paymentMethod) {
       assignments.push("payment_method = :paymentMethod");

@@ -3,9 +3,11 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PriceBreakdown } from "@/components/admin/price-breakdown";
+import { TaxedPriceFields } from "@/components/admin/taxed-price-fields";
 import { sendQuote, type PricingFormState } from "@/lib/admin/pricing-actions";
 import type { Booking } from "@/lib/api/types";
-import { formatMoney, formatPickup } from "@/lib/admin/format";
+import { formatPickup } from "@/lib/admin/format";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -51,9 +53,11 @@ export function QuotePanel({ booking }: { booking: Booking }) {
       </div>
 
       {alreadyQuoted ? (
-        <p className="font-display mt-3 text-[34px] leading-none font-semibold text-midnight tabular-nums">
-          {formatMoney(booking.quotedTotalCents!)}
-        </p>
+        <PriceBreakdown
+          totalCents={booking.quotedTotalCents!}
+          taxCents={booking.taxCents}
+          taxRate={booking.taxRate}
+        />
       ) : (
         <p className="mt-2 max-w-2xl font-sans text-[14px] leading-[1.7] text-charcoal/80">
           This trip has no published fare, so the customer has not been given a
@@ -71,35 +75,17 @@ export function QuotePanel({ booking }: { booking: Booking }) {
       <form action={formAction} className="mt-6 flex flex-col gap-5">
         <input type="hidden" name="id" value={booking.id} />
 
-        <div className="grid gap-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="quote-total"
-              className="font-sans text-[13px] font-medium tracking-[0.06em] text-charcoal/70 uppercase"
-            >
-              Fare (USD)
-            </label>
-            <div className="flex items-center gap-1.5">
-              <span aria-hidden className="font-sans text-[15px] text-charcoal/50">
-                $
-              </span>
-              <input
-                id="quote-total"
-                name="total"
-                type="number"
-                min={0}
-                step={1}
-                inputMode="numeric"
-                required
-                defaultValue={
-                  alreadyQuoted
-                    ? Math.round(booking.quotedTotalCents! / 100)
-                    : undefined
-                }
-                className="w-full rounded-sm border border-midnight/20 bg-white px-3 py-2.5 font-sans text-[15px] text-midnight tabular-nums focus:border-midnight focus:outline-none"
-              />
-            </div>
-          </div>
+        <div className="flex flex-col gap-5">
+          <TaxedPriceFields
+            idPrefix="quote"
+            priceName="fare"
+            priceLabel="Fare before tax (USD)"
+            defaultPriceCents={booking.fareCents}
+            defaultRate={booking.taxRate}
+            required
+            priceError={state.status === "error" ? state.fields?.fareCents : undefined}
+            rateError={state.status === "error" ? state.fields?.taxRate : undefined}
+          />
 
           <div className="flex flex-col gap-2">
             <label
@@ -114,7 +100,7 @@ export function QuotePanel({ booking }: { booking: Booking }) {
               maxLength={2000}
               defaultValue={booking.quoteNote ?? ""}
               placeholder="Includes tolls and an hour of wait time."
-              className="w-full rounded-sm border border-midnight/20 bg-white px-4 py-2.5 font-sans text-[15px] text-midnight placeholder:text-charcoal/40 focus:border-midnight focus:outline-none"
+              className="w-full max-w-2xl rounded-sm border border-midnight/20 bg-white px-4 py-2.5 font-sans text-[15px] text-midnight placeholder:text-charcoal/40 focus:border-midnight focus:outline-none"
             />
             <p className="font-sans text-[13px] text-charcoal/60">
               The customer reads this next to the number, so write it for them.

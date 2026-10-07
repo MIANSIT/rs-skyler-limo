@@ -12,8 +12,11 @@ import {
   formatMoney,
   formatTime,
   panel,
+  priceTextLines,
   shell,
+  taxLinesOnDark,
   titleCase,
+  type Priced,
 } from "./render.js";
 
 /**
@@ -64,6 +67,11 @@ export function buildBookingEmail(
   const isOps = audience === "ops";
   const fixed = booking.pricingMode === "fixed";
   const fare = formatMoney(booking.quotedTotalCents);
+  const priced: Priced = {
+    totalCents: booking.quotedTotalCents,
+    taxCents: booking.taxCents,
+    taxRate: booking.taxRate,
+  };
   const vehicle = vehicleName ?? titleCase(booking.vehicleClass);
 
   /* ------------------------------------------------------------ routing */
@@ -154,10 +162,11 @@ export function buildBookingEmail(
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">
           ${fixed && fare ? escapeHtml(fare) : "To be quoted"}
         </div>
+        ${fixed ? taxLinesOnDark(priced) : ""}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           ${
             fixed
-              ? "Tolls and gratuity included. This is the price, not an estimate."
+              ? "Tolls and gratuity included, sales tax as shown. This is the price, not an estimate."
               : "A reservations agent is pricing this trip and will come back to you. Nothing is charged until you agree the fare."
           }${
             booking.paymentMethod === "cash"
@@ -274,7 +283,6 @@ function plainText(
   audience: BookingEmailAudience,
 ): string {
   const fixed = booking.pricingMode === "fixed";
-  const fare = formatMoney(booking.quotedTotalCents);
   const lines = [
     audience === "ops"
       ? `NEW ${fixed ? "BOOKING" : "QUOTE REQUEST"} — ${booking.reference}`
@@ -300,11 +308,21 @@ function plainText(
     lines.push(`Child seats: ${booking.childSeats}`);
   }
 
+  const priceLines =
+    fixed && booking.quotedTotalCents !== null
+      ? [
+          ...priceTextLines({
+            totalCents: booking.quotedTotalCents,
+            taxCents: booking.taxCents,
+            taxRate: booking.taxRate,
+          }),
+          "            Tolls and gratuity included.",
+        ]
+      : ["Fare:       To be quoted. Nothing is charged until you agree it."];
+
   lines.push(
     "",
-    fixed && fare
-      ? `Fare:       ${fare} (tolls and gratuity included)`
-      : "Fare:       To be quoted. Nothing is charged until you agree it.",
+    ...priceLines,
     `Payment:    ${
       booking.paymentMethod === "cash"
         ? "Cash on delivery — paid to the chauffeur at the end of the trip"

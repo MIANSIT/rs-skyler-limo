@@ -37,12 +37,50 @@ export function formatEventDate(date: string): string {
   return dayOnly.format(new Date(Date.UTC(year, month - 1, day, 12)));
 }
 
+/** `$100` for whole dollars, otherwise always two decimals: `$8.80`, never `$8.8`. */
 export function formatMoney(cents: number | null): string {
   if (cents === null) return "—";
+  const whole = cents % 100 === 0;
   return `$${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: whole ? 0 : 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+export { formatRate } from "./tax";
+
+/**
+ * Cents as a price input's starting value: `95` or `95.50`. Never rounded —
+ * a field pre-filled with a rounded figure saves the rounded figure back.
+ */
+export function centsToInput(cents: number): string {
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
+}
+
+const shortDate = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+});
+
+/** `2026-09-20` → `Sep 20`. A calendar date, so it is read as one. */
+export function formatShortDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  if (!year || !month || !day) return date;
+  return shortDate.format(new Date(Date.UTC(year, month - 1, day, 12)));
+}
+
+const monthYear = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  year: "numeric",
+});
+
+/** `2026-09` → `Sep 2026`. */
+export function formatMonth(key: string): string {
+  const [year, month] = key.split("-").map(Number);
+  if (!year || !month) return key;
+  return monthYear.format(new Date(Date.UTC(year, month - 1, 15)));
 }
 
 const vehicleNames: Record<string, string> = {

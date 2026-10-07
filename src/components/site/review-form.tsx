@@ -114,7 +114,7 @@ export function ReviewForm({ initialReference }: { initialReference: string }) {
         <Field
           label="Booking reference"
           id="reference"
-          hint="From your confirmation, like RS-4K2P9WD."
+          hint="From your confirmation, like #66465."
           error={fields.reference}
         >
           <Input
@@ -123,7 +123,7 @@ export function ReviewForm({ initialReference }: { initialReference: string }) {
             required
             autoComplete="off"
             spellCheck={false}
-            placeholder="RS-4K2P9WD"
+            placeholder="#66465"
             className="font-mono tracking-[0.08em] uppercase"
             defaultValue={values.reference ?? initialReference}
           />

@@ -29,7 +29,7 @@ export function BookingStatusPreview({
             Booking found
           </p>
           <p className="font-display mt-2 text-[26px] leading-none font-semibold whitespace-nowrap text-white tabular-nums">
-            RS-4K2QP7
+            #66465
           </p>
         </div>
         <span className="border border-white/25 px-3 py-1 font-sans text-[13px] tracking-[0.08em] text-white uppercase">

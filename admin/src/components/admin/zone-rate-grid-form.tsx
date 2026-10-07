@@ -7,6 +7,7 @@ import {
   saveZoneRates,
   type PricingFormState,
 } from "@/lib/admin/pricing-actions";
+import { centsToInput } from "@/lib/admin/format";
 import type { ZoneRateGrid } from "@/lib/api/types";
 
 function SaveButton() {
@@ -47,7 +48,7 @@ export function ZoneRateGridForm({ grid }: { grid: ZoneRateGrid }) {
         entry.zoneKey === zoneKey &&
         entry.vehicleId === vehicleId,
     );
-    return rate ? (rate.priceCents / 100).toFixed(0) : "";
+    return rate ? centsToInput(rate.priceCents) : "";
   };
 
   const pricedCount = (airportCode: string) =>
@@ -134,11 +135,11 @@ export function ZoneRateGridForm({ grid }: { grid: ZoneRateGrid }) {
                                 name={`zone-rate:${airport.code}:${zone.key}:${vehicle.id}`}
                                 type="number"
                                 min={0}
-                                step={1}
-                                inputMode="numeric"
+                                step={0.01}
+                                inputMode="decimal"
                                 placeholder="—"
                                 defaultValue={priceFor(airport.code, zone.key, vehicle.id)}
-                                className="w-24 rounded-sm border border-midnight/20 bg-white px-3 py-2 font-sans text-[15px] text-midnight tabular-nums placeholder:text-charcoal/35 focus:border-midnight focus:outline-none"
+                                className="w-28 rounded-sm border border-midnight/20 bg-white px-3 py-2 font-sans text-[15px] text-midnight tabular-nums placeholder:text-charcoal/35 focus:border-midnight focus:outline-none"
                               />
                             </div>
                           </td>

@@ -1,3 +1,4 @@
+import { formatReference } from "../lib/reference.js";
 import type { Booking } from "../services/bookings.js";
 import type { BuiltEmail } from "./booking.js";
 import {
@@ -11,7 +12,10 @@ import {
   formatMoney,
   formatTime,
   panel,
+  priceTextLines,
   shell,
+  taxLinesOnDark,
+  type Priced,
 } from "./render.js";
 
 /**
@@ -34,6 +38,11 @@ export function buildPaymentLinkEmail(
 ): BuiltEmail {
   const fare = formatMoney(booking.quotedTotalCents) ?? "";
   const expires = formatDate(expiresAt.toISOString());
+  const priced: Priced = {
+    totalCents: booking.quotedTotalCents,
+    taxCents: booking.taxCents,
+    taxRate: booking.taxRate,
+  };
 
   const farePanel = `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;border-collapse:collapse;">
@@ -41,6 +50,7 @@ export function buildPaymentLinkEmail(
       <td style="background:${BRAND.midnight};padding:20px 16px;">
         <div style="font-family:${SANS_FONT};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">Amount due</div>
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
+        ${taxLinesOnDark(priced)}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           Paid by card through Stripe. Your card details go to Stripe, never to us.
         </div>
@@ -68,19 +78,19 @@ export function buildPaymentLinkEmail(
     </tr>
   </table>
   <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(44,44,47,0.66);">
-    This link is for booking ${escapeHtml(booking.reference)} only and works until ${escapeHtml(expires)}.
+    This link is for booking ${escapeHtml(formatReference(booking.reference))} only and works until ${escapeHtml(expires)}.
     If the price changes we send a new one.
   </p>`;
 
   const html = shell({
-    preheader: `${booking.reference} · ${fare} · pay securely by card`,
+    preheader: `${formatReference(booking.reference)} · ${fare} · pay securely by card`,
     eyebrow: "Payment",
     headline: "Pay for your booking.",
     intro: `Thank you, ${firstName(booking.customerName)}. Your trip is priced and ready to pay. One tap below takes you to Stripe's secure page.`,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
-      { label: "Reference", value: booking.reference },
+      { label: "Reference", value: formatReference(booking.reference) },
     ],
     body: [farePanel, payButton, panel("The trip", tripRows)].join(""),
     footerNote:
@@ -90,8 +100,8 @@ export function buildPaymentLinkEmail(
   const text = [
     "RSSKYLER LIMO — PAY FOR YOUR BOOKING",
     "",
-    `Reference:  ${booking.reference}`,
-    `Amount:     ${fare}`,
+    `Reference:  ${formatReference(booking.reference)}`,
+    ...priceTextLines(priced, "Amount"),
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     `Pick-up:    ${booking.pickup}`,
@@ -106,5 +116,5 @@ export function buildPaymentLinkEmail(
     `${CONTACT.phone} · ${CONTACT.email}`,
   ].join("\n");
 
-  return { subject: `Pay for your booking — ${booking.reference}`, html, text };
+  return { subject: `Pay for your booking — ${formatReference(booking.reference)}`, html, text };
 }

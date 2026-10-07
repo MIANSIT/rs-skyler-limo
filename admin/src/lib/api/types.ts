@@ -72,7 +72,14 @@ export type Booking = {
   customerEmail: string;
   customerPhone: string;
   notes: string | null;
+  /** What the customer pays, sales tax included. Null until priced. */
   quotedTotalCents: number | null;
+  /** The fare before tax. Null until priced. */
+  fareCents: number | null;
+  /** This booking's own rate, a percentage (8.875). Taken from Settings when made. */
+  taxRate: number;
+  /** The tax inside `quotedTotalCents`. 0 while unpriced. */
+  taxCents: number;
   source: string;
   /** Changed by the customer from /track; cleared when an operator reviews it. */
   customerChangePending: boolean;
@@ -107,8 +114,13 @@ export type Quote = {
   customerEmail: string;
   customerPhone: string;
   details: string;
-  /** The price agreed with the customer, in cents; null until one is set. */
+  /** The price agreed with the customer, sales tax included; null until set. */
   agreedPriceCents: number | null;
+  /** The agreed price before tax; null until set. */
+  priceCents: number | null;
+  /** This request's own rate, a percentage. */
+  taxRate: number;
+  taxCents: number;
   pricedAt: string | null;
   /** Chosen with the agreed price; null until then. */
   paymentMethod: PaymentMethod | null;
@@ -139,6 +151,7 @@ export type AdminUser = {
   role: "owner" | "dispatcher";
 };
 
+/** The counts behind "Today". Mirrors `api/src/services/stats.ts`. */
 export type DashboardStats = {
   bookings: {
     new: number;
@@ -150,7 +163,55 @@ export type DashboardStats = {
     changed: number;
   };
   quotes: { new: number; total: number; changed: number };
-  recentVolume: { date: string; count: number }[];
+};
+
+/**
+ * Orders placed in a period, on New York's calendar. Mirrors `Report` in
+ * `api/src/services/reports.ts`. Money in cents.
+ */
+export type Report = {
+  /** Inclusive New York dates. */
+  range: { from: string; to: string; bucket: "day" | "month" };
+  bookings: { total: number; byStatus: Record<BookingStatus, number> };
+  quotes: { total: number; byStatus: Record<QuoteStatus, number> };
+  value: {
+    /** Confirmed and completed bookings plus won quote requests. */
+    committedCents: number;
+    committedCount: number;
+    /** Marked paid, by Stripe or by an operator. */
+    collectedCents: number;
+    /** Committed but not yet paid. */
+    outstandingCents: number;
+    /** Priced, not yet committed. */
+    pipelineCents: number;
+    /** Live work nobody has priced yet. */
+    unpricedCount: number;
+    averageBookingCents: number | null;
+  };
+  /**
+   * Sales tax to pay the state, counted by **payment date** — the money
+   * received in the period — not by the date orders were placed.
+   */
+  salesTax: {
+    /** The figure to pay: tax inside every payment received in the period. */
+    dueCents: number;
+    /** Those payments before tax. */
+    taxableSalesCents: number;
+    paidOrders: number;
+    /** Tax on committed, unpaid orders placed in the period; owed once paid. */
+    notYetCollectedCents: number;
+  };
+  byTrip: { key: string; count: number; valueCents: number }[];
+  byVehicle: { key: string; count: number; valueCents: number }[];
+  /** Oldest first, every bucket present. `YYYY-MM-DD`, or `YYYY-MM` by month. */
+  series: { key: string; count: number; valueCents: number }[];
+};
+
+/** Mirrors `Settings` in `api/src/services/settings.ts`. */
+export type Settings = {
+  /** Sales tax for new orders, a percentage. Each order keeps its own copy. */
+  taxRate: number;
+  taxRateUpdatedAt: string | null;
 };
 
 export type Paginated<K extends string, T> = {

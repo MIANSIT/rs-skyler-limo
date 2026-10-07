@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@/lib/public/reference";
 
 import Link from "next/link";
 import { useActionState } from "react";
@@ -9,7 +10,9 @@ import { Button, ButtonOnDark } from "@/components/ui/button";
 import { Field, Input, glassCard } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
+import { formatFare } from "@/lib/content";
 import { payBooking, trackBooking, type TrackState } from "@/lib/public/actions";
+import { formatRate } from "@/lib/public/tax";
 
 const statusCopy: Record<string, string> = {
   new: "Received. A reservations agent is looking at it now.",
@@ -60,6 +63,32 @@ function PayButton({ amount }: { amount: string }) {
 }
 
 /**
+ * What a total is made of: the price before tax and the sales tax. Nothing for
+ * an order priced before tax existed, which carries no tax line.
+ */
+function TaxLines({
+  totalCents,
+  taxCents,
+  taxRate,
+  label,
+}: {
+  totalCents: number;
+  taxCents: number;
+  taxRate: number;
+  label: string;
+}) {
+  if (taxCents === 0 && taxRate === 0) return null;
+  return (
+    <dl className="mt-3 grid max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-[14px] text-white/75 tabular-nums">
+      <dt>{label}</dt>
+      <dd className="text-right">{formatFare(totalCents - taxCents)}</dd>
+      <dt>Sales tax ({formatRate(taxRate)})</dt>
+      <dd className="text-right">{formatFare(taxCents)}</dd>
+    </dl>
+  );
+}
+
+/**
  * Sends the customer to Stripe for a priced, unpaid card booking. The API
  * re-checks the reference and phone, so these hidden fields grant nothing the
  * lookup did not.
@@ -76,7 +105,7 @@ function PayForm({ reference, phone, amountCents }: { reference: string; phone: 
         card details never reach us.
       </p>
       <div>
-        <PayButton amount={`$${Math.round(amountCents / 100)}`} />
+        <PayButton amount={formatFare(amountCents)} />
       </div>
       {error ? (
         <p role="alert" className="text-[14px] text-red-300">
@@ -121,7 +150,7 @@ export function TrackForm({
           tone="dark"
           label="Booking reference"
           id="reference"
-          hint="From your confirmation: RS-… for a booking, RQ-… for a quote request."
+          hint="From your confirmation: the number from your confirmation, like #66465."
         >
           <Input
             tone="dark"
@@ -130,7 +159,7 @@ export function TrackForm({
             required
             autoComplete="off"
             spellCheck={false}
-            placeholder="RS-4K2P9WD"
+            placeholder="#66465"
             className="font-mono tracking-[0.08em] uppercase"
             defaultValue={prior("reference")}
             key={`reference:${prior("reference")}`}
@@ -171,7 +200,7 @@ export function TrackForm({
           className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
           <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {state.quote.reference} · Quote request
+            {formatReference(state.quote.reference)} · Quote request
           </p>
           <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {quoteStatusCopy[state.quote.status] ?? "We have your request."}
@@ -182,8 +211,14 @@ export function TrackForm({
                 Your price
               </p>
               <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
-                ${Math.round(state.quote.agreedPriceCents / 100)}
+                {formatFare(state.quote.agreedPriceCents)}
               </p>
+              <TaxLines
+                totalCents={state.quote.agreedPriceCents}
+                taxCents={state.quote.taxCents}
+                taxRate={state.quote.taxRate}
+                label="Price"
+              />
               <p className="mt-3 font-sans text-[15px] text-white/75">
                 {state.quote.paymentStatus === "paid"
                   ? "Paid. Thank you."
@@ -234,7 +269,7 @@ export function TrackForm({
           className={clsx(glassCard, "mt-8 p-6 md:p-8")}
         >
           <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {state.booking.reference}
+            {formatReference(state.booking.reference)}
           </p>
           <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
             {statusCopy[state.booking.status] ?? "We have your booking."}
@@ -248,8 +283,14 @@ export function TrackForm({
                   : "Your quote"}
               </p>
               <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
-                ${Math.round(state.booking.quotedTotalCents / 100)}
+                {formatFare(state.booking.quotedTotalCents)}
               </p>
+              <TaxLines
+                totalCents={state.booking.quotedTotalCents}
+                taxCents={state.booking.taxCents}
+                taxRate={state.booking.taxRate}
+                label="Fare"
+              />
               {state.booking.quoteNote ? (
                 <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-white/75">
                   {state.booking.quoteNote}

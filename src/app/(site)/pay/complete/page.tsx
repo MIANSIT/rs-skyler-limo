@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/public/reference";
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/site/page-header";
@@ -68,7 +69,7 @@ export default async function PaymentCompletePage({
                   Reference
                 </dt>
                 <dd className="font-display mt-1 text-[26px] font-semibold text-midnight tabular-nums">
-                  {result.reference}
+                  {formatReference(result.reference)}
                 </dd>
               </div>
               {paid && result.amountCents !== null ? (

@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/icon";
 import type { FleetVehicle } from "@/lib/api/types";
 import { clsx } from "@/lib/clsx";
+import { formatFare } from "@/lib/content";
+import { formatRate, type Taxed } from "@/lib/public/tax";
 import { type TripType, tripTypes } from "@/lib/public/trip-types";
 
 const tripIcons: Record<TripType, typeof PlaneIcon> = {
@@ -64,7 +66,7 @@ export function TripSummary({
   otherText,
   date,
   time,
-  fixedFare,
+  fare,
 }: {
   trip: TripType;
   vehicle: FleetVehicle | null;
@@ -74,8 +76,8 @@ export function TripSummary({
   otherText: string;
   date: string;
   time: string;
-  /** Whole dollars when the fare is fixed; null when a person prices it. */
-  fixedFare: number | null;
+  /** The fixed fare with its sales tax; null when a person prices the trip. */
+  fare: Taxed | null;
 }) {
   const TripIcon = tripIcons[trip];
   const tripLabel = tripTypes.find((option) => option.value === trip)?.label ?? "";
@@ -163,14 +165,20 @@ export function TripSummary({
       </dl>
 
       <div className="mt-4 rounded-xl bg-midnight/40 px-4 py-4">
-        {fixedFare !== null ? (
+        {fare !== null ? (
           <>
             <p className="font-sans text-[12px] font-medium tracking-[0.08em] text-white/60 uppercase">
               Fixed fare
             </p>
             <p className="font-display mt-1 text-[32px] leading-none font-semibold text-white tabular-nums">
-              ${fixedFare}
+              {formatFare(fare.totalCents)}
             </p>
+            <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-[13px] text-white/70 tabular-nums">
+              <dt>Fare</dt>
+              <dd className="text-right">{formatFare(fare.subtotalCents)}</dd>
+              <dt>Sales tax ({formatRate(fare.taxRate)})</dt>
+              <dd className="text-right">{formatFare(fare.taxCents)}</dd>
+            </dl>
             <p className="mt-2 text-[13px] text-white/60">
               Tolls and gratuity included. Not an estimate.
             </p>

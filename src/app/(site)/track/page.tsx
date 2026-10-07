@@ -32,7 +32,7 @@ export default async function TrackPage({
 }) {
   const raw = (await searchParams).reference;
   const candidate = typeof raw === "string" ? raw.trim().toUpperCase() : "";
-  const initialReference = /^R[SQ]-[0-9A-Z]{7}$/.test(candidate) ? candidate : "";
+  const initialReference = /^(\d{5,6}|R[SQ]-[0-9A-Z]{7})$/.test(candidate) ? candidate : "";
 
   // Vehicle names come from the fleet the operator maintains, not a copy.
   const [fleet, options] = await Promise.all([getFleetSafely(), getBookingOptionsSafely()]);

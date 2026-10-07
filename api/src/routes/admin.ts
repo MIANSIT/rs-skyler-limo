@@ -8,6 +8,7 @@ import {
   listBookingsSchema,
   listQuotesSchema,
   listReviewsSchema,
+  reportSchema,
   saveRatesSchema,
   saveZoneRatesSchema,
   sendQuoteSchema,
@@ -15,6 +16,7 @@ import {
   adminPaymentLinkSchema,
   updateQuoteSchema,
   updateReviewSchema,
+  updateSettingsSchema,
 } from "../schemas.js";
 import {
   getActivity,
@@ -52,6 +54,8 @@ import {
 } from "../services/reviews.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
+import { getReport } from "../services/reports.js";
+import { getSettings, setDefaultTaxRate } from "../services/settings.js";
 import { markChangeReviewed } from "../services/changes.js";
 import { getZoneRateGrid, saveZoneRates } from "../services/zone-rates.js";
 
@@ -67,6 +71,19 @@ function parseId(raw: string | undefined): number {
 
 adminRouter.get("/stats", async (_req, res) => {
   res.json(await getDashboardStats());
+});
+
+adminRouter.get("/reports", async (req, res) => {
+  res.json(await getReport(reportSchema.parse(req.query)));
+});
+
+adminRouter.get("/settings", async (_req, res) => {
+  res.json({ settings: await getSettings() });
+});
+
+adminRouter.put("/settings", async (req, res) => {
+  const { taxRate } = updateSettingsSchema.parse(req.body);
+  res.json({ settings: await setDefaultTaxRate(taxRate, req.admin!.id) });
 });
 
 adminRouter.get("/bookings", async (req, res) => {
@@ -376,8 +393,8 @@ adminRouter.post("/bookings/:id/quote", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) throw ApiError.notFound();
 
-  const { totalCents, note } = sendQuoteSchema.parse(req.body);
-  await sendQuote(id, totalCents, note ?? null, req.admin!.id);
+  const { fareCents, taxRate, note } = sendQuoteSchema.parse(req.body);
+  await sendQuote(id, fareCents, taxRate, note ?? null, req.admin!.id);
 
   const booking = await getBookingById(id);
 

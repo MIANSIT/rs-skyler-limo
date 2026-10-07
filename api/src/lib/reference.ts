@@ -8,18 +8,42 @@ import { randomInt } from "node:crypto";
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 /**
- * `RS-XXXXXXX` for bookings, `RQ-XXXXXXX` for quotes. Seven random characters
- * from a 32-character alphabet is ~35 bits: not guessable by someone poking at
- * /track, which is the only place a reference is accepted from the public.
+ * Bookings are a plain five-digit number, shown as `#66465`; the number is
+ * stored without the `#`. Quote requests are six digits (`#482915`). Bookings made before this change keep their
+ * `RS-XXXXXXX` reference and still resolve.
+ *
+ * Five digits is guessable, so a reference alone never opens anything: /track
+ * also needs the phone number, and payment links carry a signed token.
  */
-export function makeReference(prefix: "RS" | "RQ"): string {
-  let body = "";
-  for (let i = 0; i < 7; i += 1) {
-    body += ALPHABET[randomInt(ALPHABET.length)];
-  }
-  return `${prefix}-${body}`;
+export function makeBookingReference(): string {
+  return String(randomInt(10000, 100000));
+}
+
+export function makeQuoteReference(): string {
+  return String(randomInt(100000, 1000000));
+}
+
+/**
+ * Quote requests are six digits, bookings five, so the two never collide and a
+ * number alone says which table to look in. `RQ-…` is the older quote form.
+ */
+export function isQuoteReference(value: string): boolean {
+  return /^(\d{6}|RQ-.+)$/.test(value);
+}
+
+/**
+ * What a customer typed, reduced to the stored form: `#66465` and ` rs-4k2p9wd `
+ * both work.
+ */
+export function normalizeReference(value: string): string {
+  return value.trim().replace(/^#/, "").toUpperCase();
 }
 
 export function isReference(value: string): boolean {
-  return /^R[SQ]-[0-9A-HJKMNP-TV-Z]{7}$/.test(value);
+  return /^(\d{5,6}|R[SQ]-[0-9A-HJKMNP-TV-Z]{7})$/.test(value);
+}
+
+/** How a reference is shown to a person: `#66465`; older `RS-…` and `RQ-…` as they are. */
+export function formatReference(value: string): string {
+  return /^\d+$/.test(value) ? `#${value}` : value;
 }

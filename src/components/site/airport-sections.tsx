@@ -13,6 +13,7 @@ import {
 } from "@/lib/airport-pages";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { childSeatFee, contact, formatFare } from "@/lib/content";
+import { formatRate } from "@/lib/public/tax";
 import { CtaBand } from "@/components/site/cta-band";
 
 const th =
@@ -120,7 +121,21 @@ export function AirportRateTable({
           })}
         </tbody>
       </table>
+      <TaxNote rate={options.taxRate} />
     </div>
+  );
+}
+
+/**
+ * The rate card is the price before tax — the same number the dashboard
+ * publishes. Said under every table, so the total at booking is no surprise.
+ */
+function TaxNote({ rate }: { rate: number }) {
+  if (!(rate > 0)) return null;
+  return (
+    <p className="mt-4 text-[14px] leading-[1.6] text-charcoal">
+      Fares before sales tax. {formatRate(rate)} New York sales tax is added when you book.
+    </p>
   );
 }
 
@@ -226,6 +241,7 @@ export function AirportRateGrid({
           })}
         </tbody>
       </table>
+      <TaxNote rate={options.taxRate} />
     </div>
   );
 }

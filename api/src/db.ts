@@ -38,7 +38,7 @@ export const pool: Pool = mysql.createPool(options);
  * the server happens to be provisioned.
  *
  * Anything that needs to be true in New York time converts at the edge; see
- * `nyDayBounds` in `services/stats.ts`.
+ * `newYorkMidnight` in `lib/new-york.ts`.
  */
 pool.on("connection", (connection) => {
   connection.query("SET time_zone = '+00:00'");

@@ -7,6 +7,7 @@ import {
   saveAirportRates,
   type PricingFormState,
 } from "@/lib/admin/pricing-actions";
+import { centsToInput } from "@/lib/admin/format";
 import type { RateGrid } from "@/lib/api/types";
 
 function SaveButton() {
@@ -41,7 +42,7 @@ export function RateGridForm({ grid }: { grid: RateGrid }) {
     const rate = grid.rates.find(
       (entry) => entry.airportCode === airportCode && entry.vehicleId === vehicleId,
     );
-    return rate && rate.isActive ? (rate.priceCents / 100).toFixed(0) : "";
+    return rate && rate.isActive ? centsToInput(rate.priceCents) : "";
   };
 
   return (
@@ -114,11 +115,11 @@ export function RateGridForm({ grid }: { grid: RateGrid }) {
                           name={`rate:${airport.code}:${vehicle.id}`}
                           type="number"
                           min={0}
-                          step={1}
-                          inputMode="numeric"
+                          step={0.01}
+                          inputMode="decimal"
                           placeholder="Quote"
                           defaultValue={priceFor(airport.code, vehicle.id)}
-                          className="w-24 rounded-sm border border-midnight/20 bg-white px-3 py-2 font-sans text-[15px] text-midnight tabular-nums placeholder:text-charcoal/35 focus:border-midnight focus:outline-none"
+                          className="w-28 rounded-sm border border-midnight/20 bg-white px-3 py-2 font-sans text-[15px] text-midnight tabular-nums placeholder:text-charcoal/35 focus:border-midnight focus:outline-none"
                         />
                       </div>
                     </td>

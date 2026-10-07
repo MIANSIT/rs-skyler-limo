@@ -7,10 +7,10 @@ import { ArrowRightIcon, UsersIcon } from "@/components/ui/icon";
 import { Rule } from "@/components/ui/section";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
+import { formatFare } from "@/lib/content";
 
-function fareFrom(cents: number): string {
-  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
-}
+/** Exact to the cent: `$95` or `$95.50`, never rounded. */
+const fareFrom = formatFare;
 
 function childSeatLabel(max: number): string {
   if (max === 0) return "No child seats";

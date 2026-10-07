@@ -24,7 +24,7 @@ export default async function PaymentCancelledPage({
   const raw = (await searchParams).reference;
   // Echoed only if it has the shape of one of our references.
   const reference =
-    typeof raw === "string" && /^[A-Z]{2}-[A-Z0-9]{7}$/.test(raw) ? raw : null;
+    typeof raw === "string" && /^(\d{5,6}|[A-Z]{2}-[A-Z0-9]{7})$/.test(raw) ? raw : null;
 
   return (
     <>

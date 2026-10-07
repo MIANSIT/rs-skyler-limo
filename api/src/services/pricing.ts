@@ -1,6 +1,12 @@
 import { execute, query, queryOne, transaction, type RowDataPacket } from "../db.js";
 import { ApiError } from "../lib/http.js";
+import { formatRate, withTax } from "../lib/tax.js";
 import { resolvePlace, type ResolvedPlace } from "./places.js";
+
+/** `$1,234.56`, for the activity history. */
+function dollars(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export type Airport = { code: string; name: string };
 
@@ -154,8 +160,11 @@ export const CHILD_SEAT_FEE_CENTS = 3500;
 
 export type FareDecision = {
   pricingMode: "fixed" | "quote";
-  /** Set only when `fixed`. */
-  totalCents: number | null;
+  /**
+   * Set only when `fixed`: the rate plus child seats, **before sales tax**.
+   * Tax is added where the booking's rate is known — see `lib/tax.ts`.
+   */
+  fareCents: number | null;
   /** Why, in a sentence the customer can be shown. */
   reason: string;
   pickupPlace: ResolvedPlace | null;
@@ -192,7 +201,7 @@ export async function decideFare(input: {
 
   const quote = (reason: string): FareDecision => ({
     pricingMode: "quote",
-    totalCents: null,
+    fareCents: null,
     reason,
     pickupPlace,
     destinationPlace,
@@ -238,22 +247,29 @@ export async function decideFare(input: {
 
   return {
     pricingMode: "fixed",
-    totalCents: rate.price_cents + seats,
-    reason: "Fixed fare. Tolls and gratuity included.",
+    fareCents: rate.price_cents + seats,
+    reason: "Fixed fare. Tolls and gratuity included, plus sales tax.",
     pickupPlace,
     destinationPlace,
   };
 }
 
-/** Sets a price on a quote request and moves it to `quoted`. */
+/**
+ * Sets a price on a quote request and moves it to `quoted`. The operator gives
+ * the fare before tax; the booking's rate (from Settings when it was made,
+ * unless `taxRate` overrides it) is added on top.
+ */
 export async function sendQuote(
   bookingId: number,
-  totalCents: number,
+  fareCents: number,
+  taxRate: number | undefined,
   note: string | null,
   adminUserId: number,
 ): Promise<void> {
-  const booking = await queryOne<RowDataPacket & { pricing_mode: string }>(
-    `SELECT pricing_mode FROM bookings WHERE id = :id LIMIT 1`,
+  const booking = await queryOne<
+    RowDataPacket & { pricing_mode: string; tax_rate: number; payment_status: string }
+  >(
+    `SELECT pricing_mode, tax_rate, payment_status FROM bookings WHERE id = :id LIMIT 1`,
     { id: bookingId },
   );
 
@@ -265,16 +281,35 @@ export async function sendQuote(
     );
   }
 
+  if (booking.payment_status === "paid") {
+    throw ApiError.conflict("This booking is paid, so its price is locked.");
+  }
+
+  const taxed = withTax(fareCents, taxRate ?? Number(booking.tax_rate));
+
   await execute(
     `UPDATE bookings
         SET quoted_total_cents = :totalCents,
+            tax_rate = :taxRate,
+            tax_cents = :taxCents,
             quote_note = :note,
             quoted_at = NOW(),
             quoted_by = :adminUserId,
             status = CASE WHEN status = 'new' THEN 'quoted' ELSE status END
       WHERE id = :id`,
-    { totalCents, note, adminUserId, id: bookingId },
+    {
+      totalCents: taxed.totalCents,
+      taxRate: taxed.taxRate,
+      taxCents: taxed.taxCents,
+      note,
+      adminUserId,
+      id: bookingId,
+    },
   );
+
+  const summary = `${dollars(taxed.subtotalCents)} + ${formatRate(taxed.taxRate)} tax ${dollars(
+    taxed.taxCents,
+  )} = ${dollars(taxed.totalCents)}`;
 
   await execute(
     `INSERT INTO activity_log
@@ -283,9 +318,7 @@ export async function sendQuote(
     {
       id: bookingId,
       adminUserId,
-      note: note
-        ? `$${(totalCents / 100).toFixed(2)} — ${note}`
-        : `$${(totalCents / 100).toFixed(2)}`,
+      note: note ? `${summary} — ${note}` : summary,
     },
   );
 }
