@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -29,7 +30,7 @@ export async function generateMetadata({
   const { id } = await params;
   const result = await getBooking(Number(id));
 
-  return { title: result ? result.booking.reference : "Booking" };
+  return { title: result ? formatReference(result.booking.reference) : "Booking" };
 }
 
 export default async function BookingDetailPage({
@@ -59,7 +60,7 @@ export default async function BookingDetailPage({
 
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <h1 className="font-display text-[34px] leading-none font-semibold text-midnight tabular-nums">
-            {booking.reference}
+            {formatReference(booking.reference)}
           </h1>
           <StatusBadge status={booking.status} />
           {booking.customerChangePending ? <ChangedTag /> : null}
@@ -103,7 +104,7 @@ export default async function BookingDetailPage({
                   href={`/bookings/${clash.id}`}
                   className="font-semibold text-midnight underline underline-offset-4"
                 >
-                  {clash.reference}
+                  {formatReference(clash.reference)}
                 </Link>
                 {" · "}
                 {formatPickup(clash.pickupAt)}

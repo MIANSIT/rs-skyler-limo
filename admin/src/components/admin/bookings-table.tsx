@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import Link from "next/link";
 
 import { ChangedTag } from "@/components/admin/changed-tag";
@@ -72,7 +73,7 @@ export function BookingsTable({
                   href={`/bookings/${booking.id}`}
                   className="font-sans text-[14px] font-semibold text-midnight tabular-nums underline-offset-4 hover:underline"
                 >
-                  {booking.reference}
+                  {formatReference(booking.reference)}
                 </Link>
               </td>
               <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">

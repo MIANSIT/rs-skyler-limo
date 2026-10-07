@@ -1,3 +1,4 @@
+import { formatReference } from "../lib/reference.js";
 import { env } from "../env.js";
 import type { Booking } from "../services/bookings.js";
 import type { Quote } from "../services/quotes.js";
@@ -90,7 +91,7 @@ function bookingCopy(booking: Booking): BookingCopy {
   switch (booking.status) {
     case "confirmed":
       return {
-        subject: `Booking confirmed — ${booking.reference}`,
+        subject: `Booking confirmed — ${formatReference(booking.reference)}`,
         headline: "Your booking is confirmed.",
         intro: `Thank you, ${name}. Your car is booked for ${when}, New York time. The details are below.`,
         after: cardDue
@@ -101,21 +102,21 @@ function bookingCopy(booking: Booking): BookingCopy {
       };
     case "cancelled":
       return {
-        subject: `Booking cancelled — ${booking.reference}`,
+        subject: `Booking cancelled — ${formatReference(booking.reference)}`,
         headline: "Your booking is cancelled.",
         intro: `${name}, your booking for ${when} has been cancelled.`,
         after: `If you did not ask for this, or want to book again, call us on ${CONTACT.phone}. If you paid in advance, we will be in touch about that payment under our terms.`,
       };
     case "completed":
       return {
-        subject: `Thank you for riding with us — ${booking.reference}`,
+        subject: `Thank you for riding with us — ${formatReference(booking.reference)}`,
         headline: "Thank you for riding with us.",
         intro: `${name}, your trip on ${formatDate(booking.pickupAt)} is complete. We hope it went exactly as it should.`,
         after: "If you have a minute, tell us how it went. Every review is read before it is published.",
       };
     default:
       return {
-        subject: `Booking on hold — ${booking.reference}`,
+        subject: `Booking on hold — ${formatReference(booking.reference)}`,
         headline: "Your booking is on hold.",
         intro: `${name}, we need to confirm a detail with you before your booking for ${when} can go ahead.`,
         after: `A reservations agent will be in touch. If it is urgent, call us on ${CONTACT.phone}.`,
@@ -160,14 +161,14 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
     : `${button(trackUrl, "View your booking")}${paragraph(escapeHtml(TRACK_HINT))}`;
 
   const html = shell({
-    preheader: `${booking.reference} · ${copy.headline}`,
+    preheader: `${formatReference(booking.reference)} · ${copy.headline}`,
     eyebrow: "Your booking",
     headline: copy.headline,
     intro: copy.intro,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
-      { label: "Reference", value: booking.reference },
+      { label: "Reference", value: formatReference(booking.reference) },
     ],
     body: [
       panel("The trip", tripRows),
@@ -182,7 +183,7 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
     "",
     copy.intro,
     "",
-    `Reference:  ${booking.reference}`,
+    `Reference:  ${formatReference(booking.reference)}`,
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     `Pick-up:    ${booking.pickup}`,
@@ -221,7 +222,7 @@ function quoteCopy(quote: Quote): BookingCopy {
   switch (quote.status) {
     case "quoted":
       return {
-        subject: `Your price — ${quote.reference}`,
+        subject: `Your price — ${formatReference(quote.reference)}`,
         headline: "We have priced your request.",
         intro:
           quote.agreedPriceCents !== null
@@ -238,21 +239,21 @@ function quoteCopy(quote: Quote): BookingCopy {
       };
     case "won":
       return {
-        subject: `Going ahead — ${quote.reference}`,
+        subject: `Going ahead — ${formatReference(quote.reference)}`,
         headline: "Your request is going ahead.",
         intro: `Thank you, ${name}, for choosing us. We will be in touch with the details.`,
         after: "",
       };
     case "lost":
       return {
-        subject: `Request closed — ${quote.reference}`,
+        subject: `Request closed — ${formatReference(quote.reference)}`,
         headline: "We have closed your request.",
         intro: `${name}, this request is now closed.`,
         after: `If that is not right, or your plans change, call us on ${CONTACT.phone}. We would be glad to help.`,
       };
     default:
       return {
-        subject: `Request on hold — ${quote.reference}`,
+        subject: `Request on hold — ${formatReference(quote.reference)}`,
         headline: "Your request is on hold.",
         intro: `${name}, we need to confirm a detail with you before we can price your request.`,
         after: `A reservations agent will be in touch. If it is urgent, call us on ${CONTACT.phone}.`,
@@ -276,14 +277,14 @@ export function buildQuoteUpdateEmail(
   };
 
   const html = shell({
-    preheader: `${quote.reference} · ${copy.headline}`,
+    preheader: `${formatReference(quote.reference)} · ${copy.headline}`,
     eyebrow: "Your request",
     headline: copy.headline,
     intro: copy.intro,
     headerFacts: [
       { label: "Service", value: service },
       { label: "Event date", value: eventDay },
-      { label: "Reference", value: quote.reference },
+      { label: "Reference", value: formatReference(quote.reference) },
     ],
     body: [
       panel(
@@ -301,7 +302,7 @@ export function buildQuoteUpdateEmail(
         ? [
             button(payUrl, `Pay ${formatMoney(quote.agreedPriceCents) ?? ""} securely`),
             paragraph(
-              `Paid by card through Stripe. This link is for ${escapeHtml(quote.reference)} only and works for 7 days. You can also <a href="${escapeHtml(trackUrl)}" style="color:${BRAND.midnight};font-weight:600;">view your request</a>.`,
+              `Paid by card through Stripe. This link is for ${escapeHtml(formatReference(quote.reference))} only and works for 7 days. You can also <a href="${escapeHtml(trackUrl)}" style="color:${BRAND.midnight};font-weight:600;">view your request</a>.`,
             ),
           ]
         : [button(trackUrl, "View your request"), paragraph(escapeHtml(TRACK_HINT))]),
@@ -314,7 +315,7 @@ export function buildQuoteUpdateEmail(
     "",
     copy.intro,
     "",
-    `Reference:  ${quote.reference}`,
+    `Reference:  ${formatReference(quote.reference)}`,
     `Service:    ${service}`,
     `Event date: ${eventDay}`,
     ...priceTextLines(quotePriced, "Price"),

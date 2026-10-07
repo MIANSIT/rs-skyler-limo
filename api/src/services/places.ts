@@ -154,12 +154,45 @@ export async function autocomplete(
     }));
 }
 
+/**
+ * Places resolved recently, by place id.
+ *
+ * The booking form asks whether a chosen address is inside the city as soon as
+ * it is picked, so the button can say "Book at this fare" or "Request a quote"
+ * truthfully; `decideFare` asks again on submission. Remembering the answer
+ * means the second question costs nothing — one details call per chosen
+ * address, the same as before the form asked. An address does not change
+ * borough, so a stale entry is not a risk; the bound only caps memory.
+ */
+const RESOLVED_TTL_MS = 60 * 60_000;
+const RESOLVED_MAX = 1000;
+const resolved = new Map<string, { place: ResolvedPlace; expires: number }>();
+
 export async function resolvePlace(
   placeId: string,
   sessionToken: string,
 ): Promise<ResolvedPlace | null> {
   if (!placesAvailable()) return null;
 
+  const cached = resolved.get(placeId);
+  if (cached && cached.expires > Date.now()) return cached.place;
+
+  const place = await fetchPlace(placeId, sessionToken);
+
+  resolved.delete(placeId);
+  if (resolved.size >= RESOLVED_MAX) {
+    // Maps iterate in insertion order, so the first key is the oldest.
+    resolved.delete(resolved.keys().next().value!);
+  }
+  resolved.set(placeId, { place, expires: Date.now() + RESOLVED_TTL_MS });
+
+  return place;
+}
+
+async function fetchPlace(
+  placeId: string,
+  sessionToken: string,
+): Promise<ResolvedPlace> {
   const data = await callGoogle<DetailsResponse>(
     `${DETAILS_URL}/${encodeURIComponent(placeId)}?sessionToken=${encodeURIComponent(sessionToken)}`,
     { method: "GET", fieldMask: "id,formattedAddress,addressComponents" },

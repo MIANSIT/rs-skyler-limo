@@ -10,7 +10,7 @@ import {
   type RowDataPacket,
 } from "../db.js";
 import { ApiError } from "../lib/http.js";
-import { makeReference } from "../lib/reference.js";
+import { makeBookingReference, normalizeReference } from "../lib/reference.js";
 import { formatRate, normaliseRate, withTax } from "../lib/tax.js";
 import { getDefaultTaxRate } from "./settings.js";
 import type {
@@ -140,7 +140,7 @@ export async function createBooking(
   // A reference collision is a ~1-in-34-billion event, but a booking lost to
   // one is a customer standing on a kerb, so retry rather than assume.
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const reference = makeReference("RS");
+    const reference = makeBookingReference();
     try {
       const result = await execute(
         `INSERT INTO bookings
@@ -226,7 +226,7 @@ export async function getBookingByReference(
 ): Promise<Booking | null> {
   const row = await queryOne<BookingRow>(
     `SELECT ${SELECT_COLUMNS} FROM bookings WHERE reference = :reference LIMIT 1`,
-    { reference: reference.toUpperCase() },
+    { reference: normalizeReference(reference) },
   );
   return row ? toBooking(row) : null;
 }

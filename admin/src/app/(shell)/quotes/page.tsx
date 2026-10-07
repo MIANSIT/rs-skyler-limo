@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -89,7 +90,7 @@ export default async function QuotesPage({
               >
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <span className="font-sans text-[14px] font-semibold text-midnight tabular-nums">
-                    {quote.reference}
+                    {formatReference(quote.reference)}
                   </span>
                   <StatusBadge status={quote.status} />
                   {quote.customerChangePending ? <ChangedTag /> : null}

@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/public/reference";
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/site/page-header";
@@ -114,7 +115,7 @@ export default async function PayLinkPage({
   return (
     <>
       <PageHeader
-        eyebrow={`Payment · ${booking.reference}`}
+        eyebrow={`Payment · ${formatReference(booking.reference)}`}
         title={
           paid
             ? `This ${booking.kind === "quote" ? "request" : "booking"} is paid`
@@ -136,7 +137,7 @@ export default async function PayLinkPage({
               ? [
                   { label: "Service", value: booking.serviceLabel ?? "" },
                   { label: "Date", value: booking.eventDate ? day(booking.eventDate) : "To be confirmed" },
-                  { label: "Reference", value: booking.reference },
+                  { label: "Reference", value: formatReference(booking.reference) },
                 ]
               : [
                   { label: "Pick-up", value: `${when(booking.pickupAt ?? "")} (New York time)` },

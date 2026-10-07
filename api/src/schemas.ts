@@ -409,6 +409,11 @@ export const placesAutocompleteSchema = z.object({
   session: z.string().trim().min(1).max(120),
 });
 
+export const placesResolveSchema = z.object({
+  placeId: z.string().trim().min(1).max(300),
+  session: z.string().trim().min(1).max(120),
+});
+
 export const loginSchema = z.object({
   email: z.email().max(255),
   password: z.string().min(1).max(200),

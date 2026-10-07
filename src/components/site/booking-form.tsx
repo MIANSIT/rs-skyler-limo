@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@/lib/public/reference";
 
 import Link from "next/link";
 import {
@@ -145,6 +146,13 @@ export function BookingForm({
     "from-airport",
   );
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
+  // Whether the chosen address is inside the five boroughs, as the API
+  // answered for that place id. Keyed by id so an answer for an address the
+  // customer has since replaced is never read for the new one.
+  const [cityCheck, setCityCheck] = useState<{
+    placeId: string;
+    isNewYorkCity: boolean | null;
+  } | null>(null);
   // The address text as typed, for the trip summary only — the fields
   // themselves still submit their own values.
   const [cityText, setCityText] = useState("");
@@ -239,9 +247,37 @@ export function BookingForm({
     );
   }, [trip, airport, selected, options.rates]);
 
-  // Only a resolved Places address establishes "inside the city"; without
-  // Places every airport trip is quoted.
-  const isFixed = Boolean(published) && Boolean(cityPlaceId);
+  // Ask once per chosen address. Without the answer the preview cannot tell a
+  // Manhattan pickup from a Hoboken one, and would offer a fare the server
+  // then turns into a quote on submission.
+  useEffect(() => {
+    if (!cityPlaceId || !sessionToken) return;
+    if (cityCheck?.placeId === cityPlaceId) return;
+
+    const controller = new AbortController();
+    fetch(
+      `/api/places/resolve?placeId=${encodeURIComponent(cityPlaceId)}&session=${encodeURIComponent(sessionToken)}`,
+      { signal: controller.signal },
+    )
+      .then((response) => (response.ok ? response.json() : { isNewYorkCity: null }))
+      .then((data: { isNewYorkCity: boolean | null }) =>
+        setCityCheck({ placeId: cityPlaceId, isNewYorkCity: data.isNewYorkCity }),
+      )
+      .catch(() => {
+        // Aborted, or offline: the preview stays a quote, which is safe.
+      });
+
+    return () => controller.abort();
+  }, [cityPlaceId, sessionToken, cityCheck]);
+
+  // Only an address the API has placed inside the five boroughs is fixed.
+  // Until it answers — or when it cannot — the trip previews as a quote, the
+  // same direction `decideFare` fails in.
+  const cityInNewYork =
+    cityPlaceId !== null && cityCheck?.placeId === cityPlaceId
+      ? cityCheck.isNewYorkCity === true
+      : false;
+  const isFixed = Boolean(published) && cityInNewYork;
 
   const seatFeeCents = seatsInRange * options.childSeatFeeCents;
   // The rate plus child seats, then sales tax on the lot — the same sum the
@@ -344,7 +380,7 @@ export function BookingForm({
             heading,
           )}
         >
-          {state.reference}
+          {formatReference(state.reference)}
         </p>
 
         {state.pricingMode === "fixed" && state.quotedTotalCents !== null ? (

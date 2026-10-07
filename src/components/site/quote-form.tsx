@@ -1,4 +1,5 @@
 "use client";
+import { formatReference } from "@/lib/public/reference";
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -137,7 +138,7 @@ export function QuoteForm({
           you.
         </p>
         <p className="font-display mt-6 text-[30px] leading-none font-semibold text-midnight tabular-nums">
-          {state.reference}
+          {formatReference(state.reference)}
         </p>
         <p className="mt-6 text-[15px] leading-[1.7] text-charcoal">
           Check where it stands any time on the{" "}

@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,7 +13,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const result = await getBooking(Number(id));
-  return { title: result ? `Edit ${result.booking.reference}` : "Edit booking" };
+  return { title: result ? `Edit ${formatReference(result.booking.reference)}` : "Edit booking" };
 }
 
 export default async function EditBookingPage({
@@ -40,7 +41,7 @@ export default async function EditBookingPage({
           href={`/bookings/${booking.id}`}
           className="font-sans text-[14px] text-charcoal/60 underline-offset-4 hover:text-midnight hover:underline"
         >
-          ← {booking.reference}
+          ← {formatReference(booking.reference)}
         </Link>
         <h1 className="font-display mt-4 text-[34px] leading-none font-semibold text-midnight">
           Edit booking

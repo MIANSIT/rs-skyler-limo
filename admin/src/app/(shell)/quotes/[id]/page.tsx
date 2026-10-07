@@ -1,3 +1,4 @@
+import { formatReference } from "@/lib/admin/reference";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,7 +22,7 @@ export async function generateMetadata({
   const { id } = await params;
   const result = await getQuote(Number(id));
 
-  return { title: result ? result.quote.reference : "Quote" };
+  return { title: result ? formatReference(result.quote.reference) : "Quote" };
 }
 
 export default async function QuoteDetailPage({
@@ -51,7 +52,7 @@ export default async function QuoteDetailPage({
 
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <h1 className="font-display text-[34px] leading-none font-semibold text-midnight tabular-nums">
-            {quote.reference}
+            {formatReference(quote.reference)}
           </h1>
           <StatusBadge status={quote.status} />
           {quote.customerChangePending ? <ChangedTag /> : null}
