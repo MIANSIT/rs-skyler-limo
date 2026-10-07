@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+
+import { Analytics } from "@/components/site/analytics";
 import { CookieConsentBanner } from "@/components/site/cookie-consent";
 import { LocalBusinessSchema } from "@/components/site/local-business-schema";
 import { MobileActionBar } from "@/components/site/mobile-action-bar";
@@ -42,6 +45,14 @@ export default function SiteLayout({
       <SiteFooter />
       <MobileActionBar email={supportEmail} />
       <CookieConsentBanner />
+      {/* Renders nothing until a measurement ID is configured *and* the visitor
+          has accepted analytics, so a decline means no request to Google at
+          all — see `src/lib/analytics.ts`. Inside a Suspense boundary because
+          it reads `useSearchParams`, which otherwise opts every page out of
+          static rendering. */}
+      <Suspense fallback={null}>
+        <Analytics />
+      </Suspense>
     </>
   );
 }

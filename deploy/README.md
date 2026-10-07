@@ -250,6 +250,62 @@ The admin app logs a warning on every boot while that flag is set:
 journalctl -u rsskyler-admin | grep COOKIE_INSECURE
 ```
 
+## Analytics
+
+Google Analytics 4, loaded only when **both** are true: `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+is set on the **web** app, and the visitor has accepted analytics in the cookie
+banner. Unset — which is every developer checkout — no analytics code is loaded
+at all, so local traffic never reaches Google.
+
+```bash
+# /srv/rsskyler/app/.env.local, then rebuild: the value is inlined at build time.
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+It is a `NEXT_PUBLIC_` variable, so it is **baked into the bundle at build**,
+not read at runtime. Setting it and restarting is not enough — the site has to
+be rebuilt, which `rsskyler-deploy` does anyway.
+
+Conversions already wired: `phone_click` (any `tel:` link, caught once at the
+document), `booking_submitted` and `quote_submitted` (each fires once per
+reference, not once per repaint). Page views are sent manually on navigation,
+because the App Router never reloads.
+
+Verified in a browser: with an ID configured and consent **declined**, zero
+requests go to Google; with consent given, gtag loads and the events fire.
+
+## Mail authentication
+
+`SPF` is published and correct:
+
+```
+rsskylerlimo.com  TXT  "v=spf1 include:spf.privateemail.com ~all"
+```
+
+**DKIM and DMARC are still missing**, and they are the two that decide whether
+Gmail trusts the mail.
+
+1. **DKIM** — enable it for `rsskylerlimo.com` in the Namecheap Private Email
+   dashboard (Private Email → the domain → DKIM). It generates the selector and
+   the public key; add the TXT record it gives you. The selector is theirs to
+   choose, which is why it cannot be written down here in advance.
+
+2. **DMARC** — add this TXT record, then watch the reports before tightening:
+
+   ```
+   _dmarc.rsskylerlimo.com  TXT  "v=DMARC1; p=none; rua=mailto:support@rsskylerlimo.com; aspf=r; adkim=r"
+   ```
+
+   `p=none` monitors without affecting delivery. Move to `p=quarantine` and
+   then `p=reject` once the reports show your own mail passing.
+
+Check the current state any time:
+
+```bash
+dig +short TXT rsskylerlimo.com | grep spf1
+dig +short TXT _dmarc.rsskylerlimo.com
+```
+
 ## Still outstanding
 
 - **Google Places** — `GOOGLE_MAPS_API_KEY` is unset in `api/.env`. Address

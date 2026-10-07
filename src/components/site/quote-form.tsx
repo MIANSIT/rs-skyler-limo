@@ -12,6 +12,7 @@ import { DateField } from "@/components/ui/date-time-field";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
 import { submitQuote, type QuoteFormState } from "@/lib/public/actions";
+import { useConversion } from "@/lib/use-conversion";
 import {
   pickupProblems,
   shortDay,
@@ -122,6 +123,13 @@ export function QuoteForm({
     state.status === "error"
       ? { defaultValue: state.values[name] ?? "" }
       : undefined;
+
+  // Before the early return: a hook cannot sit behind a branch.
+  useConversion(
+    "quote_submitted",
+    state.status === "success" ? state.reference : null,
+    { service_type: defaultServiceType },
+  );
 
   if (state.status === "success") {
     return (

@@ -27,6 +27,7 @@ import {
   Textarea,
 } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
+import { useConversion } from "@/lib/use-conversion";
 import type { BookingOptions, FleetVehicle } from "@/lib/api/types";
 import { submitBooking, type BookingFormState } from "@/lib/public/actions";
 import {
@@ -375,6 +376,14 @@ export function BookingForm({
     : "bg-white shadow-[0_24px_60px_-24px_rgba(11,33,66,0.45)]";
   const heading = dark ? "text-white" : "text-midnight";
   const body = dark ? "text-white/75" : "text-charcoal";
+
+  // Called before the early return below: a hook cannot sit behind a branch.
+  // A no-op unless analytics is configured and the visitor accepted it.
+  useConversion(
+    "booking_submitted",
+    state.status === "success" ? state.reference : null,
+    { pricing_mode: state.status === "success" ? state.pricingMode : "" },
+  );
 
   if (state.status === "success") {
     return (
