@@ -134,7 +134,12 @@ export async function autocomplete(
       locationBias: {
         circle: {
           center: { latitude: 40.7128, longitude: -74.006 },
-          radius: 80_000,
+          // 50km is Google's hard ceiling — it rejects the whole request with
+          // INVALID_ARGUMENT above it, which is how this went unnoticed until
+          // an API key was finally configured and every lookup 400'd. From
+          // Manhattan this still reaches Westchester, Newark and JFK; the bias
+          // only ranks results, so an address outside it is still findable.
+          radius: 50_000,
         },
       },
       includedRegionCodes: ["us"],
