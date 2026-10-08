@@ -14,6 +14,7 @@ import { weddingPackages } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/weddings" },
   title: "Weddings & Events",
   description:
     "Classic, Signature and Bespoke wedding packages. Coordinated multi-vehicle logistics for a day that cannot slip.",

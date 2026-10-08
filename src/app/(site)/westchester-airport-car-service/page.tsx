@@ -8,6 +8,7 @@ import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 const page = airportPage("HPN");
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/westchester-airport-car-service" },
   title: page.metaTitle,
   description: page.metaDescription,
 };

@@ -8,6 +8,7 @@ import { Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/quote" },
   title: "Get a Quote",
   description:
     "Tell us about the trip and a reservations agent comes back with a price. Corporate travel, weddings, events and hourly charters across New York City.",

@@ -15,6 +15,7 @@ import { weddingPackages } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/services" },
   title: "Services",
   description:
     "Airport transfers, point-to-point rides, hourly charters, corporate accounts, events and weddings across New York City — what each one is and how it is priced.",

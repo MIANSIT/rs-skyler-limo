@@ -10,6 +10,7 @@ import { values } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about" },
   title: "About",
   description:
     "RSSkyler Limo is a New York City chauffeur service: published airport fares, plain terms, licensed and background-checked chauffeurs, across all five boroughs.",

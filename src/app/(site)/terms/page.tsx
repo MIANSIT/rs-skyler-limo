@@ -12,6 +12,7 @@ import {
 } from "@/lib/content";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/terms" },
   title: "Terms & Conditions",
   description:
     "Cancellation window, complimentary wait time, and how a final fare is calculated after your trip. Written plainly, before you book.",

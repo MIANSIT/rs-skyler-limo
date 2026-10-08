@@ -10,6 +10,7 @@ import { contact, formatFare } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/fleet" },
   title: "Fleet",
   description:
     "Every vehicle class with real passenger and luggage capacities, child-seat availability and starting fares. Stated plainly, before you book.",

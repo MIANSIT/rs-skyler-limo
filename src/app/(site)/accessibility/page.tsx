@@ -7,6 +7,7 @@ import { Container, Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/accessibility" },
   title: "Accessibility",
   description:
     "Our commitment to a site that works with a keyboard, a screen reader or low vision, what we have actually built toward that, and how to tell us where it falls short.",

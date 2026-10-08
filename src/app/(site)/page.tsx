@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
 import { CountUp } from "@/components/motion/count-up";
 import { Reveal } from "@/components/motion/reveal";
+import { Achievement } from "@/components/site/achievement";
 import { BoroughMarquee } from "@/components/site/borough-marquee";
 import { FleetCard } from "@/components/site/fleet-card";
 import { Hero } from "@/components/site/hero";
@@ -35,6 +37,11 @@ import {
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { getHeroMediaSafely } from "@/lib/public/hero-media";
 import { getReviewsSafely } from "@/lib/public/reviews";
+
+/** Title and description come from the root layout; the page only adds its canonical. */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 type HomeTone = "deep" | "dark";
 
@@ -115,6 +122,12 @@ export default async function HomePage() {
     {
       key: "services",
       render: (tone) => <ServicesShowcase fleet={fleet} tone={tone} />,
+    },
+
+    /* ---- Achievement: what we offer, then the proof behind it ---- */
+    {
+      key: "achievement",
+      render: (tone) => <Achievement tone={tone} />,
     },
 
     /* ---- Booking/Quote: how it works, then checking on it afterwards ---- */
