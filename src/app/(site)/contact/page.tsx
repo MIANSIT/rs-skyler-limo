@@ -8,6 +8,7 @@ import { Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/contact" },
   title: "Contact",
   description:
     "Call, email or send the details of your trip. RSSkyler Limo serves all five boroughs of New York City.",

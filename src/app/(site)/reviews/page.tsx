@@ -10,6 +10,7 @@ import { getReviewsSafely } from "@/lib/public/reviews";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/reviews" },
   title: "Reviews",
   description:
     "Reviews from RSSkyler Limo customers, each tied to a completed trip and read before it is published.",

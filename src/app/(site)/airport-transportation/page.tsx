@@ -13,6 +13,7 @@ import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/airport-transportation" },
   title: "Airport Transportation",
   description:
     "Fixed-fare car service between the five boroughs and JFK, LaGuardia, Newark, Teterboro and Westchester. Every fare published before you book, tolls and gratuity included.",

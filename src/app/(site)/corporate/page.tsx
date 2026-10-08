@@ -9,6 +9,7 @@ import { corporateFeatures } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/corporate" },
   title: "Corporate Accounts",
   description:
     "Monthly invoicing, fixed airport fares and a single point of contact for company travel programmes across New York City.",

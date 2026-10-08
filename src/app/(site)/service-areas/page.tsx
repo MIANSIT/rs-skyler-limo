@@ -11,6 +11,7 @@ import { serviceAreas } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/service-areas" },
   title: "Service Areas",
   description:
     "Chauffeured car service across Manhattan, Brooklyn, Queens, the Bronx and Staten Island, with fixed airport fares from every borough. Trips beyond the city are quoted.",

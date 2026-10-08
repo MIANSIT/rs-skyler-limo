@@ -9,6 +9,7 @@ import { faqs } from "@/lib/content";
 import { CtaBand } from "@/components/site/cta-band";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/faq" },
   title: "FAQ",
   description:
     "Fares, tolls, cancellation, waiting time, child seats and each New York airport — answered plainly, and matching our terms.",

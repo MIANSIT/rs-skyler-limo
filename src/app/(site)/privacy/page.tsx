@@ -8,6 +8,7 @@ import { Container, Section, SectionHeading } from "@/components/ui/section";
 import { contact } from "@/lib/content";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy Policy",
   description:
     "What RSSkyler Limo collects when you book or request a quote, why we hold it, how long we keep it, and how to have it removed.",

@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { InstagramIcon, TikTokIcon } from "@/components/ui/icon";
 import { LogoMark } from "@/components/brand/logo-mark";
-import { Wordmark } from "@/components/brand/wordmark";
 import { CookiePreferencesLink } from "@/components/site/cookie-consent";
 import { airportPages } from "@/lib/airport-pages";
 import { boroughs, contact, services, social } from "@/lib/content";
@@ -29,9 +28,6 @@ export async function SiteFooter() {
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-1">
             <LogoMark className="h-14" />
-            <div className="mt-5">
-              <Wordmark tone="dark" size="md" />
-            </div>
             <p className="font-display mt-4 text-[17px] text-white/70 italic">
               Arrive in Style
             </p>

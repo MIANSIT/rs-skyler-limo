@@ -8,6 +8,7 @@ import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 import { tripTypes } from "@/lib/public/trip-types";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/book" },
   title: "Book a Car",
   description:
     "Airport transfers, point-to-point rides and hourly charters across New York City. Fixed fares within New York City, published before you book.",

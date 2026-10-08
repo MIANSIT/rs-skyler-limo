@@ -8,6 +8,7 @@ import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
 const page = airportPage("LGA");
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/laguardia-airport-car-service" },
   title: page.metaTitle,
   description: page.metaDescription,
 };

@@ -144,7 +144,7 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
             )}
             {!vehicle.primaryPhoto ? (
               <Image
-                src="/rsskyler-mark.png"
+                src="/rs_logo.png"
                 alt=""
                 fill
                 sizes="176px"
