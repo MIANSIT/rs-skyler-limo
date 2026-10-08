@@ -1,4 +1,4 @@
-import { boroughs, contact, services } from "@/lib/content";
+import { boroughs, contact, services, social } from "@/lib/content";
 import { getReviewsSafely } from "@/lib/public/reviews";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
@@ -71,6 +71,18 @@ export async function LocalBusinessSchema() {
   // `sameAs` is simply omitted until the next revalidation picks it up.
   const { googleProfileUrl } = await getReviewsSafely();
 
+  /**
+   * Every other place this business exists: its social profiles, and its
+   * Google listing once a Place ID is configured. `sameAs` is what tells a
+   * search engine these are one entity rather than several that share a name.
+   *
+   * Spread conditionally rather than set to null — see the note below: an
+   * absent property asserts nothing, while `"sameAs": null` asserts that the
+   * business is the same as nothing.
+   */
+  const sameAs: string[] = social.map((profile) => profile.href);
+  if (googleProfileUrl) sameAs.push(googleProfileUrl);
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "LimousineService",
@@ -104,7 +116,7 @@ export async function LocalBusinessSchema() {
      * assertion that the business is the same as nothing, and a validator is
      * entitled to complain; an absent property asserts nothing at all.
      */
-    ...(googleProfileUrl ? { sameAs: [googleProfileUrl] } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
     // The one service area the business has confirmed, as five places rather
     // than one sentence, so it is machine-readable at the borough level.
     areaServed: boroughs.map((borough) => ({
