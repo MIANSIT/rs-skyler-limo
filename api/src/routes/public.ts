@@ -66,6 +66,7 @@ import {
   createCheckout,
   createQuoteCheckout,
   recordCheckout,
+  stripeAvailable,
 } from "../services/payments.js";
 import { checkPaymentLink } from "../lib/payment-link.js";
 import { getVehicleBySlug } from "../services/vehicles.js";
@@ -148,6 +149,15 @@ publicRouter.get("/booking-options", async (_req, res) => {
     airports: await listActiveAirports(),
     rates: await getPublicRates(),
     placesEnabled: placesAvailable(),
+    /**
+     * Whether "pay by card" can be offered at all.
+     *
+     * The form used to show Card (Stripe) unconditionally, so with no Stripe
+     * key configured a customer could pick a payment method that did not
+     * exist: the booking saved as `card`, `canPayOnline` was false, and no
+     * payment link was ever issued. The option is now driven by the server.
+     */
+    cardPaymentsEnabled: stripeAvailable(),
     childSeatFeeCents: CHILD_SEAT_FEE_CENTS,
     /** Sales tax the preview adds to a fixed fare. The server adds it again on submit. */
     taxRate: await getDefaultTaxRate(),
@@ -208,6 +218,23 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     destinationPlaceId: input.destinationPlaceId,
     sessionToken: input.placesSessionToken ?? randomUUID(),
   });
+
+  /**
+   * A card booking cannot be accepted when there is no Stripe key.
+   *
+   * The form no longer offers the option, so this only catches a tab opened
+   * before the key was removed, or a crafted request. Rejecting is kinder than
+   * the alternatives: saving it as `card` leaves a customer waiting for a
+   * payment link that never comes, and silently switching them to cash could
+   * put someone in a car with no way to pay.
+   */
+  if (input.paymentMethod === "card" && !stripeAvailable()) {
+    throw new ApiError(
+      503,
+      "card_payments_unavailable",
+      "Card payment is unavailable right now. Choose cash on delivery, or call us.",
+    );
+  }
 
   const booking = await createBooking(input, "website", fare);
 

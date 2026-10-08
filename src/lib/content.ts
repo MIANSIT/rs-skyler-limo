@@ -45,6 +45,34 @@ export const contact = {
  * Weddings & Events, which the Services page, the homepage and the footer all
  * link to — eight labels do not fit the bar at 1280.
  */
+/**
+ * The business's own social profiles.
+ *
+ * The URLs are the canonical profile addresses, with the share parameters
+ * stripped. The links as they arrive from the apps' Share buttons carry
+ * `stkn` and `_t` — per-session share tokens tied to whoever tapped Share —
+ * and `utm_source=qr`, which attributes every visitor to a QR code nobody
+ * scanned. Publishing a token on a public page shares one person's session
+ * with the internet, and the campaign tag would corrupt the analytics that
+ * now exist. A profile URL needs none of it.
+ *
+ * Add a network only once the account exists and someone posts to it: the
+ * brief is explicit that only genuine accounts are linked, and a dead profile
+ * costs more trust than an absent one. These also feed `sameAs` in the
+ * structured data, which is how a search engine learns the site and the
+ * profiles are the same business.
+ */
+export const social = [
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/rsskylerlimo/",
+  },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@rsskylerlimo",
+  },
+] as const;
+
 export const nav = [
   { href: "/services", label: "Services" },
   { href: "/airport-transportation", label: "Airports" },

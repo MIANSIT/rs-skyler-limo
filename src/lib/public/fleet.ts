@@ -67,6 +67,10 @@ export async function getBookingOptionsSafely(): Promise<BookingOptions> {
       airports: [],
       rates: [],
       placesEnabled: false,
+      // Conservative: with the API unreachable we cannot know whether Stripe is
+      // configured, and offering a card option that may not work is worse than
+      // offering only cash.
+      cardPaymentsEnabled: false,
       childSeatFeeCents: 3500,
       // With no rates nothing is fixed, so this is never shown; it only keeps
       // the shape. The API's own default is 8.875 (services/settings.ts).
