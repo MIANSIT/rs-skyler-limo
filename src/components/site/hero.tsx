@@ -9,7 +9,6 @@ import { BookingSheet } from "@/components/site/booking-sheet";
 import { HeroBookingCard } from "@/components/site/hero-booking-card";
 import type { FleetVehicle, HeroMediaItem } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
-import { bookingAirports } from "@/lib/content";
 
 /**
  * The hero's background slides, when the dashboard has uploaded any.
@@ -195,7 +194,10 @@ export function Hero({
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
         <div className="grid items-end gap-14 lg:min-h-140 lg:grid-cols-12 lg:gap-8">
-          <div className="lg:col-span-7">
+          {/* The bottom padding is the room the three counters used to take
+              (about 9rem). They are gone; the space is kept so the text still
+              sits where it did against the booking card. */}
+          <div className="pb-36 lg:col-span-7">
             <p
               data-hero-eyebrow
               className="font-sans text-[13px] font-medium tracking-[0.16em] text-gold uppercase"
@@ -226,24 +228,6 @@ export function Hero({
             >
               Airport Transfers &bull; Corporate Travel &bull; Special Events
             </p>
-
-            <dl className="mt-14 grid max-w-md grid-cols-[repeat(3,auto)] justify-between gap-4 border-t sm:gap-6 border-white/15 pt-8">
-              {/* The airport count said 3 while the booking form has offered
-                  5 since Teterboro and Westchester were added, and "24/7
-                  Dispatch" was a staffing claim nothing here backs up.
-
-                  The fleet count is omitted rather than shown as zero when the
-                  API is unreachable: "0 Vehicle classes" reads as a company
-                  with no cars, which is worse than one fewer figure. */}
-              <HeroStat value="5" label="Boroughs" />
-              <HeroStat value={String(bookingAirports.length)} label="Airports" />
-              {fleet.length > 0 ? (
-                <HeroStat
-                  value={String(fleet.length)}
-                  label={fleet.length === 1 ? "Vehicle class" : "Vehicle classes"}
-                />
-              ) : null}
-            </dl>
           </div>
 
           {/*
@@ -274,21 +258,5 @@ export function Hero({
       </div>
       <BookingSheet fleet={fleet} />
     </section>
-  );
-}
-
-function HeroStat({ value, label }: { value: string; label: string }) {
-  return (
-    // The label is the <dt> and comes first in the DOM, as a definition list
-    // requires; `order-first` keeps the number above it on screen, top-aligned
-    // with its neighbours even when a label wraps to two lines on a phone.
-    <div data-hero-stat className="flex flex-col">
-      <dt className="mt-2 font-sans text-[12px] tracking-widest text-white/55 uppercase sm:text-[13px] sm:whitespace-nowrap">
-        {label}
-      </dt>
-      <dd className="font-display order-first text-[28px] leading-none font-semibold text-white tabular-nums">
-        {value}
-      </dd>
-    </div>
   );
 }
