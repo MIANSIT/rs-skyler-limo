@@ -245,6 +245,14 @@ export type VehiclePhoto = {
   displayOrder: number;
 };
 
+/** The wording on the homepage hero. A blank field means "use the default". */
+export type HeroText = {
+  eyebrow: string;
+  headline: string;
+  lineOne: string;
+  lineTwo: string;
+};
+
 /** A slide in the homepage hero's background media. */
 export type HeroMediaItem = {
   id: number;

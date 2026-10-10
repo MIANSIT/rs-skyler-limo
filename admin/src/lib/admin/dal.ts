@@ -13,6 +13,7 @@ import type {
   DashboardStats,
   FleetMeta,
   HeroMediaItem,
+  HeroText,
   Paginated,
   PossibleClash,
   Quote,
@@ -160,6 +161,12 @@ export async function getQuote(
 /* -------------------------------------------------------------------------- */
 /* Fleet                                                                      */
 /* -------------------------------------------------------------------------- */
+
+export async function getHeroText(): Promise<HeroText> {
+  const { token } = await verifySession();
+  const { text } = await apiFetch<{ text: HeroText }>("/api/admin/hero/text", { token });
+  return text;
+}
 
 export async function getHeroMedia(): Promise<HeroMediaItem[]> {
   const { token } = await verifySession();

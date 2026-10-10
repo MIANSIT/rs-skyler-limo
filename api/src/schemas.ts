@@ -497,6 +497,14 @@ export const heroMediaMetaSchema = z.object({
   altText: trimmed(255),
 });
 
+/** Empty is allowed: a blank field puts that line back to its default. */
+export const heroTextSchema = z.object({
+  eyebrow: z.string().trim().max(80),
+  headline: z.string().trim().max(60),
+  lineOne: z.string().trim().max(200),
+  lineTwo: z.string().trim().max(200),
+});
+
 export const heroMediaUpdateSchema = z
   .object({
     altText: trimmed(255).optional(),

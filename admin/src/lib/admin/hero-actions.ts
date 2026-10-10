@@ -39,6 +39,30 @@ function encodeHeader(value: string): string {
   return encodeURIComponent(value);
 }
 
+/** Saves the hero's headline and the two lines beneath it. Blank = default. */
+export async function saveHeroText(
+  _previous: HeroFormState,
+  formData: FormData,
+): Promise<HeroFormState> {
+  const { token } = await verifySession();
+
+  const body = {
+    eyebrow: String(formData.get("eyebrow") ?? "").trim(),
+    headline: String(formData.get("headline") ?? "").trim(),
+    lineOne: String(formData.get("lineOne") ?? "").trim(),
+    lineTwo: String(formData.get("lineTwo") ?? "").trim(),
+  };
+
+  try {
+    await apiFetch("/api/admin/hero/text", { method: "PUT", token, body });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  await afterWrite();
+  return { status: "saved", message: "Saved. The homepage updates within seconds." };
+}
+
 export async function uploadHeroMedia(
   _previous: HeroFormState,
   formData: FormData,

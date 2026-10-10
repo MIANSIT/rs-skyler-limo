@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { MaskedWords } from "@/components/motion/masked-words";
 import { BookingSheet } from "@/components/site/booking-sheet";
 import { HeroBookingCard } from "@/components/site/hero-booking-card";
-import type { FleetVehicle, HeroMediaItem } from "@/lib/api/types";
+import type { FleetVehicle, HeroMediaItem, HeroText } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
 
 /**
@@ -104,9 +104,11 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
 export function Hero({
   fleet,
   media,
+  text,
 }: {
   fleet: FleetVehicle[];
   media: HeroMediaItem[];
+  text: HeroText;
 }) {
   const scope = useRef<HTMLElement>(null);
 
@@ -202,11 +204,11 @@ export function Hero({
               data-hero-eyebrow
               className="font-sans text-[13px] font-medium tracking-[0.16em] text-gold uppercase"
             >
-              Premium chauffeur service · New York City
+              {text.eyebrow}
             </p>
 
             <h1 className="font-display mt-6 text-[44px] leading-[1.05] font-semibold text-white sm:text-[56px] lg:text-[64px]">
-              <MaskedWords text="Arrive in Style" />
+              <MaskedWords text={text.headline} />
             </h1>
 
             <div
@@ -219,14 +221,13 @@ export function Hero({
               data-hero-copy
               className="mt-8 max-w-lg text-[17px] leading-[1.7] text-white/75"
             >
-              Luxury chauffeur service throughout New York City, Westchester,
-              New Jersey &amp; Connecticut.
+              {text.lineOne}
             </p>
             <p
               data-hero-copy
               className="mt-3 max-w-lg text-[17px] leading-[1.7] text-white/75"
             >
-              Airport Transfers &bull; Corporate Travel &bull; Special Events
+              {text.lineTwo}
             </p>
           </div>
 

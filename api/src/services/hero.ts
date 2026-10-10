@@ -14,7 +14,66 @@ import { ApiError } from "../lib/http.js";
 import { deleteStoredImage, type StoredFile } from "../lib/uploads.js";
 import type { heroMediaUpdateSchema } from "../schemas.js";
 
-type HeroMediaRow = RowDataPacket & {
+export type HeroText = {
+  eyebrow: string;
+  headline: string;
+  lineOne: string;
+  lineTwo: string;
+};
+
+/** What the hero says until an operator saves something else. */
+export const DEFAULT_HERO_TEXT: HeroText = {
+  eyebrow: "Premium chauffeur service · New York City",
+  headline: "Arrive in Style",
+  lineOne:
+    "Luxury chauffeur service throughout New York City, Westchester, New Jersey & Connecticut.",
+  lineTwo: "Airport Transfers • Corporate Travel • Special Events",
+};
+
+const HERO_TEXT_KEYS: Record<keyof HeroText, string> = {
+  eyebrow: "hero_eyebrow",
+  headline: "hero_headline",
+  lineOne: "hero_line_one",
+  lineTwo: "hero_line_two",
+};
+
+/** Saved wording per field; a field never saved (or saved blank) is the default. */
+export async function getHeroText(): Promise<HeroText> {
+  const rows = await query<RowDataPacket & { name: string; value: string }>(
+    `SELECT name, value FROM settings WHERE name LIKE 'hero\\_%'`,
+  );
+  const saved = new Map(rows.map((row) => [row.name, row.value.trim()]));
+
+  const pick = (field: keyof HeroText) =>
+    saved.get(HERO_TEXT_KEYS[field]) || DEFAULT_HERO_TEXT[field];
+
+  return {
+    eyebrow: pick("eyebrow"),
+    headline: pick("headline"),
+    lineOne: pick("lineOne"),
+    lineTwo: pick("lineTwo"),
+  };
+}
+
+export async function setHeroText(
+  text: HeroText,
+  adminUserId: number,
+): Promise<HeroText> {
+  await transaction(async (connection) => {
+    for (const field of Object.keys(HERO_TEXT_KEYS) as (keyof HeroText)[]) {
+      await executeOn(
+        connection,
+        `INSERT INTO settings (name, value, updated_by)
+         VALUES (:name, :value, :adminUserId)
+         ON DUPLICATE KEY UPDATE value = VALUES(value), updated_by = VALUES(updated_by)`,
+        { name: HERO_TEXT_KEYS[field], value: text[field], adminUserId },
+      );
+    }
+  });
+  return getHeroText();
+}
+
+type HeroMediaRow =RowDataPacket & {
   id: number;
   kind: "image" | "video";
   file_path: string;

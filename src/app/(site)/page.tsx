@@ -35,7 +35,7 @@ import {
   values,
 } from "@/lib/content";
 import { getBookingOptionsSafely, getFleetSafely } from "@/lib/public/fleet";
-import { getHeroMediaSafely } from "@/lib/public/hero-media";
+import { getHeroContentSafely } from "@/lib/public/hero-media";
 import { getReviewsSafely } from "@/lib/public/reviews";
 
 /** Title and description come from the root layout; the page only adds its canonical. */
@@ -60,10 +60,10 @@ type HomeTone = "deep" | "dark";
  */
 export default async function HomePage() {
   // One fetch, shared by the booking card and the fleet strip below.
-  const [fleet, bookingOptions, heroMedia, reviewsData] = await Promise.all([
+  const [fleet, bookingOptions, heroContent, reviewsData] = await Promise.all([
     getFleetSafely(),
     getBookingOptionsSafely(),
-    getHeroMediaSafely(),
+    getHeroContentSafely(),
     getReviewsSafely(),
   ]);
 
@@ -297,7 +297,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero fleet={fleet} media={heroMedia} />
+      <Hero fleet={fleet} media={heroContent.media} text={heroContent.text} />
       <BoroughMarquee />
 
       {/* The hero and borough strip are midnight, so the first section takes

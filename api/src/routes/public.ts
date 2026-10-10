@@ -33,7 +33,7 @@ import {
   listApprovedReviews,
 } from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
-import { listActiveHeroMedia } from "../services/hero.js";
+import { getHeroText, listActiveHeroMedia } from "../services/hero.js";
 import {
   CHILD_SEAT_FEE_CENTS,
   decideFare,
@@ -125,9 +125,10 @@ publicRouter.get("/fleet", async (_req, res) => {
  * hero falls back to its plain midnight background in that case.
  */
 publicRouter.get("/hero", async (_req, res) => {
-  const media = await listActiveHeroMedia();
+  const [media, text] = await Promise.all([listActiveHeroMedia(), getHeroText()]);
 
   res.json({
+    text,
     media: media.map((item) => ({
       id: item.id,
       kind: item.kind,

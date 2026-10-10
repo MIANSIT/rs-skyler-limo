@@ -174,6 +174,14 @@ export type ProposedFare = {
 /* Fleet                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/** The wording on the homepage hero, as `/api/hero` exposes it. */
+export type HeroText = {
+  eyebrow: string;
+  headline: string;
+  lineOne: string;
+  lineTwo: string;
+};
+
 /** The homepage hero's background media, as `/api/hero` exposes it. */
 export type HeroMediaItem = {
   id: number;

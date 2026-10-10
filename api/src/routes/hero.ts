@@ -4,10 +4,17 @@ import express from "express";
 import { ApiError } from "../lib/http.js";
 import { storeImage, storeVideo } from "../lib/uploads.js";
 import { requireAdmin } from "../middleware.js";
-import { heroMediaMetaSchema, heroMediaUpdateSchema, reorderSchema } from "../schemas.js";
+import {
+  heroMediaMetaSchema,
+  heroMediaUpdateSchema,
+  heroTextSchema,
+  reorderSchema,
+} from "../schemas.js";
 import {
   addHeroMedia,
   deleteHeroMedia,
+  getHeroText,
+  setHeroText,
   listHeroMedia,
   replaceHeroMediaFile,
   reorderHeroMedia,
@@ -46,6 +53,15 @@ const rawMedia = express.raw({
 
 adminHeroRouter.get("/", async (_req, res) => {
   res.json({ media: await listHeroMedia() });
+});
+
+adminHeroRouter.get("/text", async (_req, res) => {
+  res.json({ text: await getHeroText() });
+});
+
+adminHeroRouter.put("/text", async (req, res) => {
+  const text = heroTextSchema.parse(req.body);
+  res.json({ text: await setHeroText(text, req.admin!.id) });
 });
 
 adminHeroRouter.post("/", rawMedia, async (req, res) => {
