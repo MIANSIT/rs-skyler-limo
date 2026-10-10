@@ -190,11 +190,13 @@ export function Hero({
       />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="grid items-end gap-14 lg:min-h-140 lg:grid-cols-12 lg:gap-8">
+        <div className="grid items-end gap-14 lg:min-h-140 lg:grid-cols-12 lg:items-center lg:gap-8">
           {/* The bottom padding is the room the three counters used to take
-              (about 9rem). They are gone; the space is kept so the text still
-              sits where it did against the booking card. */}
-          <div className="pb-36 lg:col-span-7">
+              (about 9rem). They are gone; on `lg` the two columns are centred
+              on each other instead, so the text and the booking card share a
+              midline. Below `lg` the padding stays, keeping the mobile hero
+              as it was. */}
+          <div className="pb-36 lg:col-span-7 lg:pb-0">
             <p
               data-hero-eyebrow
               className="font-sans text-[13px] font-medium tracking-[0.16em] text-gold uppercase"
