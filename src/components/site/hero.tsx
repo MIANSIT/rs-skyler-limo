@@ -151,11 +151,6 @@ export function Hero({
               "[data-hero-card]",
               { autoAlpha: 0, y: 40, duration: duration.slow },
               "-=0.8",
-            )
-            .from(
-              "[data-hero-stat]",
-              { autoAlpha: 0, y: 14, stagger: 0.08, duration: duration.fast },
-              "-=0.7",
             );
 
           /* A slow drift on the gold wash, so a long-dwelling hero is never
