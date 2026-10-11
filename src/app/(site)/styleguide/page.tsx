@@ -266,7 +266,7 @@ export default function StyleguidePage() {
           </p>
           <p className="border-l-2 border-red-700 bg-red-700/5 px-4 py-3 text-[15px] text-red-800">
             We could not find that booking reference. Check the confirmation
-            email, or call dispatch.
+            email, or email us.
           </p>
         </div>
       </Section>

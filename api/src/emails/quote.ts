@@ -99,9 +99,9 @@ export function buildQuoteRequestEmail(
     ? ""
     : `
   <p style="margin:0 0 24px 0;font-family:${SANS_FONT};font-size:15px;line-height:1.7;color:${BRAND.charcoal};">
-    A reservations agent will reply by phone or email, usually the same day.
-    If the date is close, call us on
-    <a href="tel:${CONTACT.phoneHref}" style="color:${BRAND.midnight};font-weight:600;">${escapeHtml(CONTACT.phone)}</a>.
+    A reservations agent will reply by email, usually the same day.
+    If the date is close, email us at
+    <a href="mailto:${escapeHtml(CONTACT.email)}" style="color:${BRAND.midnight};font-weight:600;">${escapeHtml(CONTACT.email)}</a>.
     Nothing is reserved or charged until you agree the price.
   </p>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px 0;">
@@ -146,7 +146,7 @@ export function buildQuoteRequestEmail(
     body,
     footerNote: isOps
       ? "Open the dashboard, Quotes, to reply and update the status."
-      : "Need to add something? Reply to this email or call us. A person will always answer faster than a form.",
+      : "Need to add something? Reply to this email. A person will always answer faster than a form.",
   });
 
   const subject = isOps
@@ -179,7 +179,7 @@ export function buildQuoteRequestEmail(
   if (!isOps) {
     lines.push(
       "",
-      "A reservations agent will reply by phone or email, usually the same day.",
+      "A reservations agent will reply by email, usually the same day.",
       "Nothing is reserved or charged until you agree the price.",
       "",
       `Track this request: ${trackUrl(quote.reference)}`,
@@ -190,7 +190,7 @@ export function buildQuoteRequestEmail(
     "",
     "--",
     "RSSkyler Limo — chauffeured travel across all five boroughs.",
-    `${CONTACT.phone} · ${CONTACT.email}`,
+    `${CONTACT.email}`,
   );
 
   return { subject, html, text: lines.join("\n") };
@@ -230,7 +230,7 @@ export function buildQuotedEmail(
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
         ${taxLinesOnDark(priced)}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
-          Nothing is charged until you confirm. Call or reply to this email to go ahead.${
+          Nothing is charged until you confirm. Reply to this email to go ahead.${
             booking.paymentMethod === "card"
               ? " To pay by card, open your booking below and choose Pay by card — payment is taken securely by Stripe."
               : " You chose cash on delivery: pay your chauffeur at the end of the trip."
@@ -306,7 +306,7 @@ export function buildQuotedEmail(
     ],
     body: [farePanel, noteBlock, panel("The trip", tripRows), trackButton].join(""),
     footerNote:
-      "Questions about the price? Call us. A person will always answer faster than a form.",
+      "Questions about the price? Reply to this email. A person will always answer faster than a form.",
   });
 
   const text = [
@@ -322,7 +322,7 @@ export function buildQuotedEmail(
     `Payment:    ${PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod}`,
     "",
     ...priceTextLines(priced, "Quote"),
-    "Nothing is charged until you confirm. Call or reply to this email to go ahead.",
+    "Nothing is charged until you confirm. Reply to this email to go ahead.",
     booking.paymentMethod === "card"
       ? "To pay by card, open your booking below and choose Pay by card (Stripe)."
       : "You chose cash on delivery: pay your chauffeur at the end of the trip.",
@@ -334,7 +334,7 @@ export function buildQuotedEmail(
     "",
     "--",
     "RSSkyler Limo — chauffeured travel across all five boroughs.",
-    `${CONTACT.phone} · ${CONTACT.email}`,
+    `${CONTACT.email}`,
   ].join("\n");
 
   return { subject: `Your quote — ${formatReference(booking.reference)}`, html, text };

@@ -65,10 +65,10 @@ export default function QuotePage() {
                   Nothing is reserved and nothing is charged until you agree the
                   price. If the date is urgent,{" "}
                   <a
-                    href={contact.phoneHref}
+                    href={`mailto:${contact.email}`}
                     className="font-medium text-midnight underline underline-offset-4"
                   >
-                    call {contact.phone}
+                    email {contact.email}
                   </a>{" "}
                   rather than waiting on a reply.
                 </p>

@@ -196,7 +196,7 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
   // than creating a second reference and a second pair of emails.
   if (await findRecentDuplicate(input)) {
     throw ApiError.conflict(
-      "We already have this booking request from you. Check your email for the reference, or call us if you did not get one.",
+      "We already have this booking request from you. Check your email for the reference, or email us if you did not get one.",
     );
   }
 
@@ -233,7 +233,7 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     throw new ApiError(
       503,
       "card_payments_unavailable",
-      "Card payment is unavailable right now. Choose cash on delivery, or call us.",
+      "Card payment is unavailable right now. Choose cash on delivery, or email us.",
     );
   }
 
@@ -509,8 +509,8 @@ publicRouter.post("/payments/checkout", lookupLimit, async (req, res) => {
  * so it cannot be used to probe references; `expired` is said plainly because
  * only the holder of a genuine link can reach it.
  */
-const EXPIRED = "This payment link has expired. Call us and we will send a new one.";
-const INVALID = "This payment link is not valid. Call us and we will send a new one.";
+const EXPIRED = "This payment link has expired. Email us and we will send a new one.";
+const INVALID = "This payment link is not valid. Email us and we will send a new one.";
 
 /**
  * The booking (`RS-…`) or quote request (`RQ-…`) a payment link is for, once

@@ -299,9 +299,9 @@ function CodeStep({ state }: { state: Extract<ChangeState, { step: "code" }> }) 
         <p className="font-semibold text-white">Didn&rsquo;t get the code?</p>
         <p>
           Check your spam folder. It went to <span className="font-semibold">{state.maskedEmail}</span>. If that
-          address is wrong, call us on{" "}
-          <a href={contact.phoneHref} className="text-white underline underline-offset-4 tabular-nums">
-            {contact.phone}
+          address is wrong, email us at{" "}
+          <a href={`mailto:${contact.email}`} className="text-white underline underline-offset-4">
+            {contact.email}
           </a>{" "}
           and we will correct it.
         </p>
@@ -352,10 +352,10 @@ function BookingEdit({
       <div>
         <Heading>Change your booking</Heading>
         <p className="mt-2 max-w-lg text-[15px] leading-[1.7] text-white/75">
-          Edit what has changed and save. Pickup times are New York time. To change the trip type or the airport, call
-          us on{" "}
-          <a href={contact.phoneHref} className="text-white underline underline-offset-4 tabular-nums">
-            {contact.phone}
+          Edit what has changed and save. Pickup times are New York time. To change the trip type or the airport, email
+          us at{" "}
+          <a href={`mailto:${contact.email}`} className="text-white underline underline-offset-4">
+            {contact.email}
           </a>
           .
         </p>
@@ -484,7 +484,7 @@ function BookingEdit({
       </div>
 
       <p className="text-[14px] leading-[1.6] text-white/70">
-        The email address stays as it is, because that is where your codes go. To change it, call us.
+        The email address stays as it is, because that is where your codes go. To change it, email us.
       </p>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">

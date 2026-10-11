@@ -61,6 +61,53 @@ import { getZoneRateGrid, saveZoneRates } from "../services/zone-rates.js";
 
 export const adminRouter: Router = Router();
 
+/**
+ * Sends (or deliberately skips) the customer's "your booking changed" email and
+ * writes what happened into the History panel, so an operator is never left
+ * guessing why a customer says they heard nothing.
+ *
+ * Not awaited by the caller and never throws: the change is already saved. The
+ * entry lands a moment after the response, on the next page load.
+ */
+function notifyCustomerOfChange(input: {
+  subjectType: "booking" | "quote";
+  id: number;
+  adminUserId: number;
+  requested: boolean;
+  to: string;
+  send: () => Promise<boolean>;
+}): void {
+  const record = (action: string, note: string) =>
+    execute(
+      `INSERT INTO activity_log
+         (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+       VALUES (:subjectType, :id, :adminUserId, :action, NULL, NULL, :note)`,
+      { subjectType: input.subjectType, id: input.id, adminUserId: input.adminUserId, action, note },
+    );
+
+  void (async () => {
+    try {
+      if (!input.requested) {
+        await record("customer_email_skipped", "The email box was unticked, so the customer was not told.");
+        return;
+      }
+      const sent = await input.send();
+      await (sent
+        ? record("customer_email_sent", `Emailed ${input.to}.`)
+        : record(
+            "customer_email_failed",
+            `Could not email ${input.to}. Mail may be unconfigured or the mail server refused it — see the API log.`,
+          ));
+    } catch (error) {
+      console.error(
+        `[mail] status email for ${input.subjectType} ${input.id} failed unexpectedly:`,
+        error instanceof Error ? error.message : error,
+      );
+      await record("customer_email_failed", `Could not email ${input.to}. See the API log.`).catch(() => {});
+    }
+  })();
+}
+
 adminRouter.use(requireAdmin);
 
 function parseId(raw: string | undefined): number {
@@ -130,15 +177,16 @@ adminRouter.patch("/bookings/:id", async (req, res) => {
   // Only a real change, to a status the customer should hear about, with the
   // operator's box ticked. Not awaited and never throws — the change is saved.
   if (
-    patch.notifyCustomer &&
     before?.status !== booking.status &&
     (NOTIFIED_BOOKING_STATUSES as readonly string[]).includes(booking.status)
   ) {
-    void sendBookingUpdateEmail(booking).catch((error: unknown) => {
-      console.error(
-        `[mail] unexpected failure for ${booking.reference}:`,
-        error instanceof Error ? error.message : error,
-      );
+    notifyCustomerOfChange({
+      subjectType: "booking",
+      id,
+      adminUserId: req.admin!.id,
+      requested: Boolean(patch.notifyCustomer),
+      to: booking.customerEmail,
+      send: () => sendBookingUpdateEmail(booking),
     });
   }
 
@@ -189,12 +237,14 @@ adminRouter.patch("/quotes/:id", async (req, res) => {
   const priceNews =
     quote.agreedPriceCents !== null && before?.agreedPriceCents !== quote.agreedPriceCents;
 
-  if (patch.notifyCustomer && (statusNews || priceNews)) {
-    void sendQuoteUpdateEmail(quote).catch((error: unknown) => {
-      console.error(
-        `[mail] unexpected failure for ${quote.reference}:`,
-        error instanceof Error ? error.message : error,
-      );
+  if (statusNews || priceNews) {
+    notifyCustomerOfChange({
+      subjectType: "quote",
+      id,
+      adminUserId: req.admin!.id,
+      requested: Boolean(patch.notifyCustomer),
+      to: quote.customerEmail,
+      send: () => sendQuoteUpdateEmail(quote),
     });
   }
 

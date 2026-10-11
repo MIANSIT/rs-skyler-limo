@@ -54,7 +54,7 @@ function button(href: string, label: string): string {
   </table>`;
 }
 
-const signOff = ["", "--", "RSSkyler Limo — chauffeured travel across all five boroughs.", `${CONTACT.phone} · ${CONTACT.email}`];
+const signOff = ["", "--", "RSSkyler Limo — chauffeured travel across all five boroughs.", `${CONTACT.email}`];
 
 /** The changes as panel rows: label, then "before → after". */
 function changeRows(changes: FieldChange[]): string {
@@ -188,10 +188,10 @@ export function buildBookingChangedEmail(
       ops
         ? ""
         : paragraph(
-            escapeHtml(`Did not make this change? Call us straight away on ${CONTACT.phone}.`),
+            escapeHtml(`Did not make this change? Email us straight away at ${CONTACT.email}.`),
           ),
     ].join(""),
-    footerNote: "Questions? Call us or reply to this email. A person will always answer faster than a form.",
+    footerNote: "Questions? Reply to this email. A person will always answer faster than a form.",
   });
 
   const text = [
@@ -210,7 +210,7 @@ export function buildBookingChangedEmail(
     `Vehicle:    ${vehicleName}`,
     ...(ops ? [`Customer:   ${booking.customerName}`, `Phone:      ${booking.customerPhone}`, `Email:      ${booking.customerEmail}`] : []),
     ...(after ? ["", after] : []),
-    ...(ops ? [] : ["", `View your booking: ${trackUrl}`, `Did not make this change? Call us on ${CONTACT.phone}.`]),
+    ...(ops ? [] : ["", `View your booking: ${trackUrl}`, `Did not make this change? Email us at ${CONTACT.email}.`]),
     ...signOff,
   ].join("\n");
 
@@ -263,9 +263,9 @@ export function buildQuoteChangedEmail(
         : "",
       after ? paragraph(escapeHtml(after)) : "",
       ops ? "" : button(trackUrl, "View your request"),
-      ops ? "" : paragraph(escapeHtml(`Did not make this change? Call us straight away on ${CONTACT.phone}.`)),
+      ops ? "" : paragraph(escapeHtml(`Did not make this change? Email us straight away at ${CONTACT.email}.`)),
     ].join(""),
-    footerNote: "Questions? Call us or reply to this email. A person will always answer faster than a form.",
+    footerNote: "Questions? Reply to this email. A person will always answer faster than a form.",
   });
 
   const text = [
@@ -277,7 +277,7 @@ export function buildQuoteChangedEmail(
     ...changeText(changes),
     ...(ops ? ["", `Customer:   ${quote.customerName}`, `Phone:      ${quote.customerPhone}`, `Email:      ${quote.customerEmail}`] : []),
     ...(after ? ["", after] : []),
-    ...(ops ? [] : ["", `View your request: ${trackUrl}`, `Did not make this change? Call us on ${CONTACT.phone}.`]),
+    ...(ops ? [] : ["", `View your request: ${trackUrl}`, `Did not make this change? Email us at ${CONTACT.email}.`]),
     ...signOff,
   ].join("\n");
 

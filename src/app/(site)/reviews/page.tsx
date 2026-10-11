@@ -155,10 +155,10 @@ export default async function ReviewsPage() {
         <p className="mt-10 text-[15px] leading-[1.7] text-charcoal">
           Something went wrong on a trip? We would rather hear it directly — call{" "}
           <a
-            href={contact.phoneHref}
+            href={`mailto:${contact.email}`}
             className="font-medium text-midnight tabular-nums underline underline-offset-4"
           >
-            {contact.phone}
+            {contact.email}
           </a>{" "}
           or use the{" "}
           <Link href="/contact" className="font-medium text-midnight underline underline-offset-4">

@@ -31,7 +31,7 @@ export default async function PaymentCancelledPage({
       <PageHeader
         eyebrow="Payment"
         title="Your booking is saved. It is not paid yet."
-        intro="You left the card payment before it finished, so nothing was charged. Pay whenever you are ready from the tracking page, or call us."
+        intro="You left the card payment before it finished, so nothing was charged. Pay whenever you are ready from the tracking page, or email us."
       />
 
       <Section tone="light">
@@ -60,8 +60,8 @@ export default async function PaymentCancelledPage({
             >
               Pay from the tracking page
             </ButtonLink>
-            <ButtonLink href={contact.phoneHref} variant="secondary">
-              Call {contact.phone}
+            <ButtonLink href={`mailto:${contact.email}`} variant="secondary">
+              Email {contact.email}
             </ButtonLink>
           </div>
         </div>

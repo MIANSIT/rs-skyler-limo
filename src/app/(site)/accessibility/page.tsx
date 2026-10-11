@@ -118,12 +118,6 @@ export default function AccessibilityPage() {
               >
                 {contact.email}
               </a>
-              <a
-                href={contact.phoneHref}
-                className="inline-block py-2 text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
-              >
-                {contact.phone}
-              </a>
             </div>
 
             <div data-reveal className="mt-10">

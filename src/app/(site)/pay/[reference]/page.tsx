@@ -77,7 +77,7 @@ export default async function PayLinkPage({
   const token = typeof raw === "string" ? raw : "";
 
   let booking: LinkedBooking | null = null;
-  let problem = "This payment link is not valid. Call us and we will send a new one.";
+  let problem = "This payment link is not valid. Email us and we will send a new one.";
 
   if (token) {
     try {
@@ -97,8 +97,8 @@ export default async function PayLinkPage({
         <PageHeader eyebrow="Payment" title="This link cannot be used" intro={problem} />
         <Section tone="light">
           <div className="flex flex-wrap gap-4">
-            <ButtonLink href={contact.phoneHref} variant="primary">
-              Call {contact.phone}
+            <ButtonLink href={`mailto:${contact.email}`} variant="primary">
+              Email {contact.email}
             </ButtonLink>
             <ButtonLink href="/track" variant="secondary">
               Track a booking
@@ -126,7 +126,7 @@ export default async function PayLinkPage({
             ? "Thank you — the payment is in. There is nothing more to do before the trip."
             : booking.canPay
               ? `Check the ${booking.kind === "quote" ? "details" : "trip"} below, then pay by card on Stripe's secure page. Your card details go to Stripe, never to us.`
-              : `This booking cannot be paid online right now. Call ${contact.phone} and we will sort it out.`
+              : `This booking cannot be paid online right now. Email ${contact.email} and we will sort it out.`
         }
       />
 
@@ -181,8 +181,8 @@ export default async function PayLinkPage({
                 ) : booking.canPay && amount ? (
                   <PayLinkForm reference={booking.reference} token={token} amount={amount} />
                 ) : (
-                  <ButtonLink href={contact.phoneHref} variant="primary">
-                    Call {contact.phone}
+                  <ButtonLink href={`mailto:${contact.email}`} variant="primary">
+                    Email {contact.email}
                   </ButtonLink>
                 )}
               </div>
@@ -190,10 +190,10 @@ export default async function PayLinkPage({
                 <p className="mt-6 text-[14px] leading-[1.7] text-charcoal">
                   Would rather pay another way?{" "}
                   <a
-                    href={contact.phoneHref}
+                    href={`mailto:${contact.email}`}
                     className="font-medium whitespace-nowrap text-midnight underline underline-offset-4 tabular-nums"
                   >
-                    Call {contact.phone}
+                    Email {contact.email}
                   </a>
                   .
                 </p>

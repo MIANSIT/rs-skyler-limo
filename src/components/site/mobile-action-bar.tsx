@@ -3,18 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { contact } from "@/lib/content";
 import { bookingSheet, useBookingSheet } from "@/lib/public/booking-sheet";
 
 /**
- * A fixed EMAIL / BOOK bar for phones, with TEXT added only when the business
- * has said it reads texts. Email rather than Call at the client's request
- * (Sept 2026): they would rather a request arrive in writing. The header's
- * phone icon still dials.
- *
- * The brief is explicit that a text line must not be offered unless someone is
- * monitoring it, so TEXT is behind `contact.smsEnabled` (off today). Flip that
- * one flag in `content.ts` and the third button appears, with no other change.
+ * A fixed EMAIL / BOOK bar for phones. Email rather than Call at the client's
+ * request (Sept 2026): they would rather a request arrive in writing. There is
+ * no phone number anywhere on the site (removed Oct 2026).
  *
  * Neither button is gold. Gold is one action per view and belongs to the page
  * the customer is on, exactly as the outlined header CTA already does; a bar
@@ -54,23 +48,6 @@ function EmailIcon() {
   );
 }
 
-function TextIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
-    </svg>
-  );
-}
-
 export function MobileActionBar({ email }: { email: string }) {
   const pathname = usePathname();
   const sheet = useBookingSheet();
@@ -101,16 +78,6 @@ export function MobileActionBar({ email }: { email: string }) {
             <EmailIcon />
             Email
           </a>
-
-          {contact.smsEnabled ? (
-            <a
-              href={contact.smsHref}
-              className={`${buttonBase} border border-white/40 text-white hover:border-white hover:bg-white/10`}
-            >
-              <TextIcon />
-              Text
-            </a>
-          ) : null}
 
           {sheet.available ? (
             <button

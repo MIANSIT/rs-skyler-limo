@@ -56,7 +56,7 @@ export default async function PaymentCompletePage({
         intro={
           paid
             ? "Stripe has taken the payment. There is nothing more to do before the trip."
-            : `If money has left your account, it is not lost — call ${contact.phone} and we will match it to your booking.`
+            : `If money has left your account, it is not lost — email ${contact.email} and we will match it to your booking.`
         }
       />
 
@@ -94,8 +94,8 @@ export default async function PaymentCompletePage({
             >
               Track your booking
             </ButtonLink>
-            <ButtonLink href={contact.phoneHref} variant="secondary">
-              Call {contact.phone}
+            <ButtonLink href={`mailto:${contact.email}`} variant="secondary">
+              Email {contact.email}
             </ButtonLink>
           </div>
         </div>

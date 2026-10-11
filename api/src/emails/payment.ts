@@ -94,7 +94,7 @@ export function buildPaymentLinkEmail(
     ],
     body: [farePanel, payButton, panel("The trip", tripRows)].join(""),
     footerNote:
-      "Would rather pay another way? Call us or reply to this email. A person will always answer faster than a form.",
+      "Would rather pay another way? Reply to this email. A person will always answer faster than a form.",
   });
 
   const text = [
@@ -113,7 +113,7 @@ export function buildPaymentLinkEmail(
     "",
     "--",
     "RSSkyler Limo — chauffeured travel across all five boroughs.",
-    `${CONTACT.phone} · ${CONTACT.email}`,
+    `${CONTACT.email}`,
   ].join("\n");
 
   return { subject: `Pay for your booking — ${formatReference(booking.reference)}`, html, text };

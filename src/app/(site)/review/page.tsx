@@ -60,13 +60,13 @@ export default async function ReviewPage({
               ))}
             </ul>
             <p data-reveal className="mt-8 text-[15px] leading-[1.7] text-charcoal">
-              If something went wrong and you would like us to put it right, call
-              us on{" "}
+              If something went wrong and you would like us to put it right, email
+              us at{" "}
               <a
-                href={contact.phoneHref}
+                href={`mailto:${contact.email}`}
                 className="font-medium text-midnight underline underline-offset-4 tabular-nums"
               >
-                {contact.phone}
+                {contact.email}
               </a>
               . Your review is welcome either way.
             </p>

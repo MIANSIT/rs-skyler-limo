@@ -98,9 +98,6 @@ export async function SiteFooter() {
           </FooterColumn>
 
           <FooterColumn title="Contact">
-            <FooterLink href={contact.phoneHref}>
-              <span className="tabular-nums">{contact.phone}</span>
-            </FooterLink>
             <FooterLink href={`mailto:${contact.email}`}>
               {/* An email address has no natural break opportunity, so it needs
                   explicit permission to wrap or it widens the whole page. */}

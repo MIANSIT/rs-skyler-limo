@@ -330,10 +330,10 @@ export default async function HomePage() {
                 Get a quote
               </Link>
               <a
-                href={contact.phoneHref}
+                href={`mailto:${contact.email}`}
                 className="inline-flex items-center px-2 py-4 font-sans text-[15px] text-white/80 tabular-nums underline-offset-4 hover:text-white hover:underline"
               >
-                Call {contact.phone}
+                Email {contact.email}
               </a>
             </div>
           </Reveal>

@@ -44,12 +44,12 @@ export function AirportRateTable({
   if (!reachable) {
     return (
       <p className="max-w-2xl text-[15px] leading-[1.7] text-charcoal">
-        Fares are not loading right now. Call{" "}
+        Fares are not loading right now. Email{" "}
         <a
-          href={contact.phoneHref}
-          className="font-medium text-midnight tabular-nums underline underline-offset-4"
+          href={`mailto:${contact.email}`}
+          className="font-medium text-midnight underline underline-offset-4"
         >
-          {contact.phone}
+          {contact.email}
         </a>{" "}
         and we will give you the {name} fare for your vehicle.
       </p>
@@ -154,12 +154,12 @@ export function AirportRateGrid({
   if (options.airports.length === 0 || fleet.length === 0) {
     return (
       <p className="max-w-2xl text-[15px] leading-[1.7] text-charcoal">
-        The rate card is not loading right now. Call{" "}
+        The rate card is not loading right now. Email{" "}
         <a
-          href={contact.phoneHref}
-          className="font-medium text-midnight tabular-nums underline underline-offset-4"
+          href={`mailto:${contact.email}`}
+          className="font-medium text-midnight underline underline-offset-4"
         >
-          {contact.phone}
+          {contact.email}
         </a>{" "}
         for the fare on any airport and vehicle.
       </p>

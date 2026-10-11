@@ -60,10 +60,10 @@ export function CtaBand({
               </>
             )}
             <a
-              href={contact.phoneHref}
-              className="inline-flex items-center px-2 py-3 font-sans text-[15px] font-medium text-white underline underline-offset-4 tabular-nums hover:text-white/80"
+              href={`mailto:${contact.email}`}
+              className="inline-flex items-center px-2 py-3 font-sans text-[15px] font-medium text-white underline underline-offset-4 hover:text-white/80"
             >
-              Call {contact.phone}
+              Email {contact.email}
             </a>
           </div>
         </Reveal>

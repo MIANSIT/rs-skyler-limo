@@ -79,12 +79,12 @@ export default async function TrackPage({
             </div>
 
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-white/75">
-              No reference to hand? Call dispatch on{" "}
+              No reference to hand? Email dispatch at{" "}
               <a
-                href={contact.phoneHref}
+                href={`mailto:${contact.email}`}
                 className="text-white underline underline-offset-4 tabular-nums"
               >
-                {contact.phone}
+                {contact.email}
               </a>{" "}
               — someone will look it up for you.
             </p>

@@ -146,7 +146,7 @@ export const airportPages: AirportPageContent[] = [
       {
         question: "Can I change or cancel a LaGuardia pickup?",
         answer:
-          "Call us to change it. Cancelling is free more than 6 hours before pickup; inside 6 hours the full fare applies.",
+          "Email us to change it. Cancelling is free more than 6 hours before pickup; inside 6 hours the full fare applies.",
       },
     ],
   },
@@ -233,7 +233,7 @@ export const airportPages: AirportPageContent[] = [
     },
     arriving: [
       "Book with the tail number and the FBO handling the aircraft.",
-      "Private arrival times move. Call us the moment yours does.",
+      "Private arrival times move. Email us the moment yours does.",
       "The fare from Teterboro to the five boroughs is fixed where it is published below, tolls and gratuity included.",
     ],
     departing: [

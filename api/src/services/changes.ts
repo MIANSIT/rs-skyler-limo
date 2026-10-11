@@ -91,11 +91,11 @@ export function bookingChangeability(booking: Booking, now = Date.now()): Change
     return refused("This trip is complete, so it can no longer be changed.");
   }
   if (booking.status === "cancelled") {
-    return refused(`This booking is cancelled. Call us on ${CONTACT.phone} to book again.`);
+    return refused(`This booking is cancelled. Email us at ${CONTACT.email} to book again.`);
   }
   if (Date.parse(booking.pickupAt) - now < CHANGE_RULES.cutoffHours * 3_600_000) {
     return refused(
-      `Your pickup is less than ${CHANGE_RULES.cutoffHours} hours away. Call us on ${CONTACT.phone} to change it.`,
+      `Your pickup is less than ${CHANGE_RULES.cutoffHours} hours away. Email us at ${CONTACT.email} to change it.`,
     );
   }
   return allowed;
@@ -103,13 +103,13 @@ export function bookingChangeability(booking: Booking, now = Date.now()): Change
 
 export function quoteChangeability(quote: Quote): Changeability {
   if (quote.status === "won") {
-    return refused(`This request is going ahead. Call us on ${CONTACT.phone} to change the details.`);
+    return refused(`This request is going ahead. Email us at ${CONTACT.email} to change the details.`);
   }
   if (quote.status === "lost") {
-    return refused(`This request is closed. Call us on ${CONTACT.phone}, or send a new request.`);
+    return refused(`This request is closed. Email us at ${CONTACT.email}, or send a new request.`);
   }
   if (quote.paymentStatus === "paid") {
-    return refused(`This request is paid. Call us on ${CONTACT.phone} to change it.`);
+    return refused(`This request is paid. Email us at ${CONTACT.email} to change it.`);
   }
   if (quote.eventDate && quote.eventDate < todayInNewYork()) {
     return refused("The date of this request has passed.");
@@ -174,7 +174,7 @@ export async function issueChangeCode(subject: ChangeSubject): Promise<IssuedCod
   }
   if (Number(recent?.last_hour ?? 0) >= CHANGE_RULES.codesPerHour) {
     throw ApiError.tooMany(
-      `You have asked for several codes in the last hour. Try again later, or call us on ${CONTACT.phone}.`,
+      `You have asked for several codes in the last hour. Try again later, or email us at ${CONTACT.email}.`,
     );
   }
 
@@ -465,7 +465,7 @@ export async function changeBooking(
   const pickupMs = Date.parse(input.pickupAt);
   if (!sameMinute(input.pickupAt, booking.pickupAt) && pickupMs - Date.now() < CHANGE_RULES.cutoffHours * 3_600_000) {
     throw ApiError.badRequest(
-      `Choose a pickup at least ${CHANGE_RULES.cutoffHours} hours from now. For anything sooner, call us on ${CONTACT.phone}.`,
+      `Choose a pickup at least ${CHANGE_RULES.cutoffHours} hours from now. For anything sooner, email us at ${CONTACT.email}.`,
     );
   }
 
@@ -605,7 +605,7 @@ export async function changeBooking(
 
   if (fareChanged && booking.paymentStatus === "paid") {
     throw ApiError.conflict(
-      `This change would alter the fare you have already paid. Call us on ${CONTACT.phone} and we will sort it out.`,
+      `This change would alter the fare you have already paid. Email us at ${CONTACT.email} and we will sort it out.`,
     );
   }
 

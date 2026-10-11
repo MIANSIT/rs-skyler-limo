@@ -253,7 +253,7 @@ export function buildBookingEmail(
     body,
     footerNote: isOps
       ? "Open the dashboard to price, confirm or cancel this booking."
-      : "Need to change or cancel? Call us — the cancellation window is in our terms, and a person will always answer faster than a form.",
+      : "Need to change or cancel? Reply to this email — the cancellation window is in our terms, and a person will always answer faster than a form.",
   });
 
   return { subject, html, text: plainText(booking, vehicle, audience) };
@@ -358,7 +358,7 @@ function plainText(
     "",
     "--",
     "RSSkyler Limo — chauffeured travel across all five boroughs.",
-    `${CONTACT.phone} · ${CONTACT.email}`,
+    `${CONTACT.email}`,
     "All times are New York time.",
   );
 

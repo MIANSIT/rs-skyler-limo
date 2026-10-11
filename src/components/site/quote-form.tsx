@@ -161,10 +161,10 @@ export function QuoteForm({
         <p className="mt-6 text-[15px] text-charcoal">
           Need an answer sooner?{" "}
           <a
-            href={contact.phoneHref}
+            href={`mailto:${contact.email}`}
             className="font-medium text-midnight underline underline-offset-4"
           >
-            Call {contact.phone}
+            Email {contact.email}
           </a>
           .
         </p>

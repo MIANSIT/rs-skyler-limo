@@ -95,32 +95,6 @@ export function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2 xl:gap-4">
           {/*
-            One phone control at every width, rather than two that must be kept
-            in step. Below xl it is the icon — enough room for the nav — and from
-            xl the number itself. Calling is never more than one tap, and never
-            requires opening the menu.
-          */}
-          <a
-            href={contact.phoneHref}
-            aria-label={`Call RSSkyler Limo on ${contact.phone}`}
-            className="flex items-center gap-2 rounded-sm p-2 font-sans text-[15px] font-medium text-white transition-colors hover:text-gold xl:px-1"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5 xl:hidden"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.5.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.57 3.5a1 1 0 0 1-.25 1z" />
-            </svg>
-            <span className="hidden tabular-nums xl:inline">{contact.phone}</span>
-          </a>
-
-          {/*
             Hidden by a wrapper, not by a class on the button.
 
             `clsx` here is a plain join, not tailwind-merge, so `hidden` passed
@@ -186,15 +160,15 @@ export function SiteHeader() {
           </ul>
 
           <a
-            href={contact.phoneHref}
+            href={`mailto:${contact.email}`}
             onClick={() => setOpen(false)}
             className="mt-5 flex items-center justify-between gap-4 border-b border-white/10 pb-3.5 font-sans text-white"
           >
             <span className="text-[13px] tracking-[0.12em] text-white/55 uppercase">
-              Call us
+              Email us
             </span>
-            <span className="text-[15px] font-medium tabular-nums">
-              {contact.phone}
+            <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
+              {contact.email}
             </span>
           </a>
 

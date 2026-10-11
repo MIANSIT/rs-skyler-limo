@@ -383,7 +383,7 @@ export async function payBooking(
   }
 
   if (!url.startsWith("https://checkout.stripe.com/")) {
-    return "Card payment is not available right now. Call us to pay.";
+    return "Card payment is not available right now. Email us to pay.";
   }
   redirect(url);
 }
@@ -413,7 +413,7 @@ export async function payWithLink(
   }
 
   if (!url.startsWith("https://checkout.stripe.com/")) {
-    return "Card payment is not available right now. Call us to pay.";
+    return "Card payment is not available right now. Email us to pay.";
   }
   redirect(url);
 }

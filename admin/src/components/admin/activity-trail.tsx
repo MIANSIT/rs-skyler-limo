@@ -14,6 +14,9 @@ const actionLabels: Record<string, string> = {
   price_set: "Agreed price",
   customer_changed: "Changed by customer",
   change_reviewed: "Customer change reviewed",
+  customer_email_sent: "Customer emailed",
+  customer_email_skipped: "Customer not emailed",
+  customer_email_failed: "Customer email FAILED",
 };
 
 export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {
@@ -32,7 +35,11 @@ export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {
           {entries.map((entry) => (
             <li key={entry.id} className="px-6 py-4">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-sans text-[14px] font-medium text-midnight">
+                <span
+                  className={`font-sans text-[14px] font-medium ${
+                    entry.action === "customer_email_failed" ? "text-red-800" : "text-midnight"
+                  }`}
+                >
                   {actionLabels[entry.action] ?? entry.action}
                   {entry.toStatus ? (
                     <span className="font-normal text-charcoal/70">

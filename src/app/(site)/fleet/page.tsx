@@ -34,12 +34,12 @@ export default async function FleetPage() {
         {fleet.length === 0 ? (
           <div className="mx-auto max-w-xl text-center">
             <p className="text-[17px] leading-[1.7] text-charcoal">
-              Our fleet listing is briefly unavailable. Call reservations on{" "}
+              Our fleet listing is briefly unavailable. Email reservations at{" "}
               <a
-                href={contact.phoneHref}
+                href={`mailto:${contact.email}`}
                 className="text-midnight underline underline-offset-4 tabular-nums"
               >
-                {contact.phone}
+                {contact.email}
               </a>{" "}
               and someone will talk you through the options.
             </p>

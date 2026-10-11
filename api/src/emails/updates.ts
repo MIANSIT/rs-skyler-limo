@@ -69,10 +69,10 @@ const TRACK_HINT =
   "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.";
 
 const FOOTER =
-  "Questions? Call us or reply to this email. A person will always answer faster than a form.";
+  "Questions? Reply to this email. A person will always answer faster than a form.";
 
 function signOff(): string[] {
-  return ["", "--", "RSSkyler Limo — chauffeured travel across all five boroughs.", `${CONTACT.phone} · ${CONTACT.email}`];
+  return ["", "--", "RSSkyler Limo — chauffeured travel across all five boroughs.", `${CONTACT.email}`];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -105,7 +105,7 @@ function bookingCopy(booking: Booking): BookingCopy {
         subject: `Booking cancelled — ${formatReference(booking.reference)}`,
         headline: "Your booking is cancelled.",
         intro: `${name}, your booking for ${when} has been cancelled.`,
-        after: `If you did not ask for this, or want to book again, call us on ${CONTACT.phone}. If you paid in advance, we will be in touch about that payment under our terms.`,
+        after: `If you did not ask for this, or want to book again, email us at ${CONTACT.email}. If you paid in advance, we will be in touch about that payment under our terms.`,
       };
     case "completed":
       return {
@@ -119,7 +119,7 @@ function bookingCopy(booking: Booking): BookingCopy {
         subject: `Booking on hold — ${formatReference(booking.reference)}`,
         headline: "Your booking is on hold.",
         intro: `${name}, we need to confirm a detail with you before your booking for ${when} can go ahead.`,
-        after: `A reservations agent will be in touch. If it is urgent, call us on ${CONTACT.phone}.`,
+        after: `A reservations agent will be in touch. If it is urgent, email us at ${CONTACT.email}.`,
       };
   }
 }
@@ -229,13 +229,13 @@ function quoteCopy(quote: Quote): BookingCopy {
             ? `Thank you, ${name}. The price for your request is ${formatMoney(quote.agreedPriceCents)}${
                 quote.taxCents > 0 ? ", sales tax included" : ""
               }. The details are below.`
-            : `Thank you, ${name}. A reservations agent has worked out a price for your request and sends it to you by phone or email.`,
+            : `Thank you, ${name}. A reservations agent has worked out a price for your request and sends it to you by email.`,
         after:
           quote.paymentMethod === "cash"
-            ? "Payment is cash on delivery, to your chauffeur on the day. Reply to this email or call us to go ahead."
+            ? "Payment is cash on delivery, to your chauffeur on the day. Reply to this email to go ahead."
             : quote.paymentMethod === "card"
               ? "Payment is by card: use the button below when you are ready to go ahead. Nothing is charged until you pay."
-              : "Reply to this email or call us to go ahead. Nothing is reserved or charged until you agree the price.",
+              : "Reply to this email to go ahead. Nothing is reserved or charged until you agree the price.",
       };
     case "won":
       return {
@@ -249,14 +249,14 @@ function quoteCopy(quote: Quote): BookingCopy {
         subject: `Request closed — ${formatReference(quote.reference)}`,
         headline: "We have closed your request.",
         intro: `${name}, this request is now closed.`,
-        after: `If that is not right, or your plans change, call us on ${CONTACT.phone}. We would be glad to help.`,
+        after: `If that is not right, or your plans change, email us at ${CONTACT.email}. We would be glad to help.`,
       };
     default:
       return {
         subject: `Request on hold — ${formatReference(quote.reference)}`,
         headline: "Your request is on hold.",
         intro: `${name}, we need to confirm a detail with you before we can price your request.`,
-        after: `A reservations agent will be in touch. If it is urgent, call us on ${CONTACT.phone}.`,
+        after: `A reservations agent will be in touch. If it is urgent, email us at ${CONTACT.email}.`,
       };
   }
 }

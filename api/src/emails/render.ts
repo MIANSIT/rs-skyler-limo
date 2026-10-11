@@ -273,7 +273,6 @@ export function shell({
                 <td style="vertical-align:top;">
                   ${wordmark()}
                   <div style="margin-top:10px;font-family:${SANS_FONT};font-size:12px;line-height:1.7;color:rgba(255,255,255,0.65);">
-                    ${escapeHtml(CONTACT.phone)}<br>
                     ${escapeHtml(CONTACT.email)}
                   </div>
                 </td>
@@ -304,7 +303,6 @@ export function shell({
           <td style="background:${BRAND.midnight};padding:24px;">
             <p style="margin:0 0 14px 0;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">${escapeHtml(footerNote)}</p>
             <p style="margin:0;font-family:${SANS_FONT};font-size:13px;line-height:1.9;color:rgba(255,255,255,0.70);">
-              <a href="tel:${escapeHtml(CONTACT.phoneHref)}" style="color:${BRAND.white};text-decoration:none;font-weight:600;">${escapeHtml(CONTACT.phone)}</a><br>
               <a href="mailto:${escapeHtml(CONTACT.email)}" style="color:rgba(255,255,255,0.70);text-decoration:underline;">${escapeHtml(CONTACT.email)}</a>
             </p>
             <p style="margin:16px 0 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,0.15);font-family:${SANS_FONT};font-size:11px;line-height:1.7;color:rgba(255,255,255,0.45);">
@@ -324,10 +322,8 @@ export function shell({
 
 /**
  * Duplicated from the site's `src/lib/content.ts` on purpose — the API cannot
- * import from the Next app. If the number changes there, change it here.
+ * import from the Next app. If the address changes there, change it here.
  */
 export const CONTACT = {
-  phone: "+1 (914) 338-6414",
-  phoneHref: "+19143386414",
   email: "rsskylerlimo@yahoo.com",
 } as const;

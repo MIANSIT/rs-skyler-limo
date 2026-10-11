@@ -428,7 +428,7 @@ export default function TermsPage() {
             tone="dark"
             eyebrow="Questions"
             title="Ask before you book, not after"
-            intro="If any of this is unclear for the trip you have in mind, call reservations. Someone answers, at any hour."
+            intro="If any of this is unclear for the trip you have in mind, email reservations and we will reply."
             data-reveal
           />
 
@@ -437,12 +437,12 @@ export default function TermsPage() {
               Book a car
             </ButtonLink>
             <a
-              href={contact.phoneHref}
+              href={`mailto:${contact.email}`}
               /* inline-block + padding: a standalone call action deserves a
                  real tap target, unlike a link inside a sentence. */
               className="inline-block py-2 text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
             >
-              {contact.phone}
+              {contact.email}
             </a>
           </div>
 

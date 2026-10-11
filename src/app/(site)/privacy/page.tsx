@@ -370,8 +370,8 @@ export default function PrivacyPage() {
                 className="text-white underline underline-offset-4"
               >
                 {contact.email}
-              </a>{" "}
-              or call us. If you would rather read what you are agreeing to when
+              </a>
+              . If you would rather read what you are agreeing to when
               you book, that is in the{" "}
               <Link
                 href="/terms"
@@ -387,12 +387,12 @@ export default function PrivacyPage() {
                 Book a car
               </ButtonLink>
               <a
-                href={contact.phoneHref}
+                href={`mailto:${contact.email}`}
                 /* inline-block + padding: a standalone call action deserves a
                  real tap target, unlike a link inside a sentence. */
               className="inline-block py-2 text-[17px] text-white underline-offset-4 tabular-nums hover:underline"
               >
-                {contact.phone}
+                {contact.email}
               </a>
             </div>
 

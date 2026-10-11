@@ -96,9 +96,6 @@ export async function LocalBusinessSchema() {
     // `sitemap.ts`. Same page either way, but three spellings of one URL is
     // three things a consumer has to decide are the same.
     url: `${siteUrl}/`,
-    // E.164, derived from the href rather than the display form: `tel:` already
-    // holds the diallable spelling, and formatting is not a phone number.
-    telephone: contact.phoneHref.replace(/^tel:/, ""),
     email: contact.email,
     // Absolute by requirement — a consumer of this JSON has no page to resolve
     // a relative path against. Next serves these from `src/app/`.

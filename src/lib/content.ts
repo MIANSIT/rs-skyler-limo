@@ -13,24 +13,14 @@ import type { FleetVehicle } from "@/lib/api/types";
  * is read. They were once typed into five separate components; keeping them
  * here means a change to either is one edit rather than a search.
  *
- * `phone` and `phoneHref` are two fields on purpose and must move together:
- * the display form carries the formatting a person reads, the href carries the
- * E.164 form a phone dials.
+ * There is deliberately no phone number: the client asked for it to be removed
+ * everywhere (Oct 2026), so every "call us" became "email us".
  *
  * There is one address, not a set of departmental ones. `weddings@` and
  * `corporate@` used to sit here and neither mailbox existed, so an enquiry sent
  * to either would have bounced.
  */
 export const contact = {
-  phone: "+1 (914) 338-6414",
-  phoneHref: "tel:+19143386414",
-  /**
-   * The brief is explicit: do not offer texting unless texts are monitored.
-   * Flip `smsEnabled` to true only once someone is actually reading them, and
-   * the TEXT US affordances appear.
-   */
-  smsHref: "sms:+19143386414",
-  smsEnabled: false,
   email: "rsskylerlimo@yahoo.com",
   serviceArea: "All five boroughs of New York City",
 } as const;

@@ -265,7 +265,7 @@ export async function sendPaymentLinkEmail(
  * or on hold — with the link to their booking. Customer only: the office made
  * the change. Same rules as every other send.
  */
-export async function sendBookingUpdateEmail(booking: Booking): Promise<void> {
+export async function sendBookingUpdateEmail(booking: Booking): Promise<boolean> {
   let vehicleName: string;
   try {
     vehicleName =
@@ -275,7 +275,7 @@ export async function sendBookingUpdateEmail(booking: Booking): Promise<void> {
   }
 
   const email = buildBookingUpdateEmail(booking, vehicleName);
-  await send({
+  return send({
     to: booking.customerEmail,
     replyTo: env.MAIL_OPS_RECIPIENTS,
     subject: email.subject,
@@ -285,7 +285,7 @@ export async function sendBookingUpdateEmail(booking: Booking): Promise<void> {
 }
 
 /** The same for a quote request. */
-export async function sendQuoteUpdateEmail(quote: Quote): Promise<void> {
+export async function sendQuoteUpdateEmail(quote: Quote): Promise<boolean> {
   // A card-paid agreed price carries its payment link, signed for this
   // request and this amount, so "here is your price" and "pay here" are one.
   const payUrl = canPayQuoteOnline(quote)
@@ -296,7 +296,7 @@ export async function sendQuoteUpdateEmail(quote: Quote): Promise<void> {
       }).url
     : null;
   const email = buildQuoteUpdateEmail(quote, payUrl);
-  await send({
+  return send({
     to: quote.customerEmail,
     replyTo: env.MAIL_OPS_RECIPIENTS,
     subject: email.subject,

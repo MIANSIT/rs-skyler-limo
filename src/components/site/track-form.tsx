@@ -16,19 +16,19 @@ import { formatRate } from "@/lib/public/tax";
 
 const statusCopy: Record<string, string> = {
   new: "Received. A reservations agent is looking at it now.",
-  quoted: "Quoted. The fare below is yours — call us to confirm the booking.",
+  quoted: "Quoted. The fare below is yours — email us to confirm the booking.",
   confirmed: "Confirmed. Your car is booked.",
   completed: "Completed. Thank you for riding with us.",
-  cancelled: "Cancelled. Call dispatch if that is not right.",
+  cancelled: "Cancelled. Email us if that is not right.",
   pending: "On hold while we confirm a detail with you.",
 };
 
 /** A quote request's status, in the same voice as a booking's. */
 const quoteStatusCopy: Record<string, string> = {
   new: "Received. A reservations agent will price it and come back to you.",
-  quoted: "Priced. A reservations agent sends the price by phone or email — reply or call to go ahead.",
+  quoted: "Priced. A reservations agent sends the price by email — reply to go ahead.",
   won: "Going ahead. We will be in touch with the details.",
-  lost: "Closed. Call us if that is not right, or if your plans change.",
+  lost: "Closed. Email us if that is not right, or if your plans change.",
   pending: "On hold while we confirm a detail with you.",
 };
 
@@ -305,7 +305,7 @@ export function TrackForm({
           ) : state.booking.pricingMode === "quote" ? (
             <p className="mt-6 max-w-md border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
               We are still pricing this trip. A reservations agent will come back
-              to you by phone or email — the fare will appear here as soon as it
+              to you by email — the fare will appear here as soon as it
               is set.
             </p>
           ) : null}
