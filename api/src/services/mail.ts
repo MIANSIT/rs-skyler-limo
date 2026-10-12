@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { buildBookingEmail } from "../emails/booking.js";
+import { CONTACT } from "../emails/render.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
 import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
 import { buildPaymentLinkEmail } from "../emails/payment.js";
@@ -23,13 +24,19 @@ import { getVehicleBySlug } from "./vehicles.js";
  * Two rules govern everything here:
  *
  *  1. **A booking is never lost to a mail failure.** The row is already
- *     committed by the time this runs. Yahoo being slow, throttling us, or
- *     rejecting the password must show up in the log and nowhere else — never
- *     as a 500 on a customer's confirmation screen.
+ *     committed by the time this runs. Namecheap being slow, throttling us,
+ *     or rejecting the password must show up in the log and nowhere else —
+ *     never as a 500 on a customer's confirmation screen.
  *  2. **The customer and the office get separate messages.** Not one message
  *     with four recipients: the office copy carries the customer's phone,
  *     email and the internal framing, and copying everyone would also show
  *     each operator's address to the customer and to each other.
+ *  3. **An operator's address never leaves the office.** A customer only ever
+ *     sees `CONTACT.email` — in `From` and in `Reply-To`. The ops list goes out
+ *     as `Bcc` behind the business mailbox, so one recipient cannot see another
+ *     and no internal address (the admin's Yahoo box among them) reaches a
+ *     customer's mail client. Putting `MAIL_OPS_RECIPIENTS` in `To` or in a
+ *     customer's `Reply-To` is what this guards against.
  */
 
 let transporter: Transporter | null = null;
@@ -95,7 +102,27 @@ type Message = {
   html: string;
   text: string;
   replyTo?: string | string[];
+  bcc?: string | string[];
 };
+
+/**
+ * The office's envelope: addressed to the business mailbox, with every other
+ * operator behind `Bcc`. The business address is dropped from the Bcc list so
+ * the box is not sent the same message twice.
+ *
+ * Evaluated at the call site, which is reached whether or not mail is
+ * configured — so an unset `MAIL_USER` falls back to the plain list rather
+ * than throwing, and a developer's checkout still logs what it would send.
+ */
+function opsEnvelope(): { to: string | string[]; bcc?: string[] } {
+  const business = env.MAIL_USER?.toLowerCase();
+  if (!business) return { to: env.MAIL_OPS_RECIPIENTS };
+
+  return {
+    to: business,
+    bcc: env.MAIL_OPS_RECIPIENTS.filter((address) => address !== business),
+  };
+}
 
 /**
  * Sends, or explains why it did not. Never throws — every caller is on a path
@@ -110,7 +137,7 @@ async function send(message: Message): Promise<boolean> {
       console.warn("[mail] not configured; skipping all sends.");
     }
     console.log(
-      `[mail] would send "${message.subject}" to ${[message.to].flat().join(", ")}`,
+      `[mail] would send "${message.subject}" to ${recipients(message)}`,
     );
     return false;
   }
@@ -119,18 +146,19 @@ async function send(message: Message): Promise<boolean> {
     const info = await transport.sendMail({
       from: { name: env.MAIL_FROM_NAME, address: env.MAIL_USER! },
       to: message.to,
+      bcc: message.bcc,
       replyTo: message.replyTo,
       subject: message.subject,
       html: message.html,
       text: message.text,
     });
     console.log(
-      `[mail] sent "${message.subject}" to ${[message.to].flat().join(", ")} (${info.messageId})`,
+      `[mail] sent "${message.subject}" to ${recipients(message)} (${info.messageId})`,
     );
     return true;
   } catch (error) {
     console.error(
-      `[mail] FAILED "${message.subject}" to ${[message.to].flat().join(", ")}: ${describe(error)}`,
+      `[mail] FAILED "${message.subject}" to ${recipients(message)}: ${describe(error)}`,
     );
     return false;
   }
@@ -165,7 +193,7 @@ export async function sendBookingEmails(booking: Booking): Promise<void> {
       text: customer.text,
     }),
     send({
-      to: env.MAIL_OPS_RECIPIENTS,
+      ...opsEnvelope(),
       // So hitting reply in the office writes to the customer, not to us.
       replyTo: booking.customerEmail,
       subject: ops.subject,
@@ -192,7 +220,7 @@ export async function sendQuoteRequestEmails(quote: Quote): Promise<void> {
       text: customer.text,
     }),
     send({
-      to: env.MAIL_OPS_RECIPIENTS,
+      ...opsEnvelope(),
       replyTo: quote.customerEmail,
       subject: ops.subject,
       html: ops.html,
@@ -225,7 +253,7 @@ export async function sendQuotedEmail(booking: Booking): Promise<void> {
 
   await send({
     to: booking.customerEmail,
-    replyTo: env.MAIL_OPS_RECIPIENTS,
+    replyTo: CONTACT.email,
     subject: email.subject,
     html: email.html,
     text: email.text,
@@ -253,7 +281,7 @@ export async function sendPaymentLinkEmail(
   const email = buildPaymentLinkEmail(booking, vehicleName, payUrl, expiresAt);
   await send({
     to: booking.customerEmail,
-    replyTo: env.MAIL_OPS_RECIPIENTS,
+    replyTo: CONTACT.email,
     subject: email.subject,
     html: email.html,
     text: email.text,
@@ -277,7 +305,7 @@ export async function sendBookingUpdateEmail(booking: Booking): Promise<boolean>
   const email = buildBookingUpdateEmail(booking, vehicleName);
   return send({
     to: booking.customerEmail,
-    replyTo: env.MAIL_OPS_RECIPIENTS,
+    replyTo: CONTACT.email,
     subject: email.subject,
     html: email.html,
     text: email.text,
@@ -298,7 +326,7 @@ export async function sendQuoteUpdateEmail(quote: Quote): Promise<boolean> {
   const email = buildQuoteUpdateEmail(quote, payUrl);
   return send({
     to: quote.customerEmail,
-    replyTo: env.MAIL_OPS_RECIPIENTS,
+    replyTo: CONTACT.email,
     subject: email.subject,
     html: email.html,
     text: email.text,
@@ -337,13 +365,13 @@ export async function sendBookingChangedEmails(booking: Booking, changes: FieldC
   await Promise.allSettled([
     send({
       to: booking.customerEmail,
-      replyTo: env.MAIL_OPS_RECIPIENTS,
+      replyTo: CONTACT.email,
       subject: customer.subject,
       html: customer.html,
       text: customer.text,
     }),
     send({
-      to: env.MAIL_OPS_RECIPIENTS,
+      ...opsEnvelope(),
       replyTo: booking.customerEmail,
       subject: ops.subject,
       html: ops.html,
@@ -360,19 +388,26 @@ export async function sendQuoteChangedEmails(quote: Quote, changes: FieldChange[
   await Promise.allSettled([
     send({
       to: quote.customerEmail,
-      replyTo: env.MAIL_OPS_RECIPIENTS,
+      replyTo: CONTACT.email,
       subject: customer.subject,
       html: customer.html,
       text: customer.text,
     }),
     send({
-      to: env.MAIL_OPS_RECIPIENTS,
+      ...opsEnvelope(),
       replyTo: quote.customerEmail,
       subject: ops.subject,
       html: ops.html,
       text: ops.text,
     }),
   ]);
+}
+
+/** Both halves of the envelope in the log — a Bcc'd operator still shows up. */
+function recipients(message: Message): string {
+  const to = [message.to].flat();
+  const bcc = message.bcc ? [message.bcc].flat() : [];
+  return bcc.length ? `${to.join(", ")} (bcc ${bcc.join(", ")})` : to.join(", ");
 }
 
 function describe(error: unknown): string {

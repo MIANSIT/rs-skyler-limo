@@ -19,9 +19,15 @@ import type { FleetVehicle } from "@/lib/api/types";
  * There is one address, not a set of departmental ones. `weddings@` and
  * `corporate@` used to sit here and neither mailbox existed, so an enquiry sent
  * to either would have bounced.
+ *
+ * `support@rsskylerlimo.com` is the business's Namecheap Private Email box and
+ * the only address shown to a customer: it is what every email is sent from and
+ * what every "email us" points at (Oct 2026, replacing the old Yahoo address,
+ * which is now an internal notification recipient only — see
+ * `MAIL_OPS_RECIPIENTS` in `api/.env`). Mirrored in `api/src/emails/render.ts`.
  */
 export const contact = {
-  email: "rsskylerlimo@yahoo.com",
+  email: "support@rsskylerlimo.com",
   serviceArea: "All five boroughs of New York City",
 } as const;
 

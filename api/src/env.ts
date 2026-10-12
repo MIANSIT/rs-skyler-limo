@@ -95,8 +95,9 @@ const schema = z.object({
    * working without handing every developer the live mailbox, and means a
    * missing password degrades to "no email" rather than "no bookings".
    *
-   * MAIL_APP_PASSWORD must be an **app password**, not the account password.
-   * Yahoo and Gmail both refuse plain account passwords over SMTP.
+   * MAIL_APP_PASSWORD is the mailbox's own password on Namecheap Private
+   * Email. On a provider that issues app passwords (Yahoo, Gmail) it must be
+   * one of those — neither accepts a plain account password over SMTP.
    *
    * ⚠️  This is `MAIL_USER`, not `MAIL`, and must stay that way.
    *
@@ -110,8 +111,16 @@ const schema = z.object({
   MAIL_USER: z.email().optional(),
   MAIL_APP_PASSWORD: z.string().min(1).optional(),
 
-  /** Defaults suit Yahoo, which is where the business mailbox lives. */
-  MAIL_HOST: z.string().min(1).default("smtp.mail.yahoo.com"),
+  /**
+   * Defaults suit Namecheap Private Email, where the business mailbox
+   * (`support@rsskylerlimo.com`) lives. It replaced Yahoo in Oct 2026; the old
+   * Yahoo address is now an internal notification recipient, not a sender.
+   *
+   * Namecheap's TLS handshake is slow — measured at ~2s warm and up to ~8s on
+   * a cold connection — which is why the transport in `services/mail.ts` pools
+   * and why no send is ever awaited on a request path.
+   */
+  MAIL_HOST: z.string().min(1).default("mail.privateemail.com"),
   /** 465 is implicit TLS. Port 587 would need `secure` false and STARTTLS. */
   MAIL_PORT: z.coerce.number().int().positive().default(465),
   MAIL_FROM_NAME: z.string().min(1).default("RSSkyler Limo"),
@@ -125,9 +134,7 @@ const schema = z.object({
    */
   MAIL_OPS_RECIPIENTS: z
     .string()
-    .default(
-      "raselislam9964@gmail.com,mhyeasin357@gmail.com,miansofficial@gmail.com",
-    )
+    .default("support@rsskylerlimo.com")
     .transform((value) =>
       value
         .split(",")
