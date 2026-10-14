@@ -44,11 +44,14 @@ export const airportInputSchema = z.object({
   code: airportCodeField,
   name: z.string().trim().min(2, "Enter the airport's name.").max(120),
   isActive: z.boolean().default(true),
+  /** Quote every trip through this airport, whatever is on its rate card. */
+  quoteOnly: z.boolean().default(false),
 });
 
 export const airportUpdateSchema = z.object({
   name: z.string().trim().min(2, "Enter the airport's name.").max(120).optional(),
   isActive: z.boolean().optional(),
+  quoteOnly: z.boolean().optional(),
 });
 
 export const tripTypes = ["airport", "point-to-point", "hourly"] as const;

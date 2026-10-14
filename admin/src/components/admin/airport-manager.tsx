@@ -34,6 +34,55 @@ function Submit({ children, gold }: { children: string; gold?: boolean }) {
   );
 }
 
+/**
+ * A labelled on/off switch that is a real checkbox underneath.
+ *
+ * The input keeps its name and its `checked` state in the posted `FormData`,
+ * so the server action reads it exactly as it read the plain checkboxes this
+ * replaced — the track and knob are a `peer`-driven span over an `sr-only`
+ * box, not a `role="switch"` button needing its own hidden field. Midnight
+ * when on: gold is reserved for the page's one primary action.
+ */
+function Switch({
+  id,
+  name,
+  defaultChecked,
+  label,
+  hint,
+}: {
+  id: string;
+  name: string;
+  defaultChecked?: boolean;
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <label htmlFor={id} className="flex cursor-pointer items-start gap-3">
+      <input
+        id={id}
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        className="peer sr-only"
+      />
+      {/* The knob is a child of the track, not a sibling of the input, so its
+          `peer-checked` variant is written on the track and reaches in. */}
+      <span
+        aria-hidden
+        className="mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full border border-midnight/20 bg-midnight/10 p-0.5 transition-colors peer-checked:border-midnight peer-checked:bg-midnight peer-checked:[&>span]:translate-x-4 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-midnight"
+      >
+        <span className="h-4 w-4 rounded-full bg-white shadow-sm transition-transform" />
+      </span>
+      <span className="flex flex-col gap-0.5">
+        <span className="font-sans text-[14px] leading-tight text-charcoal/80">{label}</span>
+        {hint ? (
+          <span className="font-sans text-[13px] leading-[1.5] text-charcoal/60">{hint}</span>
+        ) : null}
+      </span>
+    </label>
+  );
+}
+
 function Message({ state }: { state: AirportFormState }) {
   if (state.status === "saved") {
     return (
@@ -107,10 +156,20 @@ function AddAirport() {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 font-sans text-[14px] text-charcoal/80">
-        <input type="checkbox" name="isActive" defaultChecked />
-        Offer it on the booking form
-      </label>
+      <div className="flex flex-col gap-3">
+        <Switch
+          id="new-is-active"
+          name="isActive"
+          defaultChecked
+          label="Offer it on the booking form"
+        />
+        <Switch
+          id="new-quote-only"
+          name="quoteOnly"
+          label="Quote only — no published fare"
+          hint="Customers see “Get quote” instead of a price and a person prices the trip."
+        />
+      </div>
 
       <div className="flex flex-wrap items-center gap-4">
         <Submit gold>Add airport</Submit>
@@ -202,17 +261,35 @@ function AirportRow({ airport }: { airport: AdminAirport }) {
               className={inputClass}
             />
           </div>
-          <label className="flex items-center gap-2 pb-2 font-sans text-[14px] text-charcoal/80">
-            <input type="checkbox" name="isActive" defaultChecked={airport.isActive} />
-            On the booking form
-          </label>
           <Submit>Save</Submit>
         </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
+          <Switch
+            id={`${id}-active`}
+            name="isActive"
+            defaultChecked={airport.isActive}
+            label="On the booking form"
+          />
+          <Switch
+            id={`${id}-quote-only`}
+            name="quoteOnly"
+            defaultChecked={airport.quoteOnly}
+            label="Quote only — no published fare"
+            hint="Customers see “Get quote” instead of a price. The rates below are kept."
+          />
+        </div>
+
         <p className="font-sans text-[13px] text-charcoal/60">
-          {airport.rateCount} published fare{airport.rateCount === 1 ? "" : "s"} ·{" "}
+          {airport.rateCount} fare{airport.rateCount === 1 ? "" : "s"} on its rate
+          card ·{" "}
           {airport.bookingCount} booking{airport.bookingCount === 1 ? "" : "s"}
           {airport.isActive ? "" : " · hidden from customers"}
+          {airport.quoteOnly
+            ? " · quoted by hand"
+            : airport.rateCount === 0
+              ? " · no fare published, so it quotes"
+              : ""}
         </p>
         <Message state={state} />
       </form>

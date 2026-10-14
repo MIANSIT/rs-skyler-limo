@@ -166,7 +166,7 @@ export function buildBookingEmail(
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           ${
             fixed
-              ? "Tolls and gratuity included, sales tax as shown. This is the price, not an estimate."
+              ? "Your estimated fare is based on the trip details provided above. The final fare may vary if you change your pickup or drop-off location, add or remove stops, select a different vehicle, or if the route changes and requires additional tolls."
               : "A reservations agent is pricing this trip and will come back to you. Nothing is charged until you agree the fare."
           }${
             booking.paymentMethod === "cash"

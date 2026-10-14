@@ -52,7 +52,8 @@ export function BookingEditForm({
 }: {
   booking: Booking;
   vehicles: Vehicle[];
-  airports: Airport[];
+  /** Code and name only: this form picks an airport, it does not price one. */
+  airports: Pick<Airport, "code" | "name">[];
 }) {
   const [state, formAction] = useActionState<EditFormState, FormData>(
     updateBookingDetails,

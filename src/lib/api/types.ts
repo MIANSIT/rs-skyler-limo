@@ -43,7 +43,18 @@ export type PlaceSuggestion = {
   secondary: string;
 };
 
-export type Airport = { code: string; name: string };
+export type Airport = {
+  code: string;
+  name: string;
+  /**
+   * The operator prices this airport by hand. No fare is published for it, so
+   * every price it would show reads "Get quote" instead — see
+   * `AirportRateTable` and the booking form's preview. The API filters its
+   * rates out of `rates` below and quotes it on submission, so this flag only
+   * lets the page say *why* rather than leave a gap.
+   */
+  quoteOnly: boolean;
+};
 
 export type PublishedRate = {
   airportCode: string;

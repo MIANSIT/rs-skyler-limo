@@ -44,6 +44,7 @@ export async function createAirport(
         code: String(formData.get("code") ?? ""),
         name: String(formData.get("name") ?? ""),
         isActive: formData.get("isActive") === "on",
+        quoteOnly: formData.get("quoteOnly") === "on",
       },
     });
   } catch (error) {
@@ -71,6 +72,7 @@ export async function updateAirport(
       body: {
         name: String(formData.get("name") ?? ""),
         isActive: formData.get("isActive") === "on",
+        quoteOnly: formData.get("quoteOnly") === "on",
       },
     });
   } catch (error) {

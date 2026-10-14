@@ -27,8 +27,8 @@ export type Tone = "light" | "dark";
  */
 export const controlByTone: Record<Tone, string> = {
   light:
-    "border-midnight/20 bg-white text-midnight placeholder:text-charcoal/45 hover:border-midnight/40 focus:border-midnight",
-  dark: "border-white/25 bg-white/10 text-white placeholder:text-white/40 hover:border-white/45 focus:border-white/70",
+    "border-midnight/20 bg-white text-midnight placeholder:text-charcoal/45 hover:border-midnight/40 focus:border-midnight aria-invalid:border-red-700 aria-invalid:bg-red-700/5 aria-invalid:hover:border-red-700 aria-invalid:focus:border-red-700",
+  dark: "border-white/25 bg-white/10 text-white placeholder:text-white/40 hover:border-white/45 focus:border-white/70 aria-invalid:border-red-300 aria-invalid:bg-red-300/10 aria-invalid:hover:border-red-300 aria-invalid:focus:border-red-300",
 };
 
 /**
@@ -281,6 +281,10 @@ export function Select({
         // operates. A second element sharing `id` would be invalid HTML and
         // would make `htmlFor` resolution ambiguous.
         name={name}
+        // The key `booking-form.tsx` reports a missing value under. A carrier
+        // without a `name` (the airport select, whose value travels in a
+        // hidden input) would otherwise be unattributable.
+        data-field={id}
         required={required}
         disabled={disabled}
         defaultValue={current}

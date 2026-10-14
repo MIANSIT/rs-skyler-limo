@@ -29,6 +29,7 @@ export function AddressField({
   onResolve,
   onTypingStart,
   onTextChange,
+  "aria-invalid": ariaInvalid,
 }: {
   id: string;
   name: string;
@@ -47,6 +48,9 @@ export function AddressField({
   onTypingStart?: () => void;
   /** The text as it stands, typed or picked — for a live trip summary. */
   onTextChange?: (text: string) => void;
+  /** Flagged by the form when this address is missing, so the box itself
+   *  turns red beside the message `Field` shows. */
+  "aria-invalid"?: boolean;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -142,6 +146,8 @@ export function AddressField({
         required={required}
         tone={tone}
         autoComplete="off"
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaInvalid ? `${id}-error` : undefined}
         role={enabled ? "combobox" : undefined}
         aria-expanded={enabled ? open : undefined}
         aria-controls={enabled ? listId : undefined}

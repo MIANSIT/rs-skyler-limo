@@ -5,6 +5,12 @@ export type AdminAirport = {
   code: string;
   name: string;
   isActive: boolean;
+  /**
+   * Price this airport by hand. Its rate card is kept but nothing on it is
+   * published: the website shows "Get quote" wherever a price would go and
+   * `decideFare` quotes every trip through it.
+   */
+  quoteOnly: boolean;
   displayOrder: number;
   /** Vehicle classes that currently have a published fare here. */
   rateCount: number;
@@ -16,13 +22,14 @@ type AirportRow = RowDataPacket & {
   code: string;
   name: string;
   is_active: number;
+  quote_only: number;
   display_order: number;
   rate_count: number;
   booking_count: number;
 };
 
 const SELECT = `
-  SELECT a.code, a.name, a.is_active, a.display_order,
+  SELECT a.code, a.name, a.is_active, a.quote_only, a.display_order,
          (SELECT COUNT(*) FROM airport_rates r WHERE r.airport_code = a.code) AS rate_count,
          (SELECT COUNT(*) FROM bookings b WHERE b.airport_code = a.code) AS booking_count
     FROM airports a`;
@@ -32,6 +39,7 @@ function toAirport(row: AirportRow): AdminAirport {
     code: row.code,
     name: row.name,
     isActive: row.is_active === 1,
+    quoteOnly: row.quote_only === 1,
     displayOrder: row.display_order,
     rateCount: Number(row.rate_count),
     bookingCount: Number(row.booking_count),
@@ -55,6 +63,7 @@ export async function createAirport(input: {
   code: string;
   name: string;
   isActive: boolean;
+  quoteOnly: boolean;
 }): Promise<AdminAirport> {
   const existing = await queryOne<RowDataPacket>(
     `SELECT 1 FROM airports WHERE code = :code LIMIT 1`,
@@ -66,31 +75,41 @@ export async function createAirport(input: {
 
   // New airports go to the end of the list.
   await execute(
-    `INSERT INTO airports (code, name, is_active, display_order)
-     SELECT :code, :name, :isActive, COALESCE(MAX(display_order), 0) + 1
+    `INSERT INTO airports (code, name, is_active, quote_only, display_order)
+     SELECT :code, :name, :isActive, :quoteOnly, COALESCE(MAX(display_order), 0) + 1
        FROM airports`,
-    { code: input.code, name: input.name, isActive: input.isActive ? 1 : 0 },
+    {
+      code: input.code,
+      name: input.name,
+      isActive: input.isActive ? 1 : 0,
+      quoteOnly: input.quoteOnly ? 1 : 0,
+    },
   );
 
   return (await getAirport(input.code))!;
 }
 
-/** The code is the key rates and bookings refer to, so only name and visibility change. */
+/**
+ * The code is the key rates and bookings refer to, so only the name and the
+ * two switches change.
+ */
 export async function updateAirport(
   code: string,
-  patch: { name?: string; isActive?: boolean },
+  patch: { name?: string; isActive?: boolean; quoteOnly?: boolean },
 ): Promise<AdminAirport> {
   if (!(await getAirport(code))) throw ApiError.notFound("That airport no longer exists.");
 
   await execute(
     `UPDATE airports
         SET name = COALESCE(:name, name),
-            is_active = COALESCE(:isActive, is_active)
+            is_active = COALESCE(:isActive, is_active),
+            quote_only = COALESCE(:quoteOnly, quote_only)
       WHERE code = :code`,
     {
       code,
       name: patch.name ?? null,
       isActive: patch.isActive === undefined ? null : patch.isActive ? 1 : 0,
+      quoteOnly: patch.quoteOnly === undefined ? null : patch.quoteOnly ? 1 : 0,
     },
   );
 

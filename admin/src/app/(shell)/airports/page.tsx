@@ -25,7 +25,11 @@ export default async function AirportsPage() {
           <Link href="/rates" className="text-midnight underline underline-offset-4">
             Rates
           </Link>{" "}
-          page — an airport with no fare simply quotes.
+          page — an airport with no fare simply quotes. Turn on{" "}
+          <strong className="font-semibold text-midnight">Quote only</strong> to
+          quote an airport that does have fares: the website shows “Get quote”
+          in place of every price and the rate card is kept for when you switch
+          it back.
         </p>
       </div>
 

@@ -299,7 +299,16 @@ export type FleetMeta = {
 /* Airport rate card                                                          */
 /* -------------------------------------------------------------------------- */
 
-export type Airport = { code: string; name: string };
+export type Airport = {
+  code: string;
+  name: string;
+  /**
+   * Price this airport by hand. Its rate card is kept and still editable, but
+   * nothing on it is published: the website shows "Get quote" wherever a price
+   * would go and the API quotes every trip through it.
+   */
+  quoteOnly: boolean;
+};
 
 /** An airport as the operator manages it, with what depends on it. */
 export type AdminAirport = Airport & {
