@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
-import { Input } from "@/components/ui/field";
+import { Input, popupByTone, scrollbarByTone } from "@/components/ui/field";
+import { PopoverLayer, popoverLayer, usePopoverStyle } from "@/components/ui/popover";
 import { clsx } from "@/lib/clsx";
 import type { PlaceSuggestion } from "@/lib/api/types";
 
@@ -59,7 +60,11 @@ export function AddressField({
   const [placeId, setPlaceId] = useState<string | null>(null);
 
   const listId = useId();
+  const dark = tone === "dark";
+
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   // Bumped on every keystroke so a slow response cannot overwrite a newer one.
   const requestId = useRef(0);
 
@@ -109,7 +114,12 @@ export function AddressField({
     if (!open) return;
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
+      // The list renders into `document.body` (see `ui/popover.tsx`), so a tap
+      // on a suggestion is not inside `boxRef` and would otherwise close the
+      // list before the choice landed.
+      const target = event.target as Node;
+      if (boxRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      setOpen(false);
     };
 
     document.addEventListener("pointerdown", onPointerDown);
@@ -122,6 +132,10 @@ export function AddressField({
    * to it.
    */
   const visible = value.trim().length >= 3 ? suggestions : [];
+
+  const listStyle = usePopoverStyle(inputRef, enabled && open && visible.length > 0, {
+    width: "anchor",
+  });
 
   const choose = (suggestion: PlaceSuggestion) => {
     const text = [suggestion.primary, suggestion.secondary]
@@ -139,6 +153,7 @@ export function AddressField({
   return (
     <div ref={boxRef} className="relative">
       <Input
+        ref={inputRef}
         id={id}
         name={name}
         value={value}
@@ -187,38 +202,61 @@ export function AddressField({
       <input type="hidden" name={`${name}PlaceId`} value={placeId ?? ""} />
 
       {enabled && open && visible.length > 0 ? (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto border border-midnight/20 bg-white shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]"
-        >
-          {visible.map((suggestion, index) => (
-            <li key={suggestion.placeId} role="option" aria-selected={index === active}>
-              <button
-                type="button"
-                // `onMouseDown` rather than `onClick`: the input's blur would
-                // otherwise close the list before the click landed.
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  choose(suggestion);
-                }}
-                className={clsx(
-                  "block w-full px-4 py-2.5 text-left transition-colors",
-                  index === active ? "bg-grey" : "hover:bg-grey",
-                )}
-              >
-                <span className="block text-[15px] text-midnight">
-                  {suggestion.primary}
-                </span>
-                {suggestion.secondary ? (
-                  <span className="block text-[13px] text-charcoal/70">
-                    {suggestion.secondary}
+        <PopoverLayer>
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            style={listStyle}
+            className={clsx(
+              popoverLayer,
+              "overflow-y-auto rounded-sm border shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
+              popupByTone[tone],
+              scrollbarByTone[tone],
+            )}
+          >
+            {visible.map((suggestion, index) => (
+              <li key={suggestion.placeId} role="option" aria-selected={index === active}>
+                <button
+                  type="button"
+                  // `onMouseDown` rather than `onClick`: the input's blur would
+                  // otherwise close the list before the click landed.
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    choose(suggestion);
+                  }}
+                  className={clsx(
+                    // 44px tall: a suggestion is a touch target first.
+                    "block min-h-11 w-full px-4 py-2.5 text-left transition-colors",
+                    dark
+                      ? index === active
+                        ? "bg-white/10"
+                        : "hover:bg-white/10"
+                      : index === active
+                        ? "bg-grey"
+                        : "hover:bg-grey",
+                  )}
+                >
+                  <span
+                    className={clsx("block text-[15px]", dark ? "text-white" : "text-midnight")}
+                  >
+                    {suggestion.primary}
                   </span>
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
+                  {suggestion.secondary ? (
+                    <span
+                      className={clsx(
+                        "block text-[13px]",
+                        dark ? "text-white/60" : "text-charcoal/70",
+                      )}
+                    >
+                      {suggestion.secondary}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </PopoverLayer>
       ) : null}
     </div>
   );
