@@ -81,6 +81,12 @@ const errorByTone: Record<Tone, string> = {
   dark: "text-red-300",
 };
 
+const invalidControlByTone: Record<Tone, string> = {
+  light:
+    "[&_input]:border-red-700 [&_textarea]:border-red-700 [&_[aria-haspopup]]:border-red-700 [&_input]:bg-red-50 [&_textarea]:bg-red-50 [&_[aria-haspopup]]:bg-red-50 [&_input]:ring-1 [&_textarea]:ring-1 [&_[aria-haspopup]]:ring-1 [&_input]:ring-red-700 [&_textarea]:ring-red-700 [&_[aria-haspopup]]:ring-red-700",
+  dark: "[&_input]:border-red-300 [&_textarea]:border-red-300 [&_[aria-haspopup]]:border-red-300 [&_input]:bg-red-500/10 [&_textarea]:bg-red-500/10 [&_[aria-haspopup]]:bg-red-500/10 [&_input]:ring-1 [&_textarea]:ring-1 [&_[aria-haspopup]]:ring-1 [&_input]:ring-red-300 [&_textarea]:ring-red-300 [&_[aria-haspopup]]:ring-red-300",
+};
+
 export function Label({
   htmlFor,
   tone = "light",
@@ -123,7 +129,16 @@ export function Field({
   className?: string;
 }) {
   return (
-    <div className={clsx("flex flex-col gap-2", className)}>
+    <div
+      className={clsx(
+        "flex flex-col gap-2",
+        // A field with a server message gets a red border and ring on whatever
+        // control it wraps — input, textarea, or the custom select/date/time
+        // triggers — so the eye lands on the field, not only the line below.
+        error && invalidControlByTone[tone],
+        className,
+      )}
+    >
       <Label htmlFor={id} tone={tone}>
         {label}
       </Label>
@@ -145,6 +160,46 @@ export function Input({
   ...props
 }: { tone?: Tone } & ComponentProps<"input">) {
   return <input className={clsx(control, controlByTone[tone], className)} {...props} />;
+}
+
+/** `(212) 555-0900` as the digits are typed. A leading country code is dropped. */
+export function formatUsPhone(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length > 10 && digits.startsWith("1")) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/**
+ * A US phone number field: digits only, shaped as `(212) 555-0900` while
+ * typing, and the browser's own validation holds anything else back. The API
+ * checks again — this is the convenience, that is the rule.
+ */
+export function PhoneInput({
+  onInput,
+  defaultValue,
+  ...props
+}: { tone?: Tone } & Omit<ComponentProps<"input">, "type">) {
+  return (
+    <Input
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel-national"
+      placeholder="(212) 555-0900"
+      maxLength={14}
+      pattern="\(\d{3}\) \d{3}-\d{4}"
+      title="A US phone number, like (212) 555-0900"
+      defaultValue={typeof defaultValue === "string" ? formatUsPhone(defaultValue) : defaultValue}
+      onInput={(event) => {
+        event.currentTarget.value = formatUsPhone(event.currentTarget.value);
+        onInput?.(event);
+      }}
+      {...props}
+    />
+  );
 }
 
 /* -------------------------------------------------------------------------- */

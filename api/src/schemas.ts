@@ -86,14 +86,28 @@ export const serviceTypes = [
   "other",
 ] as const;
 
-/** Loose on purpose: New York numbers arrive in a dozen shapes and the operator
- *  calls the customer back regardless. Reject only what is clearly not a number. */
+const US_PHONE_MESSAGE = "Enter a US phone number, like (212) 555-0900.";
+
+/**
+ * US numbers only. Typed in any common shape — `212-555-0900`, `+1 212 555
+ * 0900`, `(212) 555-0900` — and stored as `(212) 555-0900`. Tracking compares
+ * the last ten digits, so a customer who retypes it another way still matches.
+ * Area code and exchange cannot start with 0 or 1 (NANP).
+ */
 const phone = z
   .string()
   .trim()
-  .min(7, "Enter a contact number.")
-  .max(40)
-  .regex(/^[0-9+()\-.\s]+$/, "Enter a contact number.");
+  .max(40, US_PHONE_MESSAGE)
+  .regex(/^\+?[0-9()\-.\s]+$/, US_PHONE_MESSAGE)
+  .transform((value, context) => {
+    let digits = value.replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+    if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+      context.addIssue({ code: "custom", message: US_PHONE_MESSAGE });
+      return z.NEVER;
+    }
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  });
 
 export const createBookingSchema = z.object({
   tripType: z.enum(tripTypes),

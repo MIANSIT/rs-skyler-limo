@@ -62,6 +62,34 @@ export default async function PaymentCompletePage({
 
       <Section tone="light">
         <div className="max-w-2xl">
+          {paid ? (
+            <div role="status" className="mb-10 flex gap-4 border-l-4 border-gold bg-grey px-6 py-6">
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="mt-1 size-7 shrink-0 text-midnight"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="m7.5 12.5 3 3 6-6.5" />
+              </svg>
+              <div>
+                <p className="font-display text-[24px] leading-[1.2] font-semibold text-midnight">
+                  Payment successful. Thank you.
+                </p>
+                <p className="mt-2 text-[16px] leading-[1.7] text-charcoal">
+                  Your booking is paid in full and there is nothing more to do before your trip. Keep
+                  your reference number below; you can use it to track or change your booking at any
+                  time.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {result ? (
             <dl className="flex flex-col">
               <div className="border-t border-midnight/10 py-5">
@@ -75,7 +103,7 @@ export default async function PaymentCompletePage({
               {paid && result.amountCents !== null ? (
                 <div className="border-t border-b border-midnight/10 py-5">
                   <dt className="font-sans text-[13px] font-medium tracking-[0.12em] text-charcoal/70 uppercase">
-                    Paid by card
+                    Amount paid by card
                   </dt>
                   <dd className="mt-1 font-sans text-[20px] font-semibold text-midnight tabular-nums">
                     {formatFare(result.amountCents)}

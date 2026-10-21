@@ -163,13 +163,15 @@ export default async function BookingDetailPage({
                   }`}
                 />
               ) : null}
-              {booking.childSeats > 0 ? (
-                <DetailRow
-                  label="Child seats"
-                  value={`${booking.childSeats} requested — fit before pickup`}
-                  numeric
-                />
-              ) : null}
+              <DetailRow
+                label="Child seats"
+                value={
+                  booking.childSeats > 0
+                    ? `${booking.childSeats} requested — fit before pickup`
+                    : "None"
+                }
+                numeric
+              />
               {booking.flightNumber || booking.airline ? (
                 <DetailRow
                   label="Flight"

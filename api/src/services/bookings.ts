@@ -18,7 +18,7 @@ import type {
   listBookingsSchema,
   updateBookingSchema,
 } from "../schemas.js";
-import type { FareDecision } from "./pricing.js";
+import { CHILD_SEAT_FEE_CENTS, type FareDecision } from "./pricing.js";
 
 type BookingRow = RowDataPacket & {
   id: number;
@@ -442,6 +442,17 @@ export async function updateBooking(
 
     // The operator edits the fare before tax and the rate; the total and the
     // tax are worked out here, so the three can never disagree.
+    // Child seats are charged, so moving the count moves the fare — unless the
+    // operator typed a different fare in the same save, which then wins.
+    const seatDelta =
+      patch.childSeats !== undefined ? patch.childSeats - existing.childSeats : 0;
+    const typedFare = patch.fareCents !== undefined && patch.fareCents !== existing.fareCents;
+    if (seatDelta !== 0 && !typedFare && existing.fareCents !== null) {
+      patch = {
+        ...patch,
+        fareCents: Math.max(0, existing.fareCents + seatDelta * CHILD_SEAT_FEE_CENTS),
+      };
+    }
     const fareMoved = patch.fareCents !== undefined && patch.fareCents !== existing.fareCents;
     const rateMoved =
       patch.taxRate !== undefined && normaliseRate(patch.taxRate) !== existing.taxRate;

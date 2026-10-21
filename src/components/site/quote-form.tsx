@@ -9,7 +9,7 @@ import { EmailInput } from "@/components/site/email-input";
 import { FormGuard } from "@/components/site/form-guard";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-time-field";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, PhoneInput, Select, Textarea } from "@/components/ui/field";
 import { contact } from "@/lib/content";
 import { submitQuote, type QuoteFormState } from "@/lib/public/actions";
 import { useConversion } from "@/lib/use-conversion";
@@ -243,11 +243,9 @@ export function QuoteForm({
           hint="The number we should call you back on."
           error={fieldError("customerPhone")}
         >
-          <Input
+          <PhoneInput
             id="quote-phone"
             name="phone"
-            type="tel"
-            autoComplete="tel"
             required
             {...restore("phone")}
           />

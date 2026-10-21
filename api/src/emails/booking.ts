@@ -219,7 +219,9 @@ export function buildBookingEmail(
   /* ------------------------------------------------------------- wrapper */
 
   const headline = isOps
-    ? `New ${fixed ? "booking" : "quote request"} — ${booking.reference}`
+    ? fixed
+      ? "You have a new booking."
+      : "You have a new quote request."
     : fixed
       ? "Your car is booked."
       : "We have your request.";
@@ -235,14 +237,14 @@ export function buildBookingEmail(
       : `Thank you, ${firstName(booking.customerName)}. We have everything we need and a reservations agent is pricing your trip now. Your reference is below — nothing is reserved or charged until you agree the fare.`;
 
   const subject = isOps
-    ? `[${fixed ? "BOOKING" : "QUOTE"}] ${booking.reference} · ${formatDate(booking.pickupAt)} · ${booking.customerName}`
+    ? `${fixed ? "New booking received" : "New quote request received"} — ${booking.customerName} · ${formatDate(booking.pickupAt)} · ${booking.reference}`
     : `${fixed ? "Booking confirmed" : "Request received"} — ${booking.reference}`;
 
   const html = shell({
     preheader: isOps
       ? `${booking.customerName} · ${booking.pickup} to ${booking.destination} · ${formatDateTime(booking.pickupAt)}`
       : `Reference ${booking.reference} · ${formatDateTime(booking.pickupAt)} · ${booking.pickup} to ${booking.destination}`,
-    eyebrow: isOps ? "Reservations desk" : "Reservation",
+    eyebrow: isOps ? (fixed ? "New booking" : "New quote request") : "Reservation",
     headline,
     intro,
     headerFacts: [
@@ -285,7 +287,7 @@ function plainText(
   const fixed = booking.pricingMode === "fixed";
   const lines = [
     audience === "ops"
-      ? `NEW ${fixed ? "BOOKING" : "QUOTE REQUEST"} — ${booking.reference}`
+      ? `YOU HAVE A NEW ${fixed ? "BOOKING" : "QUOTE REQUEST"} — ${booking.reference}`
       : `RSSKYLER LIMO — ${fixed ? "BOOKING CONFIRMED" : "REQUEST RECEIVED"}`,
     "",
     `Reference:  ${booking.reference}`,

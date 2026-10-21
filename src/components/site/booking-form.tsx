@@ -22,6 +22,7 @@ import {
   Field,
   glassCard,
   Input,
+  PhoneInput,
   RadioCards,
   Select,
   Textarea,
@@ -59,6 +60,14 @@ const SERVICE_TYPES = [
  * Card goes through Stripe Checkout: a fixed fare straight after booking, a
  * quoted trip from the tracking page once it has a price.
  */
+/**
+ * Cash on delivery is switched off for new bookings but kept in the code, the
+ * API and the admin, so existing cash bookings still read correctly and turning
+ * it back on is this one flag. If card payment is unavailable it is offered
+ * anyway: a form with no way to pay cannot be submitted.
+ */
+const CASH_ON_DELIVERY_ENABLED = false;
+
 const PAYMENT_OPTIONS = [
   {
     value: "card",
@@ -327,8 +336,10 @@ export function BookingForm({
    */
   const paymentOptions = useMemo(
     () =>
-      PAYMENT_OPTIONS.filter(
-        (option) => option.value !== "card" || options.cardPaymentsEnabled,
+      PAYMENT_OPTIONS.filter((option) =>
+        option.value === "card"
+          ? options.cardPaymentsEnabled
+          : CASH_ON_DELIVERY_ENABLED || !options.cardPaymentsEnabled,
       ),
     [options.cardPaymentsEnabled],
   );
@@ -425,7 +436,7 @@ export function BookingForm({
         <p className={clsx("mt-4 text-[15px] leading-[1.7]", body)}>
           Pick-up times are New York time.
           {state.paymentMethod === "cash"
-            ? " You have chosen cash on delivery: pay your chauffeur at the end of the trip."
+            ? " Payment is cash on delivery: pay your chauffeur at the end of the trip."
             : state.pricingMode === "quote"
               ? " Once we have priced the trip you can pay by card from the tracking page."
               : " You can pay by card from the tracking page."}
@@ -867,7 +878,7 @@ export function BookingForm({
               error={fieldError("customerPhone")}
               hint="You will need this to track the booking."
             >
-              <Input id="phone" name="phone" type="tel" tone={tone} autoComplete="tel" required {...restore("phone")} />
+              <PhoneInput id="phone" name="phone" tone={tone} required {...restore("phone")} />
             </Field>
 
             <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">

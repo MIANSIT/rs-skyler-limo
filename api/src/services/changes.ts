@@ -500,7 +500,8 @@ export async function changeBooking(
     flightNumber: isAirport ? opt(input.flightNumber) : booking.flightNumber,
     notes: opt(input.notes),
     customerName: input.customerName.trim(),
-    customerPhone: input.customerPhone.trim(),
+    // The same number in a different shape is not a change.
+    customerPhone: samePhone(input.customerPhone, booking.customerPhone) ? booking.customerPhone : input.customerPhone,
   };
 
   /* ---- What actually changed ---- */
@@ -560,15 +561,17 @@ export async function changeBooking(
   let resolved: FareDecision | null = null;
 
   if (fareInputs.length > 0) {
+    const onlySeats = fareInputs.length === 1 && fareInputs[0] === "childSeats";
+    const seatsOnlyTrip = TRIP_KEYS.filter((key) => changed.has(key)).every((key) => key === "childSeats");
     if (
-      fareInputs.length === 1 &&
-      fareInputs[0] === "childSeats" &&
-      booking.pricingMode === "fixed" &&
-      booking.fareCents !== null
+      onlySeats &&
+      booking.fareCents !== null &&
+      (booking.pricingMode === "fixed" || seatsOnlyTrip)
     ) {
-      // Only the seats moved on a fixed fare: no need to ask Google again.
-      nextFare = booking.fareCents + (next.childSeats - booking.childSeats) * CHILD_SEAT_FEE_CENTS;
-      reason = "Fixed fare, including the child seats you asked for, plus sales tax.";
+      // Only the seats moved on a priced booking: no need to ask Google again,
+      // and a price an operator set is kept rather than thrown away.
+      nextFare = Math.max(0, booking.fareCents + (next.childSeats - booking.childSeats) * CHILD_SEAT_FEE_CENTS);
+      reason = "Your fare, including the child seats you asked for, plus sales tax.";
     } else {
       const stored = await queryOne<
         RowDataPacket & { pickup_place_id: string | null; destination_place_id: string | null }
@@ -735,7 +738,8 @@ export async function changeQuote(quote: Quote, input: ChangeQuoteInput): Promis
     passengers: input.passengers ?? null,
     company: opt(input.company),
     customerName: input.customerName.trim(),
-    customerPhone: input.customerPhone.trim(),
+    // The same number in a different shape is not a change.
+    customerPhone: samePhone(input.customerPhone, quote.customerPhone) ? quote.customerPhone : input.customerPhone,
     details: input.details.trim(),
   };
 

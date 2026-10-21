@@ -7,11 +7,11 @@ import { gsap, useGSAP } from "@/lib/gsap";
 const places = [
   "Manhattan",
   "JFK",
-  "Brooklyn",
+  "New Jersey",
   "LaGuardia",
   "Queens",
   "Newark",
-  "The Bronx",
+  "Long Island",
   "Midtown",
   "Staten Island",
   "The Bridges",

@@ -74,6 +74,12 @@ export type TrackedBooking = {
   pickup: string;
   destination: string;
   vehicleClass: string;
+  passengers: number;
+  bags: number;
+  childSeats: number;
+  airline: string | null;
+  flightNumber: string | null;
+  notes: string | null;
   /** What the customer pays, sales tax included. */
   quotedTotalCents: number | null;
   fareCents: number | null;

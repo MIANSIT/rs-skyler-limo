@@ -54,7 +54,7 @@ const collected = [
   {
     term: "Payment details",
     detail:
-      "Whether you chose to pay by card or cash on delivery, and whether the trip has been paid. Card details are entered on Stripe's page and never reach our systems. We keep only Stripe's reference for the payment, so we can find it if you ask.",
+      "Whether the trip has been paid by card. Card details are entered on Stripe's page and never reach our systems. We keep only Stripe's reference for the payment, so we can find it if you ask.",
   },
 ];
 

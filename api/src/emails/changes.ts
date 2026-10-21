@@ -141,10 +141,9 @@ export function buildBookingChangedEmail(
   const ops = audience === "ops";
 
   const subject = ops
-    ? `Customer changed ${formatReference(booking.reference)} — ${booking.customerName}`
+    ? `Booking changed by customer — ${booking.customerName} · ${formatReference(booking.reference)}`
     : `Your booking was updated — ${formatReference(booking.reference)}`;
-  const headline = ops ? "A customer changed their booking." : "Your booking is updated.";
-  const intro = ops
+  const headline = ops ? "A customer changed their booking." : "Your booking is updated.";  const intro = ops
     ? `${booking.customerName} changed ${formatReference(booking.reference)} from the tracking page, after confirming the email on the booking. It is tagged in the dashboard until someone marks it reviewed.`
     : `Thank you, ${firstName(booking.customerName)}. We have saved your changes to ${formatReference(booking.reference)}. The reference stays the same.`;
   const after = ops
@@ -231,7 +230,7 @@ export function buildQuoteChangedEmail(
   const repriced = changes.some((change) => change.label === "Agreed price");
 
   const subject = ops
-    ? `Customer changed ${formatReference(quote.reference)} — ${quote.customerName}`
+    ? `Quote request changed by customer — ${quote.customerName} · ${formatReference(quote.reference)}`
     : `Your request was updated — ${formatReference(quote.reference)}`;
   const headline = ops ? "A customer changed their request." : "Your request is updated.";
   const intro = ops

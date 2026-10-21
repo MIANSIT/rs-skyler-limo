@@ -50,7 +50,14 @@ function Field({
   className?: string;
 }) {
   return (
-    <div className={clsx("flex flex-col gap-2", className)}>
+    <div
+      className={clsx(
+        "flex flex-col gap-2",
+        error &&
+          "[&_input]:border-red-700 [&_select]:border-red-700 [&_textarea]:border-red-700 [&_input]:bg-red-50 [&_select]:bg-red-50 [&_textarea]:bg-red-50 [&_input]:ring-1 [&_select]:ring-1 [&_textarea]:ring-1 [&_input]:ring-red-700 [&_select]:ring-red-700 [&_textarea]:ring-red-700",
+        className,
+      )}
+    >
       <Label htmlFor={id}>{label}</Label>
       {children}
       {error ? (

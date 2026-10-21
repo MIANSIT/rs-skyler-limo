@@ -131,9 +131,9 @@ export function buildQuoteRequestEmail(
     preheader: isOps
       ? `${quote.customerName} · ${service} · ${eventDay(quote.eventDate)}`
       : `Reference ${formatReference(quote.reference)} · we will price your ${service.toLowerCase()} and come back to you`,
-    eyebrow: isOps ? "Reservations desk" : "Quote request",
+    eyebrow: isOps ? "New quote request" : "Quote request",
     headline: isOps
-      ? `New quote request — ${formatReference(quote.reference)}`
+      ? "You have a new quote request."
       : "We have your request.",
     intro: isOps
       ? `Submitted ${formatDateTime(created)} from the ${quote.source} form. It needs a price and a reply.`
@@ -150,12 +150,12 @@ export function buildQuoteRequestEmail(
   });
 
   const subject = isOps
-    ? `[QUOTE] ${formatReference(quote.reference)} · ${service} · ${quote.customerName}`
+    ? `New quote request received — ${quote.customerName} · ${service} · ${formatReference(quote.reference)}`
     : `Request received — ${formatReference(quote.reference)}`;
 
   const lines = [
     isOps
-      ? `NEW QUOTE REQUEST — ${formatReference(quote.reference)}`
+      ? `YOU HAVE A NEW QUOTE REQUEST — ${formatReference(quote.reference)}`
       : "RSSKYLER LIMO — REQUEST RECEIVED",
     "",
     `Reference:  ${formatReference(quote.reference)}`,
@@ -233,7 +233,7 @@ export function buildQuotedEmail(
           Nothing is charged until you confirm. Reply to this email to go ahead.${
             booking.paymentMethod === "card"
               ? " To pay by card, open your booking below and choose Pay by card — payment is taken securely by Stripe."
-              : " You chose cash on delivery: pay your chauffeur at the end of the trip."
+              : " Payment is cash on delivery: pay your chauffeur at the end of the trip."
           }
         </div>
       </td>
@@ -325,7 +325,7 @@ export function buildQuotedEmail(
     "Nothing is charged until you confirm. Reply to this email to go ahead.",
     booking.paymentMethod === "card"
       ? "To pay by card, open your booking below and choose Pay by card (Stripe)."
-      : "You chose cash on delivery: pay your chauffeur at the end of the trip.",
+      : "Payment is cash on delivery: pay your chauffeur at the end of the trip.",
     ...(note ? ["", "NOTE", `  ${note}`] : []),
     "",
     ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),

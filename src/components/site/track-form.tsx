@@ -352,6 +352,18 @@ export function TrackForm({
                 minute: "2-digit",
               })}
             />
+            <Row label="Passengers" value={String(state.booking.passengers)} />
+            <Row label="Bags" value={String(state.booking.bags)} />
+            <Row
+              label="Child seats"
+              value={state.booking.childSeats > 0 ? String(state.booking.childSeats) : "None"}
+            />
+            {state.booking.airline || state.booking.flightNumber ? (
+              <Row
+                label="Flight"
+                value={[state.booking.airline, state.booking.flightNumber].filter(Boolean).join(" ")}
+              />
+            ) : null}
             <Row
               label="Payment"
               value={
@@ -360,6 +372,11 @@ export function TrackForm({
                   : "Card (Stripe)"
               }
             />
+            {state.booking.notes ? (
+              <div className="sm:col-span-2">
+                <Row label="Instructions" value={state.booking.notes} />
+              </div>
+            ) : null}
           </dl>
 
           <ChangeRecord

@@ -307,7 +307,7 @@ export default function TermsPage() {
               {
                 term: "Payment",
                 detail:
-                  "Card (Stripe) or cash on delivery, chosen when you book. By card, you pay through Stripe's secure page: a fixed fare straight after booking, a quoted fare once we have priced it and you accept, from the tracking page. Cash on delivery is paid to your chauffeur at the end of the trip, in US dollars, and covers the fare plus anything added to it on the day.",
+                  "Card (Stripe). You pay through Stripe's secure page, in US dollars: a fixed fare straight after booking, or a quoted fare once we have priced it and you accept, from the tracking page.",
               },
               {
                 term: "Confirmation",

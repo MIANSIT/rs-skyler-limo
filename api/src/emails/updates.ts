@@ -96,8 +96,8 @@ function bookingCopy(booking: Booking): BookingCopy {
         intro: `Thank you, ${name}. Your car is booked for ${when}, New York time. The details are below.`,
         after: cardDue
           ? "You chose to pay by card. You can pay securely through Stripe from your booking page."
-          : booking.paymentMethod === "cash"
-            ? "You chose cash on delivery: pay your chauffeur at the end of the trip."
+          : booking.paymentMethod === "cash" && booking.paymentStatus === "unpaid"
+            ? "Payment is cash on delivery: pay your chauffeur at the end of the trip."
             : "",
       };
     case "cancelled":
@@ -231,11 +231,13 @@ function quoteCopy(quote: Quote): BookingCopy {
               }. The details are below.`
             : `Thank you, ${name}. A reservations agent has worked out a price for your request and sends it to you by email.`,
         after:
-          quote.paymentMethod === "cash"
-            ? "Payment is cash on delivery, to your chauffeur on the day. Reply to this email to go ahead."
-            : quote.paymentMethod === "card"
-              ? "Payment is by card: use the button below when you are ready to go ahead. Nothing is charged until you pay."
-              : "Reply to this email to go ahead. Nothing is reserved or charged until you agree the price.",
+          quote.paymentStatus === "paid"
+            ? ""
+            : quote.paymentMethod === "cash"
+              ? "Payment is cash on delivery, to your chauffeur on the day. Reply to this email to go ahead."
+              : quote.paymentMethod === "card"
+                ? "Payment is by card: use the button below when you are ready to go ahead. Nothing is charged until you pay."
+                : "Reply to this email to go ahead. Nothing is reserved or charged until you agree the price.",
       };
     case "won":
       return {

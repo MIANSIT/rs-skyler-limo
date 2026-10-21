@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import { AddressField } from "@/components/site/address-field";
 import { ButtonOnDark } from "@/components/ui/button";
 import { DateField, TimeField } from "@/components/ui/date-time-field";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, PhoneInput, Select, Textarea } from "@/components/ui/field";
 import type {
   Changeability,
   ChangeableBooking,
@@ -439,10 +439,26 @@ function BookingEdit({
           <Input tone="dark" id="change-bags" name="bags" type="number" min={0} max={60} required defaultValue={value("bags", details.bags)} />
         </Field>
 
-        {maxSeats > 0 ? (
-          <Field tone="dark" label="Child seats" id="change-seats" error={fields.childSeats}>
-            <Select tone="dark" id="change-seats" name="childSeats" defaultValue={value("childSeats", Math.min(details.childSeats, maxSeats))}>
-              {Array.from({ length: maxSeats + 1 }, (_, count) => (
+        {maxSeats > 0 || details.childSeats > 0 ? (
+          <Field
+            tone="dark"
+            label="Child seats"
+            id="change-seats"
+            error={fields.childSeats}
+            hint={
+              maxSeats === 0
+                ? `The ${chosen?.name ?? "chosen vehicle"} does not take child seats. Choose None or another vehicle.`
+                : undefined
+            }
+          >
+            <Select
+              key={vehicle}
+              tone="dark"
+              id="change-seats"
+              name="childSeats"
+              defaultValue={value("childSeats", details.childSeats)}
+            >
+              {Array.from({ length: Math.max(maxSeats, details.childSeats) + 1 }, (_, count) => (
                 <option key={count} value={String(count)}>
                   {count === 0 ? "None" : String(count)}
                 </option>
@@ -468,12 +484,10 @@ function BookingEdit({
           <Input tone="dark" id="change-name" name="name" required autoComplete="name" defaultValue={value("name", details.customerName)} />
         </Field>
         <Field tone="dark" label="Phone" id="change-phone" error={fields.customerPhone} hint="You will need it to look the booking up.">
-          <Input tone="dark"
+          <PhoneInput tone="dark"
             id="change-phone"
             name="customerPhone"
-            type="tel"
             required
-            autoComplete="tel"
             defaultValue={value("customerPhone", details.customerPhone)}
           />
         </Field>
@@ -546,7 +560,7 @@ function QuoteEdit({
           <Input tone="dark" id="change-q-name" name="name" required autoComplete="name" defaultValue={value("name", details.customerName)} />
         </Field>
         <Field tone="dark" label="Phone" id="change-q-phone" error={fields.customerPhone} hint="You will need it to look the request up.">
-          <Input tone="dark" id="change-q-phone" name="customerPhone" type="tel" required autoComplete="tel" defaultValue={value("customerPhone", details.customerPhone)} />
+          <PhoneInput tone="dark" id="change-q-phone" name="customerPhone" required defaultValue={value("customerPhone", details.customerPhone)} />
         </Field>
         <Field tone="dark" label="What you need" id="change-details" error={fields.details} className="sm:col-span-2">
           <Textarea tone="dark" id="change-details" name="details" required rows={6} defaultValue={value("details", details.details)} />
