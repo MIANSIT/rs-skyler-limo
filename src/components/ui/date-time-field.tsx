@@ -6,10 +6,13 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
+  type RefObject,
 } from "react";
 
 import { control, controlByTone, popupByTone, scrollbarByTone, type Tone } from "@/components/ui/field";
 import { CalendarIcon, ChevronDownIcon, ClockIcon } from "@/components/ui/icon";
+import { PopoverLayer, popoverLayer, usePopoverStyle } from "@/components/ui/popover";
 import { clsx } from "@/lib/clsx";
 
 /**
@@ -123,16 +126,26 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const carrierRef = useRef<HTMLInputElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  // The calendar is 288px wide and roughly 360px tall — taller than the room
+  // under a field halfway down a phone screen, which is why it is placed
+  // against the viewport rather than against the field's own box.
+  const popupStyle = usePopoverStyle(triggerRef, open, { width: 288, maxHeight: 420 });
 
   useEffect(() => {
     if (typeof forwardedRef === "function") forwardedRef(carrierRef.current);
     else if (forwardedRef) forwardedRef.current = carrierRef.current;
   });
 
+  // The popup renders into `document.body` (see `ui/popover.tsx`), so it is
+  // outside `wrapRef` and has to be excluded from "outside" by name.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target) || popupRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -159,6 +172,7 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
         ref={carrierRef}
         type="date"
         name={name}
+        data-field={id}
         required={required}
         defaultValue={value}
         aria-hidden="true"
@@ -203,20 +217,24 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
           an effect resetting state on every open, which
           `react-hooks/set-state-in-effect` correctly refuses. */}
       {open ? (
-        <CalendarPopup
-          id={id}
-          tone={tone}
-          anchor={anchor}
-          today={today}
-          selected={selected}
-          minYMD={minYMD}
-          onCommit={commit}
-          onClear={clear}
-          onClose={() => {
-            setOpen(false);
-            triggerRef.current?.focus();
-          }}
-        />
+        <PopoverLayer>
+          <CalendarPopup
+            ref={popupRef}
+            style={popupStyle}
+            id={id}
+            tone={tone}
+            anchor={anchor}
+            today={today}
+            selected={selected}
+            minYMD={minYMD}
+            onCommit={commit}
+            onClear={clear}
+            onClose={() => {
+              setOpen(false);
+              triggerRef.current?.focus();
+            }}
+          />
+        </PopoverLayer>
       ) : null}
     </div>
   );
@@ -232,6 +250,8 @@ function CalendarPopup({
   onCommit,
   onClear,
   onClose,
+  style,
+  ref,
 }: {
   id: string;
   tone: Tone;
@@ -242,6 +262,8 @@ function CalendarPopup({
   onCommit: (v: YMD) => void;
   onClear: () => void;
   onClose: () => void;
+  style: CSSProperties;
+  ref: RefObject<HTMLDivElement | null>;
 }) {
   const [viewMonth, setViewMonth] = useState<YMD>(anchor);
   const [focusDay, setFocusDay] = useState<YMD>(anchor);
@@ -279,12 +301,16 @@ function CalendarPopup({
 
   return (
     <div
+      ref={ref}
       id={`${id}-dialog`}
       role="dialog"
       aria-label="Choose a date"
+      style={style}
       className={clsx(
-        "absolute top-full left-0 z-20 mt-1 w-72 rounded-sm border p-4 shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
+        popoverLayer,
+        "overflow-y-auto rounded-sm border p-4 shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
         popupByTone[tone],
+        scrollbarByTone[tone],
       )}
     >
       <div className="flex items-center justify-between">
@@ -593,6 +619,11 @@ export const TimeField = forwardRef<HTMLInputElement, TimeFieldProps>(function T
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const carrierRef = useRef<HTMLInputElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  // Three scrolling columns, 192px wide. `maxHeight` covers the columns'
+  // own `max-h-56` plus their headings; past that the popup itself scrolls.
+  const popupStyle = usePopoverStyle(triggerRef, open, { width: 192, maxHeight: 280 });
 
   useEffect(() => {
     if (typeof forwardedRef === "function") forwardedRef(carrierRef.current);
@@ -602,7 +633,9 @@ export const TimeField = forwardRef<HTMLInputElement, TimeFieldProps>(function T
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target) || popupRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -629,6 +662,7 @@ export const TimeField = forwardRef<HTMLInputElement, TimeFieldProps>(function T
         ref={carrierRef}
         type="time"
         name={name}
+        data-field={id}
         required={required}
         defaultValue={value}
         aria-hidden="true"
@@ -669,41 +703,46 @@ export const TimeField = forwardRef<HTMLInputElement, TimeFieldProps>(function T
       </button>
 
       {open ? (
-        <div
-          id={`${id}-dialog`}
-          role="dialog"
-          aria-label="Choose a time"
-          className={clsx(
-            "absolute top-full left-0 z-20 mt-1 flex w-48 divide-x overflow-hidden rounded-sm border shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
-            tone === "dark" ? "divide-white/15" : "divide-midnight/10",
-            popupByTone[tone],
-          )}
-        >
-          <TimeColumn
-            label="Hour"
-            options={HOURS}
-            format={(hour) => String(hour)}
-            value={parsed?.hour12 ?? null}
-            onSelect={(hour12) => commitPart({ hour12 })}
-            tone={tone}
-          />
-          <TimeColumn
-            label="Minute"
-            options={MINUTES}
-            format={(minute) => String(minute).padStart(2, "0")}
-            value={parsed?.minute ?? null}
-            onSelect={(minute) => commitPart({ minute })}
-            tone={tone}
-          />
-          <TimeColumn
-            label="AM or PM"
-            options={PERIODS}
-            format={(period) => period}
-            value={parsed?.period ?? null}
-            onSelect={(period) => commitPart({ period })}
-            tone={tone}
-          />
-        </div>
+        <PopoverLayer>
+          <div
+            ref={popupRef}
+            id={`${id}-dialog`}
+            role="dialog"
+            aria-label="Choose a time"
+            style={popupStyle}
+            className={clsx(
+              popoverLayer,
+              "flex divide-x overflow-hidden rounded-sm border shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
+              tone === "dark" ? "divide-white/15" : "divide-midnight/10",
+              popupByTone[tone],
+            )}
+          >
+            <TimeColumn
+              label="Hour"
+              options={HOURS}
+              format={(hour) => String(hour)}
+              value={parsed?.hour12 ?? null}
+              onSelect={(hour12) => commitPart({ hour12 })}
+              tone={tone}
+            />
+            <TimeColumn
+              label="Minute"
+              options={MINUTES}
+              format={(minute) => String(minute).padStart(2, "0")}
+              value={parsed?.minute ?? null}
+              onSelect={(minute) => commitPart({ minute })}
+              tone={tone}
+            />
+            <TimeColumn
+              label="AM or PM"
+              options={PERIODS}
+              format={(period) => period}
+              value={parsed?.period ?? null}
+              onSelect={(period) => commitPart({ period })}
+              tone={tone}
+            />
+          </div>
+        </PopoverLayer>
       ) : null}
     </div>
   );

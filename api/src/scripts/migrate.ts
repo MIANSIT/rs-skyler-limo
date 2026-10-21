@@ -144,6 +144,14 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
                 FROM airports`,
     },
     {
+      // Existing airports keep publishing their fares: the operator opts an
+      // airport into quoting, nothing is switched for them.
+      description: "airports.quote_only",
+      check: () => columnMissing(connection, "airports", "quote_only"),
+      sql: `ALTER TABLE airports
+              ADD COLUMN quote_only TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active`,
+    },
+    {
       description: "bookings.customer_change_pending, customer_changed_at",
       check: () => columnMissing(connection, "bookings", "customer_change_pending"),
       sql: `ALTER TABLE bookings

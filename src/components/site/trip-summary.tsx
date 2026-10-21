@@ -180,7 +180,7 @@ export function TripSummary({
               <dd className="text-right">{formatFare(fare.taxCents)}</dd>
             </dl>
             <p className="mt-2 text-[13px] text-white/60">
-              Tolls and gratuity included. Not an estimate.
+              Your estimated fare is based on the trip details provided above. The final fare may vary if you change your pickup or drop-off location, add or remove stops, select a different vehicle, or if the route changes and requires additional tolls.
             </p>
           </>
         ) : (

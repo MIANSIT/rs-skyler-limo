@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { ChevronDownIcon } from "@/components/ui/icon";
+import { PopoverLayer, popoverLayer, usePopoverStyle } from "@/components/ui/popover";
 import { clsx } from "@/lib/clsx";
 
 export type Tone = "light" | "dark";
@@ -27,8 +28,8 @@ export type Tone = "light" | "dark";
  */
 export const controlByTone: Record<Tone, string> = {
   light:
-    "border-midnight/20 bg-white text-midnight placeholder:text-charcoal/45 hover:border-midnight/40 focus:border-midnight",
-  dark: "border-white/25 bg-white/10 text-white placeholder:text-white/40 hover:border-white/45 focus:border-white/70",
+    "border-midnight/20 bg-white text-midnight placeholder:text-charcoal/45 hover:border-midnight/40 focus:border-midnight aria-invalid:border-red-700 aria-invalid:bg-red-700/5 aria-invalid:hover:border-red-700 aria-invalid:focus:border-red-700",
+  dark: "border-white/25 bg-white/10 text-white placeholder:text-white/40 hover:border-white/45 focus:border-white/70 aria-invalid:border-red-300 aria-invalid:bg-red-300/10 aria-invalid:hover:border-red-300 aria-invalid:focus:border-red-300",
 };
 
 /**
@@ -299,13 +300,21 @@ export function Select({
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const carrierRef = useRef<HTMLSelectElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const listStyle = usePopoverStyle(triggerRef, open, { width: "anchor" });
 
   // Click (or tap) outside closes without choosing anything — the same
-  // pattern `AddressField`'s suggestion list already uses.
+  // pattern `AddressField`'s suggestion list already uses. The list lives in
+  // `document.body` (see `ui/popover.tsx`), so it is no longer inside
+  // `wrapRef` and has to be asked about separately — without this, the first
+  // tap on an option would read as a tap outside and close the list.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -336,6 +345,10 @@ export function Select({
         // operates. A second element sharing `id` would be invalid HTML and
         // would make `htmlFor` resolution ambiguous.
         name={name}
+        // The key `booking-form.tsx` reports a missing value under. A carrier
+        // without a `name` (the airport select, whose value travels in a
+        // hidden input) would otherwise be unattributable.
+        data-field={id}
         required={required}
         disabled={disabled}
         defaultValue={current}
@@ -460,53 +473,58 @@ export function Select({
       </button>
 
       {open ? (
-        <ul
-          id={`${id}-listbox`}
-          role="listbox"
-          className={clsx(
-            "absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-sm border shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
-            popupByTone[tone],
-            scrollbarByTone[tone],
-          )}
-        >
-          {options.map((option, index) => {
-            const isSelected = option.value === current;
-            const isActive = index === activeIndex;
-            return (
-              <li
-                key={`${option.value}-${index}`}
-                id={`${id}-option-${index}`}
-                role="option"
-                aria-selected={isSelected}
-                aria-disabled={option.disabled || undefined}
-              >
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  disabled={option.disabled}
-                  onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-                  onClick={() => {
-                    commit(option.value);
-                    setOpen(false);
-                    triggerRef.current?.focus();
-                  }}
-                  className={clsx(
-                    "block w-full px-4 py-2.5 text-left text-[15px] transition-colors",
-                    option.disabled
-                      ? clsx("cursor-default", tone === "dark" ? "text-white/35" : "text-charcoal/35")
-                      : clsx(
-                          isSelected && "font-medium",
-                          tone === "dark" ? "text-white" : "text-midnight",
-                          isActive && (tone === "dark" ? "bg-white/10" : "bg-grey"),
-                        ),
-                  )}
+        <PopoverLayer>
+          <ul
+            ref={listRef}
+            id={`${id}-listbox`}
+            role="listbox"
+            style={listStyle}
+            className={clsx(
+              popoverLayer,
+              "overflow-y-auto rounded-sm border shadow-[0_18px_40px_-20px_rgba(11,33,66,0.45)]",
+              popupByTone[tone],
+              scrollbarByTone[tone],
+            )}
+          >
+            {options.map((option, index) => {
+              const isSelected = option.value === current;
+              const isActive = index === activeIndex;
+              return (
+                <li
+                  key={`${option.value}-${index}`}
+                  id={`${id}-option-${index}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  aria-disabled={option.disabled || undefined}
                 >
-                  {option.label}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    disabled={option.disabled}
+                    onMouseEnter={() => !option.disabled && setActiveIndex(index)}
+                    onClick={() => {
+                      commit(option.value);
+                      setOpen(false);
+                      triggerRef.current?.focus();
+                    }}
+                    className={clsx(
+                      "block w-full px-4 py-2.5 text-left text-[15px] transition-colors",
+                      option.disabled
+                        ? clsx("cursor-default", tone === "dark" ? "text-white/35" : "text-charcoal/35")
+                        : clsx(
+                            isSelected && "font-medium",
+                            tone === "dark" ? "text-white" : "text-midnight",
+                            isActive && (tone === "dark" ? "bg-white/10" : "bg-grey"),
+                          ),
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </PopoverLayer>
       ) : null}
     </div>
   );

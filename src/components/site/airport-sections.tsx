@@ -19,10 +19,17 @@ import { CtaBand } from "@/components/site/cta-band";
 const th =
   "py-3 font-sans text-[13px] font-medium tracking-[0.08em] text-charcoal/70 uppercase";
 
+/** What a cell says where there is no published fare. */
+const GET_QUOTE = "Get quote";
+
 /**
  * One airport's fares, read from the same rate card `decideFare` prices
  * against. A vehicle with no published rate says so rather than disappearing,
  * so the table matches what the booking form will do with it: quote it.
+ *
+ * An airport the operator has set to quote only is the same case written
+ * larger — the API publishes none of its rates, so the table falls through to
+ * the "priced on request" paragraph below.
  */
 export function AirportRateTable({
   code,
@@ -38,8 +45,10 @@ export function AirportRateTable({
   // An empty airport list means the API could not be reached, not that the
   // airport is gone — the fallback there is the phone, not "not offered".
   const reachable = options.airports.length > 0 && fleet.length > 0;
-  const active = options.airports.some((airport) => airport.code === code);
-  const rates = options.rates.filter((rate) => rate.airportCode === code);
+  const airport = options.airports.find((item) => item.code === code);
+  const rates = airport?.quoteOnly
+    ? []
+    : options.rates.filter((rate) => rate.airportCode === code);
 
   if (!reachable) {
     return (
@@ -56,7 +65,7 @@ export function AirportRateTable({
     );
   }
 
-  if (!active || rates.length === 0) {
+  if (!airport || rates.length === 0) {
     return (
       <p className="max-w-2xl text-[15px] leading-[1.7] text-charcoal">
         {name} transfers are priced on request at the moment. Send us the trip
@@ -112,7 +121,7 @@ export function AirportRateTable({
                     formatFare(rate.priceCents)
                   ) : (
                     <span className="text-[15px] font-normal text-charcoal">
-                      On request
+                      {GET_QUOTE}
                     </span>
                   )}
                 </td>
@@ -216,11 +225,16 @@ export function AirportRateGrid({
                   )}
                 </th>
                 {fleet.map((vehicle) => {
-                  const rate = options.rates.find(
-                    (r) =>
-                      r.airportCode === airport.code &&
-                      r.vehicleSlug === vehicle.slug,
-                  );
+                  // A quote-only airport has no published rate to find; the
+                  // check is here so the row reads as a deliberate "ask us"
+                  // rather than as missing data.
+                  const rate = airport.quoteOnly
+                    ? undefined
+                    : options.rates.find(
+                        (r) =>
+                          r.airportCode === airport.code &&
+                          r.vehicleSlug === vehicle.slug,
+                      );
                   return (
                     <td
                       key={vehicle.slug}
@@ -230,7 +244,7 @@ export function AirportRateGrid({
                         formatFare(rate.priceCents)
                       ) : (
                         <span className="text-[14px] font-normal text-charcoal">
-                          On request
+                          {GET_QUOTE}
                         </span>
                       )}
                     </td>

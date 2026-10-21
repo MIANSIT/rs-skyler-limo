@@ -11,6 +11,11 @@ export default async function RatesPage() {
   const [grid, zoneGrid] = await Promise.all([getRateGrid(), getZoneRateGrid()]);
   const published = grid.rates.filter((rate) => rate.isActive).length;
   const cells = grid.airports.length * grid.vehicles.length;
+  // Rows the operator can still edit but that publish nothing — worth saying
+  // here, or a fare is set on this page and never appears on the website.
+  const quoteOnly = grid.airports
+    .filter((airport) => airport.quoteOnly)
+    .map((airport) => airport.code);
 
   return (
     <div className="flex flex-col gap-8">
@@ -36,6 +41,18 @@ export default async function RatesPage() {
           of {cells} combinations have a published fare. Leave a box empty and
           that trip is quoted instead.
         </p>
+        {quoteOnly.length > 0 ? (
+          <p className="mt-3 max-w-2xl font-sans text-[14px] leading-[1.6] text-charcoal/60">
+            {quoteOnly.join(", ")}{" "}
+            {quoteOnly.length === 1 ? "is" : "are"} set to{" "}
+            <Link href="/airports" className="text-midnight underline underline-offset-4">
+              quote only
+            </Link>
+            , so nothing on{" "}
+            {quoteOnly.length === 1 ? "that row" : "those rows"} is shown to
+            customers until you switch it back. The prices are kept.
+          </p>
+        ) : null}
       </div>
 
       {grid.vehicles.length === 0 ? (

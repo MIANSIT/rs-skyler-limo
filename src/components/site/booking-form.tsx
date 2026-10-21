@@ -113,6 +113,72 @@ function SubmitButton({ fixed }: { fixed: boolean }) {
 }
 
 /**
+ * What a field submits under, for reporting a problem against it. Custom
+ * controls (`Select`, `DateField`, `TimeField`) hide a real form control
+ * behind their own markup, and the airport select has no `name` at all — its
+ * value travels in a hidden input — so each one also carries `data-field`.
+ */
+function fieldKey(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
+  return field.name || field.dataset.field || field.id;
+}
+
+/**
+ * Our own wording for the browser's validity flags.
+ *
+ * `validationMessage` is the browser's, and on a visually hidden carrier the
+ * bubble that normally carries it is never drawn — which is exactly why
+ * nothing appeared on a phone. The message is shown under the field instead,
+ * so it has to read like the rest of the form rather than like Chrome.
+ */
+function messageFor(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
+  const validity = field.validity;
+  if (validity.valueMissing) return "Please fill this in.";
+  if (validity.typeMismatch)
+    return field.type === "email"
+      ? "Enter a complete email address."
+      : "This does not look right.";
+  if (validity.rangeUnderflow || validity.rangeOverflow || validity.stepMismatch)
+    return "Outside the range we can take.";
+  if (validity.tooShort || validity.tooLong) return "Check the length.";
+  // A custom message we set ourselves — the past pick-up rule — reads fine.
+  return field.validationMessage || "Check this.";
+}
+
+/** Every invalid control in `container`, keyed by `fieldKey`. */
+function collectInvalid(container: HTMLElement | null | undefined) {
+  const found: Record<string, string> = {};
+  container
+    ?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      "input, select, textarea",
+    )
+    .forEach((field) => {
+      if (field.disabled || field.type === "hidden" || field.checkValidity()) return;
+      const key = fieldKey(field);
+      if (key && !found[key]) found[key] = messageFor(field);
+    });
+  return found;
+}
+
+/**
+ * Brings the first flagged field into view.
+ *
+ * The invalid control may be one of the hidden carriers, which cannot be
+ * focused or scrolled to; the visible trigger beside it is what the customer
+ * sees, so that is what gets focus.
+ */
+function revealFirst(container: HTMLElement | null | undefined) {
+  const field = container?.querySelector<HTMLElement>(":invalid");
+  if (!field) return;
+  const visible =
+    field.closest("div")?.querySelector<HTMLElement>('button[role="combobox"]') ?? field;
+
+  visible.scrollIntoView({ block: "center", behavior: "smooth" });
+  // `offsetParent` is null for the hidden carriers and for a step that is
+  // still `display: none`; focusing those does nothing useful.
+  if (visible.offsetParent !== null) visible.focus({ preventScroll: true });
+}
+
+/**
  * `tone="dark"` is the frosted-glass card used in the homepage hero, over
  * video; `"light"` (the default) is the plain white card the standalone
  * `/book` page still uses. One component, one set of fields and validation —
@@ -190,6 +256,21 @@ export function BookingForm({
 
   const step1Ref = useRef<HTMLDivElement>(null);
   const step2Ref = useRef<HTMLDivElement>(null);
+  const step3Ref = useRef<HTMLDivElement>(null);
+
+  /**
+   * Fields the browser refuses, keyed by the name they submit under, filled
+   * when Continue or Book is pressed.
+   *
+   * The browser's own `reportValidity()` bubble used to be the only feedback
+   * here, and it is drawn by the browser or not at all: iOS Safari never
+   * draws one, and every select, date and time field is a custom control
+   * whose real input is visually hidden, so on a phone a missing field
+   * produced no bubble, no focus ring and no message — Continue simply did
+   * nothing. These marks drive a red border on each field and its message
+   * underneath, which renders the same everywhere.
+   */
+  const [invalid, setInvalid] = useState<Record<string, string>>({});
 
   const [state, formAction] = useActionState<BookingFormState, FormData>(
     submitBooking,
@@ -249,13 +330,25 @@ export function BookingForm({
    */
   const published = useMemo(() => {
     if (trip !== "airport" || !airport || !selected) return null;
+    // An airport the operator prices by hand publishes no fare. The API
+    // already withholds its rates, so this only states the rule where the
+    // preview is read rather than leaving it to an empty lookup.
+    if (options.airports.find((item) => item.code === airport)?.quoteOnly) {
+      return null;
+    }
     return (
       options.rates.find(
         (rate) =>
           rate.airportCode === airport && rate.vehicleSlug === selected.slug,
       ) ?? null
     );
-  }, [trip, airport, selected, options.rates]);
+  }, [trip, airport, selected, options.airports, options.rates]);
+
+  /** Set when the chosen airport is quoted whatever is on its rate card. */
+  const quoteOnlyAirport =
+    trip === "airport" && airport
+      ? (options.airports.find((item) => item.code === airport)?.quoteOnly ?? false)
+      : false;
 
   // Ask once per chosen address. Without the answer the preview cannot tell a
   // Manhattan pickup from a Hoboken one, and would offer a fare the server
@@ -357,25 +450,83 @@ export function BookingForm({
     timeRef.current?.setCustomValidity(problem.time);
   }, [problem.date, problem.time]);
 
+  const stepRefs: Record<Step, React.RefObject<HTMLDivElement | null>> = {
+    1: step1Ref,
+    2: step2Ref,
+    3: step3Ref,
+  };
+
   /**
    * Advances past the given step only if everything required in it is
    * filled — reusing the `required`/`type="email"` constraints already on
-   * the inputs rather than a parallel set of rules. The first invalid field
-   * gets the browser's own validation bubble and focus.
+   * the inputs rather than a parallel set of rules. Anything missing is
+   * flagged red with its message, and the first one is scrolled to.
    */
-  const goNext = (containerRef: React.RefObject<HTMLDivElement | null>, next: Step) => {
-    const invalid = containerRef.current?.querySelector<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >(":invalid");
+  const goNext = (step: Step, next: Step) => {
+    const container = stepRefs[step].current;
+    const found = collectInvalid(container);
 
-    if (invalid) {
-      invalid.reportValidity();
-      invalid.focus();
+    if (Object.keys(found).length > 0) {
+      setInvalid(found);
+      revealFirst(container);
       return;
     }
 
+    setInvalid({});
     setStep(next);
   };
+
+  /**
+   * The same check across all three steps on final submit.
+   *
+   * Steps the customer is not on are `display: none` rather than unmounted,
+   * and a `display: none` required field still fails constraint validation —
+   * the browser then refuses the submit with nothing but a console warning,
+   * because it has no field it can focus. So the step holding the problem is
+   * opened first, then flagged.
+   */
+  const guardSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    for (const step of [1, 2, 3] as const) {
+      const container = stepRefs[step].current;
+      const found = collectInvalid(container);
+      if (Object.keys(found).length === 0) continue;
+
+      event.preventDefault();
+      setInvalid(found);
+      setStep(step);
+      // After the step has been un-hidden, or the field cannot be focused.
+      requestAnimationFrame(() => revealFirst(container));
+      return;
+    }
+
+    setInvalid({});
+  };
+
+  /**
+   * Keeps the marks honest once they are up: a field that has since been
+   * filled loses its red as soon as it is, rather than staying red until the
+   * next Continue. Only existing marks are cleared — a field nobody has
+   * reached yet is never flagged mid-typing.
+   *
+   * Typing reaches this through the form's own `input` event. The custom
+   * select, date and time controls write their hidden carrier's value
+   * imperatively and fire no DOM event, so each of their handlers calls this
+   * directly; the carrier is already up to date by then.
+   */
+  const recheck = useCallback(() => {
+    setInvalid((current) => {
+      const keys = Object.keys(current);
+      if (keys.length === 0) return current;
+
+      const found = collectInvalid(stepRefs[step].current);
+      const next = Object.fromEntries(
+        keys.filter((key) => key in found).map((key) => [key, current[key]!]),
+      );
+      return Object.keys(next).length === keys.length ? current : next;
+    });
+    // `stepRefs` is rebuilt each render but always holds the same three refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   /* Step/section dividers, and every other hairline inside the card, derive
      from midnight on the light card and from white on the dark one — the
@@ -470,7 +621,12 @@ export function BookingForm({
               role="tab"
               type="button"
               aria-selected={active}
-              onClick={() => setTrip(option.value)}
+              onClick={() => {
+                setTrip(option.value);
+                // The fields on offer change with the trip type; a mark left
+                // on one that is no longer rendered would never clear.
+                setInvalid({});
+              }}
               className={clsx(
                 "-mb-px border-b-2 px-4 py-3 font-sans text-[13px] font-medium tracking-[0.08em] uppercase transition-colors",
                 active
@@ -528,7 +684,23 @@ export function BookingForm({
         })}
       </div>
 
-      <form key={formKey} action={formAction} className="mt-6 flex flex-col gap-5">
+      {/*
+        `noValidate`: the browser's own interactive validation is what used to
+        stop here silently. It runs before `submit` fires, refuses the submit
+        when a required field in a hidden step fails, and then has nothing it
+        can focus or draw a bubble on — so nothing happened at all. The
+        constraints stay on the fields and are still read through
+        `checkValidity()`; only the browser's unreliable reporting of them is
+        switched off, and `guardSubmit` reports them instead.
+      */}
+      <form
+        key={formKey}
+        action={formAction}
+        noValidate
+        onSubmit={guardSubmit}
+        onInput={recheck}
+        className="mt-6 flex flex-col gap-5"
+      >
         <FormGuard />
         <input type="hidden" name="tripType" value={trip} />
         <input type="hidden" name="placesSessionToken" value={sessionToken} />
@@ -544,13 +716,18 @@ export function BookingForm({
         <div ref={step1Ref} className="grid gap-5 sm:grid-cols-2">
           {trip === "airport" ? (
             <>
-              <Field label="Airport" id="airport" tone={tone}>
+              <Field label="Airport" id="airport" tone={tone} error={invalid.airport}>
                 <Select
                   id="airport"
                   tone={tone}
                   required
+                  aria-invalid={invalid.airport ? true : undefined}
+                  aria-describedby={invalid.airport ? "airport-error" : undefined}
                   value={airport}
-                  onChange={(event) => setAirport(event.target.value)}
+                  onChange={(event) => {
+                    setAirport(event.target.value);
+                    recheck();
+                  }}
                 >
                   <option value="" disabled>
                     Select airport
@@ -568,9 +745,12 @@ export function BookingForm({
                   id="direction"
                   tone={tone}
                   value={direction}
-                  onChange={(event) =>
-                    setDirection(event.target.value as typeof direction)
-                  }
+                  onChange={(event) => {
+                    setDirection(event.target.value as typeof direction);
+                    // The one address box swaps which end of the trip it is,
+                    // and with it the name it submits under.
+                    setInvalid({});
+                  }}
                 >
                   <option value="from-airport">From the airport</option>
                   <option value="to-airport">To the airport</option>
@@ -582,7 +762,7 @@ export function BookingForm({
           <Field
             label={cityLabel}
             id="cityAddress"
-            error={fieldError(cityField)}
+            error={fieldError(cityField) ?? invalid[cityField]}
             tone={tone}
             hint={
               options.placesEnabled
@@ -603,6 +783,7 @@ export function BookingForm({
               onResolve={setCityPlaceId}
               onTypingStart={startPlacesSession}
               onTextChange={setCityText}
+              aria-invalid={invalid[cityField] ? true : undefined}
             />
           </Field>
 
@@ -610,7 +791,7 @@ export function BookingForm({
             <Field
               label={trip === "hourly" ? "Where to, roughly" : "Destination"}
               id="otherEnd"
-              error={fieldError("destination")}
+              error={fieldError("destination") ?? invalid.destination}
               tone={tone}
               className="sm:col-span-2"
             >
@@ -625,6 +806,7 @@ export function BookingForm({
                 defaultValue={prior("destination")}
                 onTypingStart={startPlacesSession}
                 onTextChange={setOtherText}
+                aria-invalid={invalid.destination ? true : undefined}
               />
             </Field>
           ) : null}
@@ -633,7 +815,7 @@ export function BookingForm({
             label="Date"
             id="date"
             tone={tone}
-            error={fieldError("pickupAt") ?? (problem.date || undefined)}
+            error={fieldError("pickupAt") ?? (problem.date || undefined) ?? invalid.date}
             hint={today ? `Today is ${shortDay(today)} in New York.` : undefined}
           >
             <DateField
@@ -644,13 +826,22 @@ export function BookingForm({
               ref={dateRef}
               min={today || undefined}
               value={pickupDate}
-              onChange={(event) => setPickupDate(event.target.value)}
-              aria-invalid={problem.date ? true : undefined}
-              aria-describedby={problem.date ? "date-error" : undefined}
+              onChange={(event) => {
+                setPickupDate(event.target.value);
+                recheck();
+              }}
+              aria-invalid={problem.date || invalid.date ? true : undefined}
+              aria-describedby={problem.date || invalid.date ? "date-error" : undefined}
             />
           </Field>
 
-          <Field label="Time" id="time" tone={tone} error={problem.time || undefined} hint="New York time.">
+          <Field
+            label="Time"
+            id="time"
+            tone={tone}
+            error={(problem.time || undefined) ?? invalid.time}
+            hint="New York time."
+          >
             <TimeField
               id="time"
               name="time"
@@ -658,9 +849,12 @@ export function BookingForm({
               required
               ref={timeRef}
               value={pickupTime}
-              onChange={(event) => setPickupTime(event.target.value)}
-              aria-invalid={problem.time ? true : undefined}
-              aria-describedby={problem.time ? "time-error" : undefined}
+              onChange={(event) => {
+                setPickupTime(event.target.value);
+                recheck();
+              }}
+              aria-invalid={problem.time || invalid.time ? true : undefined}
+              aria-describedby={problem.time || invalid.time ? "time-error" : undefined}
             />
           </Field>
 
@@ -684,14 +878,19 @@ export function BookingForm({
             </div>
           ) : null}
 
-          <Field label="Vehicle class" id="vehicle" tone={tone}>
+          <Field label="Vehicle class" id="vehicle" tone={tone} error={invalid.vehicle}>
             <Select
               id="vehicle"
               name="vehicle"
               tone={tone}
               required
+              aria-invalid={invalid.vehicle ? true : undefined}
+              aria-describedby={invalid.vehicle ? "vehicle-error" : undefined}
               value={vehicle}
-              onChange={(event) => setVehicle(event.target.value)}
+              onChange={(event) => {
+                setVehicle(event.target.value);
+                recheck();
+              }}
             >
               <option value="" disabled>
                 Select vehicle class
@@ -707,11 +906,11 @@ export function BookingForm({
 
           <div className={clsx("flex justify-end border-t pt-5", divider)}>
             {dark ? (
-              <ButtonOnDark type="button" onClick={() => goNext(step1Ref, 2)}>
+              <ButtonOnDark type="button" onClick={() => goNext(1, 2)}>
                 Continue
               </ButtonOnDark>
             ) : (
-              <Button type="button" variant="primary" onClick={() => goNext(step1Ref, 2)}>
+              <Button type="button" variant="primary" onClick={() => goNext(1, 2)}>
                 Continue
               </Button>
             )}
@@ -782,7 +981,7 @@ export function BookingForm({
             </>
           ) : null}
 
-          <Field label="Passengers" id="passengers" tone={tone}>
+          <Field label="Passengers" id="passengers" tone={tone} error={invalid.passengers}>
             <Input
               id="passengers"
               name="passengers"
@@ -791,10 +990,12 @@ export function BookingForm({
               min={1}
               max={selected?.passengerCapacity ?? 14}
               defaultValue={prior("passengers") || 1}
+              aria-invalid={invalid.passengers ? true : undefined}
+              aria-describedby={invalid.passengers ? "passengers-error" : undefined}
             />
           </Field>
 
-          <Field label="Bags" id="bags" tone={tone}>
+          <Field label="Bags" id="bags" tone={tone} error={invalid.bags}>
             <Input
               id="bags"
               name="bags"
@@ -803,6 +1004,8 @@ export function BookingForm({
               min={0}
               max={selected?.luggageCapacity ?? 12}
               defaultValue={prior("bags") || 0}
+              aria-invalid={invalid.bags ? true : undefined}
+              aria-describedby={invalid.bags ? "bags-error" : undefined}
             />
           </Field>
 
@@ -847,7 +1050,7 @@ export function BookingForm({
                 <ButtonOnDark type="button" onClick={() => setStep(1)}>
                   Back
                 </ButtonOnDark>
-                <ButtonOnDark type="button" onClick={() => goNext(step2Ref, 3)}>
+                <ButtonOnDark type="button" onClick={() => goNext(2, 3)}>
                   Continue
                 </ButtonOnDark>
               </>
@@ -856,7 +1059,7 @@ export function BookingForm({
                 <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                   Back
                 </Button>
-                <Button type="button" variant="primary" onClick={() => goNext(step2Ref, 3)}>
+                <Button type="button" variant="primary" onClick={() => goNext(2, 3)}>
                   Continue
                 </Button>
               </>
@@ -865,24 +1068,59 @@ export function BookingForm({
         </div>
 
         {/* Step 3 — You */}
-        <div className={clsx("flex flex-col gap-5", step !== 3 && "hidden")}>
+        <div ref={step3Ref} className={clsx("flex flex-col gap-5", step !== 3 && "hidden")}>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Name" id="name" tone={tone} error={fieldError("customerName")}>
-              <Input id="name" name="name" tone={tone} autoComplete="name" required maxLength={160} {...restore("name")} />
+            <Field
+              label="Name"
+              id="name"
+              tone={tone}
+              error={fieldError("customerName") ?? invalid.name}
+            >
+              <Input
+                id="name"
+                name="name"
+                tone={tone}
+                autoComplete="name"
+                required
+                maxLength={160}
+                aria-invalid={invalid.name ? true : undefined}
+                aria-describedby={invalid.name ? "name-error" : undefined}
+                {...restore("name")}
+              />
             </Field>
 
             <Field
               label="Phone"
               id="phone"
               tone={tone}
-              error={fieldError("customerPhone")}
+              error={fieldError("customerPhone") ?? invalid.phone}
               hint="You will need this to track the booking."
             >
-              <PhoneInput id="phone" name="phone" tone={tone} required {...restore("phone")} />
+              <PhoneInput
+                id="phone"
+                name="phone"
+                tone={tone}
+                required
+                aria-invalid={invalid.phone ? true : undefined}
+                aria-describedby={invalid.phone ? "phone-error" : undefined}
+                {...restore("phone")}
+              />
             </Field>
 
-            <Field label="Email" id="email" tone={tone} error={fieldError("customerEmail")} className="sm:col-span-2">
-              <EmailInput id="email" tone={tone} defaultValue={prior("email")} sendsWhat="your confirmation and any updates" />
+            <Field
+              label="Email"
+              id="email"
+              tone={tone}
+              error={fieldError("customerEmail") ?? invalid.email}
+              className="sm:col-span-2"
+            >
+              <EmailInput
+                id="email"
+                tone={tone}
+                defaultValue={prior("email")}
+                sendsWhat="your confirmation and any updates"
+                aria-invalid={invalid.email ? true : undefined}
+              />
             </Field>
           </div>
 
@@ -915,7 +1153,7 @@ export function BookingForm({
               name="terms"
               tone={tone}
               required
-              error={fieldError("terms")}
+              error={fieldError("terms") ?? invalid.terms}
               label={
                 <>
                   I accept the{" "}
@@ -969,8 +1207,7 @@ export function BookingForm({
                     {formatFare(fare.taxCents)} sales tax ({formatRate(fare.taxRate)}).
                   </p>
                   <p className={clsx("mt-1 text-[13px]", dark ? "text-white/55" : "text-charcoal/70")}>
-                    Tolls and gratuity included. Not an estimate.
-                  </p>
+Your estimated fare is based on the trip details provided above. The final fare may vary if you change your pickup or drop-off location, add or remove stops, select a different vehicle, or if the route changes and requires additional tolls.                  </p>
                 </>
               ) : (
                 <>
@@ -983,9 +1220,11 @@ export function BookingForm({
                     Priced by a person
                   </p>
                   <p className={clsx("mt-1 max-w-sm text-[15px] leading-[1.6]", body)}>
-                    {trip === "airport"
-                      ? "Fixed fares cover New York City. We will price this one and come back to you."
-                      : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
+                    {quoteOnlyAirport
+                      ? "This airport is priced by hand. Send the details and a reservations agent comes back with a fare."
+                      : trip === "airport"
+                        ? "Fixed fares cover New York City. We will price this one and come back to you."
+                        : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
                   </p>
                 </>
               )}

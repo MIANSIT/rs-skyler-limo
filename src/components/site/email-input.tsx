@@ -21,6 +21,7 @@ export function EmailInput({
   defaultValue = "",
   maxLength,
   sendsWhat,
+  "aria-invalid": ariaInvalid,
 }: {
   id: string;
   name?: string;
@@ -29,6 +30,8 @@ export function EmailInput({
   maxLength?: number;
   /** "your confirmation", "our reply" — completes "We will send … to". */
   sendsWhat: string;
+  /** Flagged by the form when the address is missing or malformed. */
+  "aria-invalid"?: boolean;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -52,7 +55,10 @@ export function EmailInput({
           if (suggestion) setSuggestion(null);
         }}
         onBlur={() => setSuggestion(suggestEmail(value))}
-        aria-describedby={suggestion ? `${id}-suggestion` : undefined}
+        aria-invalid={ariaInvalid}
+        aria-describedby={
+          suggestion ? `${id}-suggestion` : ariaInvalid ? `${id}-error` : undefined
+        }
       />
 
       {suggestion ? (

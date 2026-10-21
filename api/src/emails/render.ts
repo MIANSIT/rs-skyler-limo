@@ -323,7 +323,11 @@ export function shell({
 /**
  * Duplicated from the site's `src/lib/content.ts` on purpose — the API cannot
  * import from the Next app. If the address changes there, change it here.
+ *
+ * The one address a customer ever sees: every email is sent from it and every
+ * "email us" in a template points at it. Operators' own addresses live in
+ * `MAIL_OPS_RECIPIENTS` and are never put in front of a customer.
  */
 export const CONTACT = {
-  email: "rsskylerlimo@yahoo.com",
+  email: "support@rsskylerlimo.com",
 } as const;

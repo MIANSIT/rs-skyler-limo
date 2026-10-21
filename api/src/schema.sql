@@ -274,10 +274,17 @@ CREATE TABLE IF NOT EXISTS hero_media (
 -- dashboard. `code` is the operator-facing key and never changes after creation:
 -- rates and past bookings refer to it. Inactive airports leave the booking form
 -- but keep their rates, so switching one back on restores its prices.
+--
+-- `quote_only` is the operator saying "price this one by hand". The airport
+-- stays on the booking form and keeps whatever is on its rate card, but no
+-- fare is published for it: the website shows "Get quote" in place of every
+-- price and `decideFare` returns a quote, the same as an airport with no rate
+-- at all. Switching it back off republishes the existing prices untouched.
 CREATE TABLE IF NOT EXISTS airports (
   code          VARCHAR(8) NOT NULL,
   name          VARCHAR(120) NOT NULL,
   is_active     TINYINT(1) NOT NULL DEFAULT 1,
+  quote_only    TINYINT(1) NOT NULL DEFAULT 0,
   display_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

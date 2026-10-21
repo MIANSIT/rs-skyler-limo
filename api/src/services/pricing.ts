@@ -8,24 +8,39 @@ function dollars(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export type Airport = { code: string; name: string };
+export type Airport = {
+  code: string;
+  name: string;
+  /**
+   * The operator prices this airport by hand. Its rate card is kept and still
+   * editable, but nothing on it is published: the website shows "Get quote"
+   * wherever a price would go and `decideFare` quotes the trip.
+   */
+  quoteOnly: boolean;
+};
 
 /** Airports the booking form offers. Managed in the dashboard. */
 export async function listActiveAirports(): Promise<Airport[]> {
-  const rows = await query<RowDataPacket & Airport>(
-    `SELECT code, name FROM airports WHERE is_active = 1
+  const rows = await query<RowDataPacket & { code: string; name: string; quote_only: number }>(
+    `SELECT code, name, quote_only FROM airports WHERE is_active = 1
       ORDER BY display_order ASC, name ASC`,
   );
-  return rows.map((row) => ({ code: row.code, name: row.name }));
+  return rows.map((row) => ({
+    code: row.code,
+    name: row.name,
+    quoteOnly: row.quote_only === 1,
+  }));
 }
 
-async function isActiveAirport(code: unknown): Promise<boolean> {
-  if (typeof code !== "string" || code === "") return false;
-  const row = await queryOne<RowDataPacket>(
-    `SELECT 1 FROM airports WHERE code = :code AND is_active = 1 LIMIT 1`,
+/** The airport as the booking engine sees it, or null if it is not on offer. */
+async function findActiveAirport(code: unknown): Promise<Airport | null> {
+  if (typeof code !== "string" || code === "") return null;
+  const row = await queryOne<RowDataPacket & { code: string; name: string; quote_only: number }>(
+    `SELECT code, name, quote_only FROM airports
+      WHERE code = :code AND is_active = 1 LIMIT 1`,
     { code },
   );
-  return Boolean(row);
+  return row ? { code: row.code, name: row.name, quoteOnly: row.quote_only === 1 } : null;
 }
 
 export type AirportRate = {
@@ -89,7 +104,13 @@ export async function getRateGrid(): Promise<{
   };
 }
 
-/** What the public booking form needs: active rates only, keyed for lookup. */
+/**
+ * What the public booking form needs: active rates only, keyed for lookup.
+ *
+ * A quote-only airport is filtered out here rather than in the browser, so a
+ * fare the operator has withdrawn is not merely hidden — it never leaves the
+ * server. `decideFare` applies the same rule on submission.
+ */
 export async function getPublicRates(): Promise<
   { airportCode: string; vehicleSlug: string; priceCents: number }[]
 > {
@@ -99,7 +120,8 @@ export async function getPublicRates(): Promise<
        FROM airport_rates r
        JOIN vehicles v ON v.id = r.vehicle_id
        JOIN airports a ON a.code = r.airport_code
-      WHERE r.is_active = 1 AND v.is_active = 1 AND a.is_active = 1`,
+      WHERE r.is_active = 1 AND v.is_active = 1 AND a.is_active = 1
+        AND a.quote_only = 0`,
   );
 
   return rows.map((row) => ({
@@ -211,8 +233,18 @@ export async function decideFare(input: {
     return quote("Point-to-point and hourly trips are priced by a person.");
   }
 
-  if (!input.airportCode || !(await isActiveAirport(input.airportCode))) {
+  const airport = input.airportCode
+    ? await findActiveAirport(input.airportCode)
+    : null;
+
+  if (!airport) {
     return quote("We could not match that airport to a published fare.");
+  }
+
+  // The operator has taken this airport off the published card: whatever is
+  // on its rate rows, every trip through it is priced by a person.
+  if (airport.quoteOnly) {
+    return quote(`${airport.name} transfers are priced by a person.`);
   }
 
   // The non-airport end of the trip is the one that has to be in the city.
