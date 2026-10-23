@@ -104,7 +104,13 @@ Things that are easy to get wrong here:
   it that way; the privacy page says so. The ID is `NEXT_PUBLIC_`, so it is
   **inlined at build**: setting it and restarting does nothing, it needs a
   rebuild. Conversions go through `trackConversion` / `useConversion`, which fire
-  once per reference rather than once per repaint.
+  once per reference rather than once per repaint. The banner's visibility is
+  derived from the stored consent, so the decision is held in **memory** first
+  and written to `localStorage` only as best effort: where storage throws —
+  Safari with "Block all cookies", private windows, Instagram and TikTok in-app
+  webviews — a failed write left the snapshot `null` and the banner could never
+  be dismissed, with no error to show for it. Never make the banner's visibility
+  depend on a storage read succeeding.
 - **Social profiles live in `content.ts` and feed two places.** The footer links
   and `sameAs` in the structured data both read `social`, and `socialIcons` in
   the footer is typed against those names, so adding a network fails the
