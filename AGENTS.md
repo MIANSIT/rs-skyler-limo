@@ -78,6 +78,39 @@ Things that are easy to get wrong here:
   previews only. Reports' "Sales tax to pay" counts by `paid_at` (tax is owed
   on money received), while the rest of Reports counts by order date — keep it
   that way.
+- **`sharp` is pinned to 0.33.x by `overrides`, and both halves matter.** Next 16
+  declares `sharp ^0.35.4`, whose prebuilt Linux x64 binaries require the
+  x86-64-v2 microarchitecture. The VPS reports a `QEMU Virtual CPU version 2.5+`
+  with no `popcnt`, `sse3`, `ssse3`, `sse4_1`, `sse4_2` or `cmpxchg16b`, so 0.35
+  refuses to load, Next's optimiser throws, and **every image is served as its
+  unresized original** — a 176px thumbnail downloaded 2.4MB and took 36s. The
+  failure is silent: HTTP 200, `x-nextjs-cache: HIT`, correct-looking image, and
+  the bad result is cached. A plain dependency pin is **not enough** — npm then
+  nests Next's own copy at `node_modules/next/node_modules/sharp` and Next
+  resolves *that* one. Only `overrides` collapses it to a single copy. After any
+  change here, check `find node_modules -path '*node_modules/sharp'` returns one
+  path, and clear `.next/cache/images` on the server or the passthroughs persist.
+  The durable fix is a host with a modern CPU model.
+- **The sitemap fails the build if a page is unaccounted for.** `src/app/sitemap.ts`
+  is hand-listed, because a sitemap is a claim that a URL is worth indexing. It
+  also reads `src/app/(site)` at build and throws when a page is in neither
+  `routes` nor `excluded` — because the list silently fell nine pages behind
+  once, every airport page among them, so the pages written to carry the target
+  searches were the ones Google could not find. Add each new page to one list or
+  the other.
+- **Analytics only runs with a measurement ID *and* consent.** `src/lib/analytics.ts`
+  no-ops unless `NEXT_PUBLIC_GA_MEASUREMENT_ID` is set and the visitor accepted
+  analytics in the banner, so a decline means no request to Google at all — keep
+  it that way; the privacy page says so. The ID is `NEXT_PUBLIC_`, so it is
+  **inlined at build**: setting it and restarting does nothing, it needs a
+  rebuild. Conversions go through `trackConversion` / `useConversion`, which fire
+  once per reference rather than once per repaint.
+- **Social profiles live in `content.ts` and feed two places.** The footer links
+  and `sameAs` in the structured data both read `social`, and `socialIcons` in
+  the footer is typed against those names, so adding a network fails the
+  typecheck until its glyph exists. Store canonical profile URLs only: the links
+  the apps' Share buttons produce carry per-session tokens (`stkn`, `_t`) and a
+  `utm_source=qr` tag that would both leak a session and corrupt the analytics.
 - **Timestamps are UTC in the database**, converted to `America/New_York` at
   the edge. See the `SET time_zone` note in `api/src/db.ts` before touching
   anything with a date in it. Money is integer cents.
