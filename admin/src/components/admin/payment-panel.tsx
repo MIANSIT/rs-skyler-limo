@@ -138,7 +138,13 @@ export function PaymentLinkBox({
   );
 }
 
-export function PaymentPanel({ booking }: { booking: Booking }) {
+export function PaymentPanel({
+  booking,
+  hasUnpaidCharges = false,
+}: {
+  booking: Booking;
+  hasUnpaidCharges?: boolean;
+}) {
   const [state, action] = useActionState<FormState, FormData>(
     updateBookingPayment,
     undefined,
@@ -196,7 +202,9 @@ export function PaymentPanel({ booking }: { booking: Booking }) {
       </form>
 
       {/* Only where a link can actually be paid: card, priced, unpaid, live. */}
-      {!paid && !cash && booking.quotedTotalCents !== null && booking.status !== "cancelled" ? (
+      {/* Also once the fare is paid, if extra charges are still owing. */}
+      {booking.status !== "cancelled" &&
+      ((!paid && !cash && booking.quotedTotalCents !== null) || hasUnpaidCharges) ? (
         <PaymentLinkBox kind="booking" id={booking.id} email={booking.customerEmail} />
       ) : null}
     </section>

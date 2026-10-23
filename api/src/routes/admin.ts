@@ -14,6 +14,8 @@ import {
   sendQuoteSchema,
   updateBookingSchema,
   adminPaymentLinkSchema,
+  addChargeSchema,
+  updateChargeSchema,
   updateQuoteSchema,
   updateReviewSchema,
   updateSettingsSchema,
@@ -43,7 +45,8 @@ import {
   sendQuotedEmail,
 } from "../services/mail.js";
 import { createPaymentLink } from "../lib/payment-link.js";
-import { canPayOnline, canPayQuoteOnline } from "../services/payments.js";
+import { bookingDue, canPayQuoteOnline } from "../services/payments.js";
+import { addCharge, deleteCharge, listCharges, setChargePaid } from "../services/charges.js";
 import { execute } from "../db.js";
 import { bookingsWorkbook } from "../services/export.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
@@ -163,9 +166,33 @@ adminRouter.get("/bookings/:id", async (req, res) => {
 
   res.json({
     booking,
+    charges: await listCharges(id),
     activity: await getActivity("booking", id),
     clashes: await findClashes(booking),
   });
+});
+
+adminRouter.post("/bookings/:id/charges", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { title, amountCents } = addChargeSchema.parse(req.body);
+  const booking = await getBookingById(id);
+  if (!booking) throw ApiError.notFound("That booking no longer exists.");
+
+  await addCharge(booking, title, amountCents, req.admin!.id);
+  res.status(201).json({ charges: await listCharges(id) });
+});
+
+adminRouter.patch("/bookings/:id/charges/:chargeId", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { paid } = updateChargeSchema.parse(req.body);
+  await setChargePaid(id, parseId(req.params.chargeId), paid, req.admin!.id);
+  res.json({ charges: await listCharges(id) });
+});
+
+adminRouter.delete("/bookings/:id/charges/:chargeId", async (req, res) => {
+  const id = parseId(req.params.id);
+  await deleteCharge(id, parseId(req.params.chargeId), req.admin!.id);
+  res.json({ charges: await listCharges(id) });
 });
 
 adminRouter.patch("/bookings/:id", async (req, res) => {
@@ -343,21 +370,22 @@ adminRouter.post("/bookings/:id/payment-link", async (req, res) => {
   const booking = await getBookingById(id);
   if (!booking) throw ApiError.notFound("That booking no longer exists.");
 
-  if (!canPayOnline(booking)) {
+  const due = await bookingDue(booking);
+  if (!due.canPay) {
     throw ApiError.conflict(
-      booking.paymentStatus === "paid"
-        ? "This booking is already paid."
-        : booking.paymentMethod !== "card"
-          ? "This booking is set to cash on delivery. Switch it to card first."
-          : booking.quotedTotalCents === null
-            ? "Set a price before sending a payment link."
-            : booking.status === "cancelled"
-              ? "This booking is cancelled."
+      booking.status === "cancelled"
+        ? "This booking is cancelled."
+        : booking.paymentStatus === "paid"
+          ? "Nothing is owing — the fare and every charge are paid."
+          : booking.paymentMethod !== "card"
+            ? "This booking is set to cash on delivery. Switch it to card first."
+            : booking.quotedTotalCents === null
+              ? "Set a price before sending a payment link."
               : "Card payment is not configured on the server.",
     );
   }
 
-  const link = createPaymentLink(booking);
+  const link = createPaymentLink({ ...booking, quotedTotalCents: due.signedCents });
 
   await execute(
     `INSERT INTO activity_log
@@ -367,12 +395,12 @@ adminRouter.post("/bookings/:id/payment-link", async (req, res) => {
       id,
       adminUserId: req.admin!.id,
       action: send ? "payment_link_sent" : "payment_link_created",
-      note: `Link for $${(booking.quotedTotalCents! / 100).toFixed(2)}, valid until ${link.expiresAt.toISOString().slice(0, 10)}.`,
+      note: `Link for $${(due.dueCents / 100).toFixed(2)}, valid until ${link.expiresAt.toISOString().slice(0, 10)}.`,
     },
   );
 
   if (send) {
-    void sendPaymentLinkEmail(booking, link.url, link.expiresAt).catch((error: unknown) => {
+    void sendPaymentLinkEmail(booking, link.url, link.expiresAt, due.lines, due.dueCents).catch((error: unknown) => {
       console.error(
         `[mail] unexpected failure for ${booking.reference}:`,
         error instanceof Error ? error.message : error,

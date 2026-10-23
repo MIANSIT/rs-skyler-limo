@@ -61,6 +61,7 @@ import {
   verifyChangeCode,
 } from "../services/changes.js";
 import {
+  bookingDue,
   canPayOnline,
   canPayQuoteOnline,
   createCheckout,
@@ -538,10 +539,15 @@ async function payableForLink(reference: string, token: string) {
   }
 
   const booking = await getBookingByReference(ref);
-  const check = booking ? checkPaymentLink(booking, token) : "invalid";
-  if (!booking || check === "invalid") throw ApiError.notFound(INVALID);
+  // Signed over what is owing, so a new charge retires the links before it.
+  const due = booking ? await bookingDue(booking) : null;
+  const check =
+    booking && due
+      ? checkPaymentLink({ ...booking, quotedTotalCents: due.signedCents }, token)
+      : "invalid";
+  if (!booking || !due || check === "invalid") throw ApiError.notFound(INVALID);
   if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
-  return { kind: "booking" as const, booking };
+  return { kind: "booking" as const, booking, due };
 }
 
 const QUOTE_SERVICE_LABEL: Record<string, string> = {
@@ -573,7 +579,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     return;
   }
 
-  const { booking } = found;
+  const { booking, due } = found;
+  const hasCharges = due.charges.length > 0;
   // A class since removed from the fleet still reads as words, not a slug.
   let vehicleName = titleCase(booking.vehicleClass);
   try {
@@ -590,11 +597,45 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     pickup: booking.pickup,
     destination: booking.destination,
     vehicleName,
-    amountCents: booking.quotedTotalCents,
+    customerName: booking.customerName,
+    tripType: booking.tripType,
+    serviceType: booking.serviceType,
+    passengers: booking.passengers,
+    bags: booking.bags,
+    childSeats: booking.childSeats,
+    airline: booking.airline,
+    flightNumber: booking.flightNumber,
+    airportCode: booking.airportCode,
+    notes: booking.notes,
+    // What is owing now; the full fare once nothing is.
+    amountCents: due.dueCents > 0 ? due.dueCents : booking.quotedTotalCents,
     taxRate: booking.taxRate,
     taxCents: booking.taxCents,
-    paymentStatus: booking.paymentStatus,
-    canPay: canPayOnline(booking),
+    // Paid only when the fare and every extra charge are in.
+    paymentStatus:
+      booking.paymentStatus === "paid" && due.charges.every((c) => c.paidAt) ? "paid" : "unpaid",
+    // Itemised only when there are extras; a plain fare keeps its tax line.
+    lines: hasCharges
+      ? [
+          ...(booking.quotedTotalCents
+            ? [
+                {
+                  label: "Trip fare",
+                  amountCents: booking.quotedTotalCents,
+                  taxCents: booking.taxCents,
+                  paid: booking.paymentStatus === "paid",
+                },
+              ]
+            : []),
+          ...due.charges.map((c) => ({
+            label: c.title,
+            amountCents: c.amountCents,
+            taxCents: c.taxCents,
+            paid: Boolean(c.paidAt),
+          })),
+        ]
+      : [],
+    canPay: due.canPay,
   });
 });
 

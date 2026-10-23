@@ -4,6 +4,7 @@ import { execute } from "../db.js";
 import { env } from "../env.js";
 import { ApiError } from "../lib/http.js";
 import { getBookingById, type Booking } from "./bookings.js";
+import { listCharges, payableLines, recordChargesPaid } from "./charges.js";
 import { getQuoteById, type Quote } from "./quotes.js";
 import { getVehicleBySlug } from "./vehicles.js";
 
@@ -50,6 +51,27 @@ export function canPayOnline(booking: Booking): boolean {
   );
 }
 
+/**
+ * Everything a booking's payment link covers right now: the fare while it is
+ * unpaid by card, plus every unpaid extra charge. `signedCents` is what the
+ * link is signed over, so adding or paying a charge retires old links.
+ */
+export async function bookingDue(booking: Booking) {
+  const charges = await listCharges(booking.id);
+  const lines =
+    stripeAvailable() && booking.status !== "cancelled"
+      ? payableLines(booking, charges, canPayOnline(booking))
+      : [];
+  const dueCents = lines.reduce((total, line) => total + line.amountCents, 0);
+  return {
+    charges,
+    lines,
+    dueCents,
+    canPay: lines.length > 0,
+    signedCents: dueCents > 0 ? dueCents : booking.quotedTotalCents,
+  };
+}
+
 function siteUrl(path: string): string {
   return `${env.SITE_BASE_URL.replace(/\/+$/, "")}${path}`;
 }
@@ -71,9 +93,12 @@ type Payable = {
   kind: "booking" | "quote";
   id: number;
   reference: string;
-  amountCents: number;
+  /** One Stripe line item each. A booking may owe its fare plus extra charges. */
+  lines: { name: string; amountCents: number }[];
+  /** Booking only: whether the trip fare is among the lines, and which charges. */
+  includesFare?: boolean;
+  chargeIds?: number[];
   email: string;
-  name: string;
   cancelUrl?: string;
 };
 
@@ -86,25 +111,28 @@ async function openCheckout(item: Payable): Promise<string> {
   // requests could be paid still resolve; quotes carry `quoteId`.
   const metadata: Record<string, string> =
     item.kind === "booking"
-      ? { bookingId: String(item.id), reference: item.reference }
+      ? {
+          bookingId: String(item.id),
+          reference: item.reference,
+          fare: item.includesFare === false ? "0" : "1",
+          ...(item.chargeIds?.length ? { chargeIds: item.chargeIds.join(",") } : {}),
+        }
       : { quoteId: String(item.id), reference: item.reference };
 
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: item.amountCents,
-          product_data: {
-            // What was bought and its reference. Addresses stay with us.
-            name: `RSSkyler Limo — ${item.name}`,
-            description: `${item.kind === "booking" ? "Booking" : "Request"} ${item.reference}`,
-          },
+    line_items: item.lines.map((line) => ({
+      quantity: 1,
+      price_data: {
+        currency: "usd",
+        unit_amount: line.amountCents,
+        product_data: {
+          // What was bought and its reference. Addresses stay with us.
+          name: `RSSkyler Limo — ${line.name}`,
+          description: `${item.kind === "booking" ? "Booking" : "Request"} ${item.reference}`,
         },
       },
-    ],
+    })),
     customer_email: item.email,
     client_reference_id: item.reference,
     metadata,
@@ -136,7 +164,10 @@ export async function createCheckout(
   booking: Booking,
   options: { cancelUrl?: string } = {},
 ): Promise<string> {
-  if (!canPayOnline(booking)) {
+  // The fare, if still owing, plus every unpaid extra charge.
+  const fareOnline = canPayOnline(booking);
+  const lines = payableLines(booking, await listCharges(booking.id), fareOnline);
+  if (!stripeAvailable() || booking.status === "cancelled" || lines.length === 0) {
     throw ApiError.conflict("This booking cannot be paid online.");
   }
 
@@ -151,9 +182,13 @@ export async function createCheckout(
     kind: "booking",
     id: booking.id,
     reference: booking.reference,
-    amountCents: booking.quotedTotalCents!,
+    lines: lines.map((line) => ({
+      name: line.chargeId ? line.label : vehicleName,
+      amountCents: line.amountCents,
+    })),
+    includesFare: fareOnline,
+    chargeIds: lines.flatMap((line) => (line.chargeId ? [line.chargeId] : [])),
     email: booking.customerEmail,
-    name: vehicleName,
     cancelUrl: options.cancelUrl,
   });
 }
@@ -179,9 +214,13 @@ export async function createQuoteCheckout(
     kind: "quote",
     id: quote.id,
     reference: quote.reference,
-    amountCents: quote.agreedPriceCents!,
+    lines: [
+      {
+        name: QUOTE_SERVICE[quote.serviceType] ?? "Chauffeured transport",
+        amountCents: quote.agreedPriceCents!,
+      },
+    ],
     email: quote.customerEmail,
-    name: QUOTE_SERVICE[quote.serviceType] ?? "Chauffeured transport",
     cancelUrl: options.cancelUrl,
   });
 }
@@ -234,23 +273,38 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
         ? session.payment_intent
         : (session.payment_intent?.id ?? null);
 
-    const result = await execute(
-      `UPDATE ${isQuote ? "quotes" : "bookings"}
-          SET payment_status = 'paid', paid_at = UTC_TIMESTAMP(),
-              payment_method = 'card',
-              stripe_checkout_session_id = :sessionId,
-              stripe_payment_intent_id = :paymentIntentId
-        WHERE id = :id AND payment_status = 'unpaid'`,
-      { id, sessionId: session.id, paymentIntentId },
-    );
+    // Sessions opened before extra charges existed carry no `fare` flag and
+    // always covered the fare.
+    const coversFare = isQuote || session.metadata?.fare !== "0";
+    const result = coversFare
+      ? await execute(
+          `UPDATE ${isQuote ? "quotes" : "bookings"}
+              SET payment_status = 'paid', paid_at = UTC_TIMESTAMP(),
+                  payment_method = 'card',
+                  stripe_checkout_session_id = :sessionId,
+                  stripe_payment_intent_id = :paymentIntentId
+            WHERE id = :id AND payment_status = 'unpaid'`,
+          { id, sessionId: session.id, paymentIntentId },
+        )
+      : { affectedRows: 0 };
 
-    if (result.affectedRows > 0) {
+    const chargeIds = (session.metadata?.chargeIds ?? "")
+      .split(",")
+      .map(Number)
+      .filter((value) => Number.isInteger(value) && value > 0);
+    const chargesPaid = isQuote ? 0 : await recordChargesPaid(id, chargeIds, paymentIntentId);
+
+    if (result.affectedRows > 0 || chargesPaid > 0) {
       const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
       await execute(
         `INSERT INTO activity_log
            (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
          VALUES (:kind, :id, NULL, 'payment_paid', NULL, NULL, :note)`,
-        { kind: isQuote ? "quote" : "booking", id, note: `Paid $${amount} by card through Stripe.` },
+        {
+          kind: isQuote ? "quote" : "booking",
+          id,
+          note: `Paid $${amount} by card through Stripe${chargesPaid > 0 ? ` (includes ${chargesPaid} extra ${chargesPaid === 1 ? "charge" : "charges"})` : ""}.`,
+        },
       );
     }
   }

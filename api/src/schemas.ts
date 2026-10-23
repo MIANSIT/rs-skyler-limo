@@ -411,6 +411,14 @@ export const paymentLinkSchema = z.object({
   token: z.string().trim().min(10).max(200),
 });
 
+/** An extra charge: what it is for, and what it costs, in cents. */
+export const addChargeSchema = z.object({
+  title: z.string().trim().min(1, "Say what the charge is for.").max(160),
+  amountCents: z.coerce.number().int().min(1, "Enter an amount above zero.").max(100_000_00),
+});
+
+export const updateChargeSchema = z.object({ paid: z.boolean() });
+
 /** The dashboard's "payment link" action: make one, and optionally email it. */
 export const adminPaymentLinkSchema = z.object({
   send: z.boolean().default(false),

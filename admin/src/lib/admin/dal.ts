@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import type {
   ActivityEntry,
+  Charge,
   AdminAirport,
   AdminReview,
   AdminUser,
@@ -108,6 +109,7 @@ export async function getBooking(
   id: number,
 ): Promise<{
   booking: Booking;
+  charges: Charge[];
   activity: ActivityEntry[];
   clashes: PossibleClash[];
 } | null> {
@@ -116,6 +118,7 @@ export async function getBooking(
   try {
     return await apiFetch<{
       booking: Booking;
+      charges: Charge[];
       activity: ActivityEntry[];
       clashes: PossibleClash[];
     }>(
