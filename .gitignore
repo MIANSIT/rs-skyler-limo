@@ -62,3 +62,6 @@ next-env.d.ts
 /deploy/*.key
 /deploy/*_key
 /RSSkylerLimo_Task_List_with_Evidence
+
+# Hero video/poster artifacts: content, prepared locally, uploaded through the admin.
+/hero-media

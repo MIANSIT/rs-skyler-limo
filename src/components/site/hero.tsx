@@ -11,6 +11,91 @@ import type { FleetVehicle, HeroMediaItem, HeroText } from "@/lib/api/types";
 import { duration, ease, gsap, useGSAP } from "@/lib/gsap";
 
 /**
+ * Whether this visitor should be served the hero video at all.
+ *
+ * A hero slide is routinely a multi-megabyte MP4 — the one in production is
+ * 4.2MB — so this is a real decision, not a nicety. Checked at the moment a
+ * slide becomes active rather than during render, so it never participates in
+ * hydration.
+ */
+function shouldPlayVideo(): boolean {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+
+  // Data Saver is an explicit request to trade pictures for bytes, and on 3G
+  // or worse a 4MB background would still be arriving long after the visitor
+  // had read the page. Both fall back to the poster.
+  if (connection?.saveData) return false;
+  if (
+    connection?.effectiveType &&
+    ["slow-2g", "2g", "3g"].includes(connection.effectiveType)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * A hero video slide, which downloads only once it is the slide on screen.
+ *
+ * `autoPlay` is what this used to have, and it is a trap on a carousel: the
+ * browser honours it on mount, for *every* slide at once, so a 4.2MB MP4 on
+ * the second slide — not visible for another seven seconds — was fetched in
+ * full the moment the page loaded, competing with the hero image, the fonts
+ * and the JS for the connection. It cost ~4.2MB of the homepage's ~4.9MB and
+ * was downloaded on phones too.
+ *
+ * So: `preload="none"`, no `autoPlay`, and `src` assigned imperatively when
+ * the slide activates. Assigning it in an effect rather than rendering it is
+ * deliberate — the server markup then carries no source for the browser's
+ * preload scanner to find, and there is no attribute to mismatch on hydrate.
+ * A slide that is never reached is never downloaded.
+ */
+function HeroVideo({
+  item,
+  active,
+}: {
+  item: HeroMediaItem;
+  active: boolean;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || !active) return;
+    if (!shouldPlayVideo()) return;
+
+    // `video.src` reads back as "" until it has been set, so this runs once.
+    if (!video.src) {
+      video.src = item.url;
+      video.load();
+    }
+
+    // Muted autoplay is allowed everywhere, but a rejected promise is an
+    // unhandled rejection, and a poster frame is a fine outcome.
+    void video.play().catch(() => {});
+  }, [active, item.url]);
+
+  return (
+    <video
+      ref={ref}
+      muted
+      loop
+      playsInline
+      preload="none"
+      poster={item.posterUrl ?? undefined}
+      className="h-full w-full object-cover"
+    />
+  );
+}
+
+/**
  * The hero's background slides, when the dashboard has uploaded any.
  *
  * Absent entirely (`media.length === 0`) the hero renders exactly as it
@@ -54,16 +139,7 @@ function HeroMedia({ media }: { media: HeroMediaItem[] }) {
             style={{ opacity: itemIndex === index ? 1 : 0 }}
           >
             {item.kind === "video" ? (
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={item.posterUrl ?? undefined}
-                className="h-full w-full object-cover"
-              >
-                <source src={item.url} type="video/mp4" />
-              </video>
+              <HeroVideo item={item} active={itemIndex === index} />
             ) : (
               <Image
                 src={item.url}
