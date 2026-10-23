@@ -35,8 +35,12 @@ export function buildPaymentLinkEmail(
   vehicleName: string,
   payUrl: string,
   expiresAt: Date,
+  lines: { label: string; amountCents: number }[],
+  dueCents: number,
 ): BuiltEmail {
-  const fare = formatMoney(booking.quotedTotalCents) ?? "";
+  const fare = formatMoney(dueCents) ?? "";
+  // Extra charges are listed one by one; a plain unpaid fare keeps its tax lines.
+  const hasExtras = lines.length > 1 || (lines[0] !== undefined && lines[0].label !== "Trip fare");
   const expires = formatDate(expiresAt.toISOString());
   const priced: Priced = {
     totalCents: booking.quotedTotalCents,
@@ -50,7 +54,16 @@ export function buildPaymentLinkEmail(
       <td style="background:${BRAND.midnight};padding:20px 16px;">
         <div style="font-family:${SANS_FONT};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">Amount due</div>
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
-        ${taxLinesOnDark(priced)}
+        ${
+          hasExtras
+            ? lines
+                .map(
+                  (line) =>
+                    `<div style="margin-top:6px;font-family:${SANS_FONT};font-size:13px;color:rgba(255,255,255,0.85);">${escapeHtml(line.label)} · ${escapeHtml(formatMoney(line.amountCents) ?? "")}</div>`,
+                )
+                .join("")
+            : taxLinesOnDark(priced)
+        }
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
           Paid by card through Stripe. Your card details go to Stripe, never to us.
         </div>
@@ -101,7 +114,9 @@ export function buildPaymentLinkEmail(
     "RSSKYLER LIMO — PAY FOR YOUR BOOKING",
     "",
     `Reference:  ${formatReference(booking.reference)}`,
-    ...priceTextLines(priced, "Amount"),
+    ...(hasExtras
+      ? [...lines.map((line) => `${line.label}: ${formatMoney(line.amountCents)}`), `Amount due: ${fare}`]
+      : priceTextLines(priced, "Amount")),
     `Date:       ${formatDate(booking.pickupAt)}`,
     `Time:       ${formatTime(booking.pickupAt)} (New York)`,
     `Pick-up:    ${booking.pickup}`,

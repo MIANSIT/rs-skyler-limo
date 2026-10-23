@@ -134,6 +134,17 @@ export type Quote = {
   updatedAt: string;
 };
 
+/** An extra charge on a booking (waiting time, an extra drop-off). */
+export type Charge = {
+  id: number;
+  title: string;
+  /** What the customer pays, sales tax included. */
+  amountCents: number;
+  taxCents: number;
+  paidAt: string | null;
+  createdAt: string;
+};
+
 export type ActivityEntry = {
   id: number;
   action: string;
