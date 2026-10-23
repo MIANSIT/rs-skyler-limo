@@ -41,9 +41,28 @@ function parse(raw: string | null): CookieConsent | null {
 let cachedRaw: string | null = null;
 let cachedValue: CookieConsent | null = null;
 
+/**
+ * The decision for this page view, held in memory.
+ *
+ * This is the source of truth, and `localStorage` is only how it survives to
+ * the next visit. The banner's visibility is derived from the snapshot below,
+ * so when storage is unavailable — Safari with "Block all cookies", a private
+ * window, an Instagram or TikTok in-app webview — a write that silently failed
+ * used to leave the snapshot `null` and **the banner could never be
+ * dismissed**. Tapping Accept did nothing at all, with no error to show for
+ * it. Remembering the answer here means the banner always closes; on those
+ * devices it simply asks again next visit, which is what the comment in
+ * `setStoredConsent` always claimed happened.
+ */
+let memoryValue: CookieConsent | null = null;
+
 /** The client snapshot for `useSyncExternalStore`. */
 export function getConsentSnapshot(): CookieConsent | null {
   if (typeof window === "undefined") return null;
+
+  // A decision made in this page view wins: it is the most recent, and it is
+  // the only one that exists when storage is blocked.
+  if (memoryValue) return memoryValue;
 
   let raw: string | null;
   try {
@@ -75,11 +94,15 @@ export function subscribeConsent(listener: () => void): () => void {
 export function setStoredConsent(consent: CookieConsent): void {
   if (typeof window === "undefined") return;
 
+  // Memory first, and unconditionally. Persisting is best-effort; recording
+  // the answer is not, because the banner closes on the back of it.
+  memoryValue = consent;
+
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
   } catch {
-    // Private browsing / blocked storage: the banner simply reappears next
-    // visit, which is the safe direction to fail.
+    // Private browsing / blocked storage: the choice holds for this visit and
+    // the banner reappears on the next one, which is the safe way to fail.
   }
   for (const listener of listeners) listener();
 }
