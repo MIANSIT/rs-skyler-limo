@@ -2,7 +2,7 @@
   "name": "rs-skyler-limo",
   "version": "0.1.0",
   "private": true,
-  "//sharp": "Pinned to 0.33.x deliberately \u2014 do not upgrade without testing on the server. Next 16 wants sharp ^0.35.4, whose prebuilt Linux x64 binaries require the x86-64-v2 microarchitecture. The VPS presents a 'QEMU Virtual CPU version 2.5+' that reports no popcnt, sse3, ssse3, sse4_1, sse4_2 or cmpxchg16b, so sharp 0.35 refuses its own binary, Next's image optimiser fails, and every image is served as the unresized original \u2014 a 176px thumbnail downloaded 2.4MB. 0.33.x ships baseline x86-64 binaries and works. The real fix is a host with a modern CPU model; until then this pin is what keeps images optimised.",
+  "//sharp": "sharp is pinned to 0.33.x and FORCED with `overrides` \u2014 do not remove either, and do not upgrade without testing on the server. Next 16 declares sharp ^0.35.4, whose prebuilt Linux x64 binaries require the x86-64-v2 microarchitecture. The VPS presents a 'QEMU Virtual CPU version 2.5+' reporting no popcnt, sse3, ssse3, sse4_1, sse4_2 or cmpxchg16b, so 0.35 refuses to load, Next's optimiser throws, and every image is served as the unresized original \u2014 a 176px thumbnail downloaded 2.4MB. A plain dependency pin is NOT enough: npm then nests Next's own copy at node_modules/next/node_modules/sharp and Next resolves that one, so the pin has no effect. `overrides` is what collapses it to a single 0.33.x copy. The real fix is a host with a modern CPU model.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -36,6 +36,9 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "sharp": "~0.33.5"
+  },
+  "overrides": {
     "sharp": "~0.33.5"
   },
   "devDependencies": {
