@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "//typecheck": "`next typegen` writes next-env.d.ts and .next/types, which tsconfig includes and which declare the image modules and typed routes. Both are git-ignored, so on a fresh clone or in CI they do not exist and `tsc` alone fails on `import mark from …/rs_logo.png`. It works locally only because `next dev` happens to have written them already.",
+    "//typecheck": "`next typegen` writes next-env.d.ts and .next/types, which tsconfig includes and which declare the image modules and typed routes. Both are git-ignored, so on a fresh clone or in CI they do not exist and `tsc` alone fails on `import mark from \u2026/rs_logo.png`. It works locally only because `next dev` happens to have written them already.",
     "typecheck": "next typegen && tsc --noEmit",
     "plan:pdf": "node scripts/build-plan-pdf.mjs",
     "api:install": "npm --prefix api install",
@@ -34,7 +34,9 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "//sharp": "Pinned to 0.33.x deliberately \u2014 do not upgrade without testing on the server. Next 16 wants sharp ^0.35.4, whose prebuilt Linux x64 binaries require the x86-64-v2 microarchitecture. The VPS presents a 'QEMU Virtual CPU version 2.5+' that reports no popcnt, sse3, ssse3, sse4_1, sse4_2 or cmpxchg16b, so sharp 0.35 refuses its own binary, Next's image optimiser fails, and every image is served as the unresized original \u2014 a 176px thumbnail downloaded 2.4MB. 0.33.x ships baseline x86-64 binaries and works. The real fix is a host with a modern CPU model; until then this pin is what keeps images optimised.",
+    "sharp": "~0.33.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
