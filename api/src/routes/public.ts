@@ -34,6 +34,7 @@ import {
 } from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
 import { getHeroText, listActiveHeroMedia } from "../services/hero.js";
+import { listServiceImages } from "../services/service-images.js";
 import {
   CHILD_SEAT_FEE_CENTS,
   decideFare,
@@ -140,6 +141,11 @@ publicRouter.get("/hero", async (_req, res) => {
       height: item.height,
     })),
   });
+});
+
+/** The photos an operator uploaded for the homepage's service cards. */
+publicRouter.get("/service-images", async (_req, res) => {
+  res.json({ images: await listServiceImages() });
 });
 
 /**
