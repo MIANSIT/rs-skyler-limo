@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { Reveal } from "@/components/motion/reveal";
-import { PageHeader } from "@/components/site/page-header";
+import { ServicePageHeader } from "@/components/site/page-header";
 import { QuoteForm } from "@/components/site/quote-form";
 import { ButtonLink } from "@/components/ui/button";
 import { RingsIcon } from "@/components/ui/icon";
@@ -27,7 +27,8 @@ export const metadata: Metadata = {
 export default function WeddingsPage() {
   return (
     <>
-      <PageHeader
+      <ServicePageHeader
+        service="weddings"
         eyebrow="Every detail, minded"
         title="The most photographed day we will ever take part in"
         intro="Cars that are already waiting when the doors open. A coordinator who has walked the route. A timeline rehearsed long before anyone is running late in good shoes."

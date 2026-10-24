@@ -11,7 +11,8 @@ const links = [
   { href: "/bookings", label: "Bookings" },
   { href: "/quotes", label: "Quotes" },
   { href: "/fleet", label: "Fleet" },
-  { href: "/hero", label: "Hero slider" },
+  { href: "/hero", label: "Hero" },
+  { href: "/service-photos", label: "Service photos" },
   { href: "/rates", label: "Rates" },
   { href: "/airports", label: "Airports" },
   { href: "/reviews", label: "Reviews" },
@@ -55,7 +56,7 @@ export function AdminNav() {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={clsx(
-              "shrink-0 border-b-2 px-3 py-3 font-sans text-[13px] font-medium tracking-[0.08em] whitespace-nowrap uppercase transition-colors sm:px-4",
+              "shrink-0 border-b-2 px-3 py-3 font-sans text-[13px] font-medium tracking-[0.06em] whitespace-nowrap uppercase transition-colors sm:px-3 lg:px-3.5",
               active
                 ? "border-gold text-white"
                 : "border-transparent text-white/60 hover:text-white",

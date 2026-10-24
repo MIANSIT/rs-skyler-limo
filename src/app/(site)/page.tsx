@@ -121,7 +121,7 @@ export default async function HomePage() {
     /* ---- Services — picture cards after the client's reference ---- */
     {
       key: "services",
-      render: (tone) => <ServicesShowcase fleet={fleet} tone={tone} />,
+      render: (tone) => <ServicesShowcase tone={tone} />,
     },
 
     /* ---- Achievement: what we offer, then the proof behind it ---- */

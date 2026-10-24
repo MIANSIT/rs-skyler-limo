@@ -277,15 +277,22 @@ export function BookingForm({
     { status: "idle" },
   );
 
-  // A server-side error can flag a field on step 1 or 2 while the customer is
-  // sitting on step 3 — send them back to the top so the flagged field is
-  // visible, rather than leaving an error nobody can see. Adjusted during
-  // render (React's endorsed pattern for resetting state on a prop change)
-  // rather than in an effect, so there is no extra cascading render.
+  // A server-side error can flag a field on any step while the customer is
+  // sitting on step 3 — send them to the earliest step that holds a flagged
+  // field, so the red field is in view rather than an error nobody can see.
+  // Adjusted during render (React's endorsed pattern for resetting state on a
+  // prop change) rather than in an effect, so there is no extra cascading render.
   const [lastErrorAttempt, setLastErrorAttempt] = useState(0);
   if (state.status === "error" && state.attempt !== lastErrorAttempt) {
     setLastErrorAttempt(state.attempt);
-    setStep(1);
+    const stepOf = (field: string): Step =>
+      ["customerName", "customerPhone", "customerEmail", "terms", "paymentMethod"].includes(field)
+        ? 3
+        : ["vehicleClass", "serviceType", "passengers", "bags", "childSeats", "notes"].includes(field)
+          ? 2
+          : 1;
+    const flagged = Object.keys(state.fields ?? {}).map(stepOf);
+    setStep(flagged.length ? (Math.min(...flagged) as Step) : 1);
   }
 
   /**
@@ -429,12 +436,9 @@ export function BookingForm({
    */
   const paymentOptions = useMemo(
     () =>
-      PAYMENT_OPTIONS.filter((option) =>
-        option.value === "card"
-          ? options.cardPaymentsEnabled
-          : CASH_ON_DELIVERY_ENABLED || !options.cardPaymentsEnabled,
-      ),
-    [options.cardPaymentsEnabled],
+      // Card only. Cash on delivery is set by an operator, never by a customer.
+      PAYMENT_OPTIONS.filter((option) => option.value === "card" || CASH_ON_DELIVERY_ENABLED),
+    [],
   );
 
   const formKey = state.status === "error" ? state.attempt : 0;
@@ -547,9 +551,22 @@ export function BookingForm({
     { pricing_mode: state.status === "success" ? state.pricingMode : "" },
   );
 
+  // The form is long, so the page is scrolled to its bottom when the booking
+  // goes through. Bring the confirmation into view, or the customer sees only
+  // the footer and has to scroll up to learn that it worked.
+  const successRef = useRef<HTMLDivElement>(null);
+  const succeeded = state.status === "success";
+  useEffect(() => {
+    if (!succeeded) return;
+    const card = successRef.current;
+    if (!card) return;
+    card.scrollIntoView({ block: "start" });
+    card.focus({ preventScroll: true });
+  }, [succeeded]);
+
   if (state.status === "success") {
     return (
-      <div className={clsx(cardChrome, "p-6 md:p-8")}>
+      <div ref={successRef} tabIndex={-1} className={clsx(cardChrome, "scroll-mt-28 p-6 outline-none md:p-8")}>
         <p
           className={clsx(
             "font-sans text-[13px] font-medium tracking-[0.08em] uppercase",

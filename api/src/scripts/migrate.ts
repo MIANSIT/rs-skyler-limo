@@ -220,6 +220,12 @@ async function applyPatches(connection: mysql.Connection): Promise<void> {
       sql: `ALTER TABLE activity_log
               MODIFY subject_type ENUM('booking','quote','vehicle') NOT NULL`,
     },
+    {
+      description: "booking_charges.tax_cents",
+      check: () => columnMissing(connection, "booking_charges", "tax_cents"),
+      sql: `ALTER TABLE booking_charges
+              ADD COLUMN tax_cents INT UNSIGNED NOT NULL DEFAULT 0 AFTER amount_cents`,
+    },
   ];
 
   for (const patch of patches) {
