@@ -32,7 +32,7 @@ export async function uploadServiceImage(
     return { status: "error", message: "Choose a photo to upload." };
   }
   if (!altText) {
-    return { status: "error", message: "Describe the photo in a few words." };
+    return { status: "error", message: "Add the image alt text (a short description for Google)." };
   }
 
   try {

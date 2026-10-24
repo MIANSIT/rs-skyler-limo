@@ -18,7 +18,7 @@ adminServiceImagesRouter.use(requireAdmin);
 
 const rawImage = express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "6mb" });
 
-const altSchema = z.string().trim().min(1, "Describe the photo for screen readers.").max(255);
+const altSchema = z.string().trim().min(1, "Add the image alt text (a short description for Google).").max(255);
 
 function decodeHeader(value: string): string {
   try {

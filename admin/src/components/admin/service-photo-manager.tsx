@@ -67,14 +67,18 @@ function ServiceCard({ service }: { service: ServiceImageSlot }) {
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="font-sans text-[13px] font-medium text-charcoal/70">
-              Describe it, for screen readers
+              Image alt text (for Google SEO)
+            </span>
+            <span className="font-sans text-[12px] text-charcoal/55">
+              A short description of the photo with your keywords, e.g. &quot;Luxury chauffeur
+              airport transfer in New York&quot;. Google reads it; it also helps screen readers.
             </span>
             <input
               name="altText"
               required
               maxLength={255}
               defaultValue={service.image?.altText ?? ""}
-              placeholder="e.g. A chauffeur opening the car door at the airport"
+              placeholder="e.g. Luxury chauffeur airport transfer in New York"
               className={control}
             />
           </label>
