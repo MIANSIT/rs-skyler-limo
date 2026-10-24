@@ -7,6 +7,7 @@ import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import type {
   ActivityEntry,
   Charge,
+  ServiceImageSlot,
   AdminAirport,
   AdminReview,
   AdminUser,
@@ -178,6 +179,15 @@ export async function getHeroMedia(): Promise<HeroMediaItem[]> {
     { token },
   );
   return media;
+}
+
+export async function getServiceImages(): Promise<ServiceImageSlot[]> {
+  const { token } = await verifySession();
+  const { services } = await apiFetch<{ services: ServiceImageSlot[] }>(
+    "/api/admin/service-images",
+    { token },
+  );
+  return services;
 }
 
 export async function getVehicles(q?: string): Promise<Vehicle[]> {

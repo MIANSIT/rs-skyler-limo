@@ -12,6 +12,7 @@ const links = [
   { href: "/quotes", label: "Quotes" },
   { href: "/fleet", label: "Fleet" },
   { href: "/hero", label: "Hero slider" },
+  { href: "/service-photos", label: "Service photos" },
   { href: "/rates", label: "Rates" },
   { href: "/airports", label: "Airports" },
   { href: "/reviews", label: "Reviews" },

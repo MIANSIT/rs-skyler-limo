@@ -107,3 +107,30 @@ export async function revalidatePublicReviews(): Promise<void> {
     console.warn("Reviews revalidation failed:", error);
   }
 }
+
+/** Same as `revalidatePublicFleet`, for the service cards' photos. */
+export async function revalidatePublicServiceImages(): Promise<void> {
+  const url = process.env.WEB_REVALIDATE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+
+  if (!url || !secret) return;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ tag: "service-images" }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) {
+      console.warn(`Service photos revalidation returned ${response.status}.`);
+    }
+  } catch (error) {
+    console.warn("Service photos revalidation failed:", error);
+  }
+}

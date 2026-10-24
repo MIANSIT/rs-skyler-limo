@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { Reveal } from "@/components/motion/reveal";
-import { PageHeader } from "@/components/site/page-header";
+import { ServicePageHeader } from "@/components/site/page-header";
 import { QuoteForm } from "@/components/site/quote-form";
 import { BriefcaseIcon, ShieldIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
@@ -42,7 +42,8 @@ const steps = [
 export default function CorporatePage() {
   return (
     <>
-      <PageHeader
+      <ServicePageHeader
+        service="corporate-accounts"
         eyebrow="Your city, chauffeured"
         title="A travel program your finance team will not have to chase"
         intro="Monthly invoicing, fixed airport fares, and one named contact who knows how your organisation travels. Built for the travel manager evaluating vendors, not just the traveller in the car."

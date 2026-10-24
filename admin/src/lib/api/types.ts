@@ -277,6 +277,13 @@ export type HeroMediaItem = {
   displayOrder: number;
 };
 
+/** One service card's photo slot on the site, with its upload when it has one. */
+export type ServiceImageSlot = {
+  slug: string;
+  name: string;
+  image: { url: string; altText: string; width: number | null; height: number | null } | null;
+};
+
 export type Amenity = { key: string; label: string; hint?: string };
 
 export type Vehicle = {
