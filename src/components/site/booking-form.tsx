@@ -436,12 +436,9 @@ export function BookingForm({
    */
   const paymentOptions = useMemo(
     () =>
-      PAYMENT_OPTIONS.filter((option) =>
-        option.value === "card"
-          ? options.cardPaymentsEnabled
-          : CASH_ON_DELIVERY_ENABLED || !options.cardPaymentsEnabled,
-      ),
-    [options.cardPaymentsEnabled],
+      // Card only. Cash on delivery is set by an operator, never by a customer.
+      PAYMENT_OPTIONS.filter((option) => option.value === "card" || CASH_ON_DELIVERY_ENABLED),
+    [],
   );
 
   const formKey = state.status === "error" ? state.attempt : 0;

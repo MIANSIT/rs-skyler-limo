@@ -52,6 +52,15 @@ export function canPayOnline(booking: Booking): boolean {
 }
 
 /**
+ * Extra charges follow the booking's payment method: a card booking collects
+ * them through Stripe, a cash booking collects them in cash and an operator
+ * marks them paid. Only an operator can change the method.
+ */
+async function chargesForCard(booking: Booking) {
+  return booking.paymentMethod === "card" ? listCharges(booking.id) : [];
+}
+
+/**
  * Everything a booking's payment link covers right now: the fare while it is
  * unpaid by card, plus every unpaid extra charge. `signedCents` is what the
  * link is signed over, so adding or paying a charge retires old links.
@@ -60,7 +69,7 @@ export async function bookingDue(booking: Booking) {
   const charges = await listCharges(booking.id);
   const lines =
     stripeAvailable() && booking.status !== "cancelled"
-      ? payableLines(booking, charges, canPayOnline(booking))
+      ? payableLines(booking, await chargesForCard(booking), canPayOnline(booking))
       : [];
   const dueCents = lines.reduce((total, line) => total + line.amountCents, 0);
   return {
@@ -166,7 +175,7 @@ export async function createCheckout(
 ): Promise<string> {
   // The fare, if still owing, plus every unpaid extra charge.
   const fareOnline = canPayOnline(booking);
-  const lines = payableLines(booking, await listCharges(booking.id), fareOnline);
+  const lines = payableLines(booking, await chargesForCard(booking), fareOnline);
   if (!stripeAvailable() || booking.status === "cancelled" || lines.length === 0) {
     throw ApiError.conflict("This booking cannot be paid online.");
   }
@@ -313,7 +322,12 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
   return {
     reference: latest.reference,
     paymentStatus: latest.paymentStatus === "paid" ? "paid" : "unpaid",
-    amountCents: amountOf(latest),
+    // What this payment was for. A session that settled only extra charges must
+    // not read back as the trip fare.
+    amountCents:
+      session.payment_status === "paid" && session.amount_total
+        ? session.amount_total
+        : amountOf(latest),
   };
 }
 

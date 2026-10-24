@@ -183,7 +183,7 @@ export async function submitBooking(
         childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
         serviceType: text("serviceType") || "personal",
-        paymentMethod: text("paymentMethod") === "cash" ? "cash" : "card",
+        paymentMethod: "card",
         airline: isAirport && text("airline") ? text("airline") : null,
         flightNumber: isAirport && flightNumber ? flightNumber : null,
         airportCode: isAirport && airportCode ? airportCode : null,
@@ -208,7 +208,7 @@ export async function submitBooking(
         pricingMode: result.pricingMode,
         quotedTotalCents: result.quotedTotalCents,
         taxCents: result.taxCents,
-        paymentMethod: text("paymentMethod") === "cash" ? "cash" : "card",
+        paymentMethod: "card",
       };
     }
   } catch (error) {
