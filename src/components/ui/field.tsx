@@ -191,8 +191,9 @@ export function PhoneInput({
       autoComplete="tel-national"
       placeholder="(212) 555-0900"
       maxLength={14}
-      pattern="\(\d{3}\) \d{3}-\d{4}"
-      title="A US phone number, like (212) 555-0900"
+      // Same rule as the API: area code and exchange start with 2-9.
+      pattern="\([2-9]\d{2}\) [2-9]\d{2}-\d{4}"
+      title="A US phone number, like (212) 555-0900. The area code cannot start with 0 or 1."
       defaultValue={typeof defaultValue === "string" ? formatUsPhone(defaultValue) : defaultValue}
       onInput={(event) => {
         event.currentTarget.value = formatUsPhone(event.currentTarget.value);

@@ -134,7 +134,7 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
   // Payments received in the window, for the sales tax owed on them.
   const paidInWindow = `payment_status = 'paid' AND paid_at >= :start AND paid_at < :end`;
 
-  const [bookingRows, quoteRows, tripRows, vehicleRows, bookingPlaced, quotePlaced, bookingPaid, quotePaid] =
+  const [bookingRows, quoteRows, tripRows, vehicleRows, bookingPlaced, quotePlaced, bookingPaid, quotePaid, chargesPaid] =
     await Promise.all([
       query<StatusRow>(
         `SELECT status,
@@ -205,10 +205,24 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
            FROM quotes WHERE ${paidInWindow} AND agreed_price_cents IS NOT NULL`,
         window,
       ),
+      // Extra charges on bookings are taxed too, and likewise owed when paid.
+      queryOne<PaidRow>(
+        `SELECT COUNT(*) AS orders,
+                COALESCE(SUM(amount_cents), 0) AS total_cents,
+                COALESCE(SUM(tax_cents), 0)    AS tax_cents
+           FROM booking_charges WHERE paid_at >= :start AND paid_at < :end`,
+        window,
+      ),
     ]);
 
-  const paidTotal = Number(bookingPaid?.total_cents ?? 0) + Number(quotePaid?.total_cents ?? 0);
-  const paidTax = Number(bookingPaid?.tax_cents ?? 0) + Number(quotePaid?.tax_cents ?? 0);
+  const paidTotal =
+    Number(bookingPaid?.total_cents ?? 0) +
+    Number(quotePaid?.total_cents ?? 0) +
+    Number(chargesPaid?.total_cents ?? 0);
+  const paidTax =
+    Number(bookingPaid?.tax_cents ?? 0) +
+    Number(quotePaid?.tax_cents ?? 0) +
+    Number(chargesPaid?.tax_cents ?? 0);
 
   const bookingsByStatus = zeroed(bookingStatuses);
   const quotesByStatus = zeroed(quoteStatuses);

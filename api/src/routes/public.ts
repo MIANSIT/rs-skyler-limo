@@ -34,6 +34,7 @@ import {
 } from "../services/reviews.js";
 import { listVehicles } from "../services/vehicles.js";
 import { getHeroText, listActiveHeroMedia } from "../services/hero.js";
+import { listServiceImages } from "../services/service-images.js";
 import {
   CHILD_SEAT_FEE_CENTS,
   decideFare,
@@ -61,6 +62,7 @@ import {
   verifyChangeCode,
 } from "../services/changes.js";
 import {
+  bookingDue,
   canPayOnline,
   canPayQuoteOnline,
   createCheckout,
@@ -139,6 +141,11 @@ publicRouter.get("/hero", async (_req, res) => {
       height: item.height,
     })),
   });
+});
+
+/** The photos an operator uploaded for the homepage's service cards. */
+publicRouter.get("/service-images", async (_req, res) => {
+  res.json({ images: await listServiceImages() });
 });
 
 /**
@@ -238,15 +245,17 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
    * payment link that never comes, and silently switching them to cash could
    * put someone in a car with no way to pay.
    */
-  if (input.paymentMethod === "card" && !stripeAvailable()) {
+  if (!stripeAvailable()) {
     throw new ApiError(
       503,
       "card_payments_unavailable",
-      "Card payment is unavailable right now. Choose cash on delivery, or email us.",
+      "Card payment is unavailable right now. Please email us and we will arrange your booking.",
     );
   }
 
-  const booking = await createBooking(input, "website", fare);
+  // Customers always pay by card. Cash on delivery is something only an
+  // operator can set afterwards, so a method sent from outside is ignored.
+  const booking = await createBooking({ ...input, paymentMethod: "card" }, "website", fare);
 
   /**
    * Confirmation to the customer, notification to the office.
@@ -547,10 +556,15 @@ async function payableForLink(reference: string, token: string) {
   }
 
   const booking = await getBookingByReference(ref);
-  const check = booking ? checkPaymentLink(booking, token) : "invalid";
-  if (!booking || check === "invalid") throw ApiError.notFound(INVALID);
+  // Signed over what is owing, so a new charge retires the links before it.
+  const due = booking ? await bookingDue(booking) : null;
+  const check =
+    booking && due
+      ? checkPaymentLink({ ...booking, quotedTotalCents: due.signedCents }, token)
+      : "invalid";
+  if (!booking || !due || check === "invalid") throw ApiError.notFound(INVALID);
   if (check === "expired") throw new ApiError(410, "link_expired", EXPIRED);
-  return { kind: "booking" as const, booking };
+  return { kind: "booking" as const, booking, due };
 }
 
 const QUOTE_SERVICE_LABEL: Record<string, string> = {
@@ -582,7 +596,8 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     return;
   }
 
-  const { booking } = found;
+  const { booking, due } = found;
+  const hasCharges = due.charges.length > 0;
   // A class since removed from the fleet still reads as words, not a slug.
   let vehicleName = titleCase(booking.vehicleClass);
   try {
@@ -599,11 +614,45 @@ publicRouter.post("/payments/link", lookupLimit, async (req, res) => {
     pickup: booking.pickup,
     destination: booking.destination,
     vehicleName,
-    amountCents: booking.quotedTotalCents,
+    customerName: booking.customerName,
+    tripType: booking.tripType,
+    serviceType: booking.serviceType,
+    passengers: booking.passengers,
+    bags: booking.bags,
+    childSeats: booking.childSeats,
+    airline: booking.airline,
+    flightNumber: booking.flightNumber,
+    airportCode: booking.airportCode,
+    notes: booking.notes,
+    // What is owing now; the full fare once nothing is.
+    amountCents: due.dueCents > 0 ? due.dueCents : booking.quotedTotalCents,
     taxRate: booking.taxRate,
     taxCents: booking.taxCents,
-    paymentStatus: booking.paymentStatus,
-    canPay: canPayOnline(booking),
+    // Paid only when the fare and every extra charge are in.
+    paymentStatus:
+      booking.paymentStatus === "paid" && due.charges.every((c) => c.paidAt) ? "paid" : "unpaid",
+    // Itemised only when there are extras; a plain fare keeps its tax line.
+    lines: hasCharges
+      ? [
+          ...(booking.quotedTotalCents
+            ? [
+                {
+                  label: "Trip fare",
+                  amountCents: booking.quotedTotalCents,
+                  taxCents: booking.taxCents,
+                  paid: booking.paymentStatus === "paid",
+                },
+              ]
+            : []),
+          ...due.charges.map((c) => ({
+            label: c.title,
+            amountCents: c.amountCents,
+            taxCents: c.taxCents,
+            paid: Boolean(c.paidAt),
+          })),
+        ]
+      : [],
+    canPay: due.canPay,
   });
 });
 

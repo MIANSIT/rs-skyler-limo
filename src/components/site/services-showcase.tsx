@@ -8,8 +8,8 @@ import { LogoMark } from "@/components/brand/logo-mark";
 import { Reveal } from "@/components/motion/reveal";
 import { ArrowRightIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
-import type { FleetVehicle, VehiclePhoto } from "@/lib/api/types";
 import { services, type Service } from "@/lib/content";
+import { getServiceImagesSafely, type ServiceImage } from "@/lib/public/service-images";
 
 type Photo = { url: string; alt: string };
 
@@ -31,32 +31,16 @@ function ownPhoto(service: Service): Photo | null {
 }
 
 /**
- * Until then, a photo of our own fleet — Chapter 9 rules out stock imagery of
- * unrelated cars. Each service takes the first photo not already used by an
- * earlier card, preferring its own vehicle class, so the cards never show the
- * same shot twice while the fleet has enough photos to go round.
+ * A photo uploaded in the dashboard wins; then a file dropped into
+ * `public/services`. With neither, the card shows the logo mark — never a fleet
+ * photo standing in for a service it does not show.
  */
-function assignPhotos(fleet: FleetVehicle[]): (Photo | null)[] {
-  const used = new Set<number>();
-  const take = (photo: VehiclePhoto | undefined): Photo | null => {
-    if (!photo) return null;
-    used.add(photo.id);
-    return { url: photo.url, alt: photo.altText };
-  };
-  const unused = (vehicles: FleetVehicle[]) =>
-    vehicles.flatMap((vehicle) => vehicle.photos).find((photo) => !used.has(photo.id));
-
+function assignPhotos(uploaded: ServiceImage[]): (Photo | null)[] {
   return services.map((service) => {
-    const own = ownPhoto(service);
-    if (own) return own;
+    const chosen = uploaded.find((image) => image.slug === service.slug);
+    if (chosen) return { url: chosen.url, alt: chosen.altText };
 
-    const sameClass = fleet.filter((vehicle) =>
-      service.vehicleCategory === "sprinter" || service.vehicleCategory === "van"
-        ? vehicle.category === "sprinter" || vehicle.category === "van"
-        : vehicle.category === service.vehicleCategory,
-    );
-    // Once every photo is taken, reuse the class's own rather than show none.
-    return take(unused(sameClass) ?? unused(fleet) ?? sameClass[0]?.primaryPhoto ?? undefined);
+    return ownPhoto(service);
   });
 }
 
@@ -65,14 +49,12 @@ function assignPhotos(fleet: FleetVehicle[]): (Photo | null)[] {
  * after the client's reference. Gold is only the arrow's ring and glyph, so
  * the section keeps no gold text and no second gold action.
  */
-export function ServicesShowcase({
-  fleet,
+export async function ServicesShowcase({
   tone = "dark",
 }: {
-  fleet: FleetVehicle[];
   tone?: "dark" | "deep";
 }) {
-  const photos = assignPhotos(fleet);
+  const photos = assignPhotos(await getServiceImagesSafely());
 
   return (
     <Section tone={tone}>

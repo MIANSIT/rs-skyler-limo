@@ -440,3 +440,44 @@ CREATE TABLE IF NOT EXISTS settings (
   CONSTRAINT fk_settings_admin
     FOREIGN KEY (updated_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Extra charges added to a booking after it was made: waiting time, an extra
+-- drop-off, and so on. The operator types a title and an amount before tax; the
+-- booking's own tax rate is added, and `amount_cents` is what the customer pays,
+-- sales tax included (`tax_cents` is the tax inside it). Each charge is paid on its
+-- own, so a booking whose fare is already settled still shows exactly what is
+-- left owing. `paid_at` NULL means unpaid; a paid charge is never edited or
+-- deleted, because money has already been taken against it.
+CREATE TABLE IF NOT EXISTS booking_charges (
+  id                        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  booking_id                BIGINT UNSIGNED NOT NULL,
+  title                     VARCHAR(160) NOT NULL,
+  amount_cents              INT UNSIGNED NOT NULL,
+  tax_cents                 INT UNSIGNED NOT NULL DEFAULT 0,
+  paid_at                   DATETIME NULL,
+  stripe_payment_intent_id  VARCHAR(255) NULL,
+  created_by                BIGINT UNSIGNED NULL,
+  created_at                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_booking_charges_booking (booking_id),
+  CONSTRAINT fk_booking_charges_booking
+    FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
+  CONSTRAINT fk_booking_charges_admin
+    FOREIGN KEY (created_by) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The photo on each service card (Airport Transfers, Weddings, Events, ...),
+-- uploaded from the dashboard's Service photos page. One row per service,
+-- keyed by the service's slug; a service with no row falls back to the photo
+-- the site already uses. The slugs themselves are fixed in
+-- `services/service-images.ts`, matching `services` in the site's content.ts.
+CREATE TABLE IF NOT EXISTS service_images (
+  slug        VARCHAR(60) NOT NULL,
+  file_path   VARCHAR(255) NOT NULL,
+  alt_text    VARCHAR(255) NOT NULL,
+  width       INT UNSIGNED NULL,
+  height      INT UNSIGNED NULL,
+  byte_size   INT UNSIGNED NULL,
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

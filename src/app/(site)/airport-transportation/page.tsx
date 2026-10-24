@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Reveal } from "@/components/motion/reveal";
 import { AirportRateGrid } from "@/components/site/airport-sections";
-import { PageHeader } from "@/components/site/page-header";
+import { ServicePageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { PlaneIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
@@ -78,7 +78,8 @@ export default async function AirportTransportationPage() {
 
   return (
     <>
-      <PageHeader
+      <ServicePageHeader
+        service="airport-transfers"
         eyebrow="Airport transportation"
         title="Every New York airport, at a fare you see first"
         intro="JFK, LaGuardia, Newark, Teterboro and Westchester, to or from anywhere in the five boroughs. The fare is on the page before you book, and it is the fare you pay."
