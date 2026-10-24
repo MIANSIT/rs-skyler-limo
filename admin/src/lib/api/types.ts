@@ -134,6 +134,17 @@ export type Quote = {
   updatedAt: string;
 };
 
+/** An extra charge on a booking (waiting time, an extra drop-off). */
+export type Charge = {
+  id: number;
+  title: string;
+  /** What the customer pays, sales tax included. */
+  amountCents: number;
+  taxCents: number;
+  paidAt: string | null;
+  createdAt: string;
+};
+
 export type ActivityEntry = {
   id: number;
   action: string;
@@ -264,6 +275,13 @@ export type HeroMediaItem = {
   height: number | null;
   isActive: boolean;
   displayOrder: number;
+};
+
+/** One service card's photo slot on the site, with its upload when it has one. */
+export type ServiceImageSlot = {
+  slug: string;
+  name: string;
+  image: { url: string; altText: string; width: number | null; height: number | null } | null;
 };
 
 export type Amenity = { key: string; label: string; hint?: string };

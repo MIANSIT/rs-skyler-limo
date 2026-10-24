@@ -269,6 +269,8 @@ export async function sendPaymentLinkEmail(
   booking: Booking,
   payUrl: string,
   expiresAt: Date,
+  lines: { label: string; amountCents: number }[],
+  dueCents: number,
 ): Promise<void> {
   let vehicleName: string;
   try {
@@ -278,7 +280,7 @@ export async function sendPaymentLinkEmail(
     vehicleName = booking.vehicleClass;
   }
 
-  const email = buildPaymentLinkEmail(booking, vehicleName, payUrl, expiresAt);
+  const email = buildPaymentLinkEmail(booking, vehicleName, payUrl, expiresAt, lines, dueCents);
   await send({
     to: booking.customerEmail,
     replyTo: CONTACT.email,

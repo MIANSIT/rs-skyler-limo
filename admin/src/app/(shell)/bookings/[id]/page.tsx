@@ -7,6 +7,7 @@ import { ActivityTrail } from "@/components/admin/activity-trail";
 import { BookingActions } from "@/components/admin/booking-actions";
 import { ChangedTag } from "@/components/admin/changed-tag";
 import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
+import { ChargesPanel } from "@/components/admin/charges-panel";
 import { PaymentPanel } from "@/components/admin/payment-panel";
 import { QuotePanel } from "@/components/admin/quote-panel";
 import { DetailRow } from "@/components/admin/detail-row";
@@ -46,7 +47,7 @@ export default async function BookingDetailPage({
   const result = await getBooking(numericId);
   if (!result) notFound();
 
-  const { booking, activity, clashes } = result;
+  const { booking, charges, activity, clashes } = result;
 
   return (
     <div className="flex flex-col gap-8">
@@ -210,6 +211,38 @@ export default async function BookingDetailPage({
                   numeric
                 />
               )}
+              {charges.map((charge) => (
+                <DetailRow
+                  key={charge.id}
+                  label="Extra charge"
+                  value={`${charge.title} · ${formatMoney(charge.amountCents)}${
+                    charge.taxCents > 0 ? ` (incl. ${formatMoney(charge.taxCents)} tax)` : ""
+                  } · ${charge.paidAt ? "Paid" : "Not paid"}`}
+                  numeric
+                />
+              ))}
+              {charges.length > 0 ? (
+                <>
+                  <DetailRow
+                    label="Total with extras"
+                    value={formatMoney(
+                      (booking.quotedTotalCents ?? 0) +
+                        charges.reduce((sum, charge) => sum + charge.amountCents, 0),
+                    )}
+                    numeric
+                  />
+                  <DetailRow
+                    label="Not paid"
+                    value={formatMoney(
+                      (booking.paymentStatus === "paid" ? 0 : (booking.quotedTotalCents ?? 0)) +
+                        charges
+                          .filter((charge) => !charge.paidAt)
+                          .reduce((sum, charge) => sum + charge.amountCents, 0),
+                    )}
+                    numeric
+                  />
+                </>
+              ) : null}
             </dl>
           </section>
 
@@ -240,7 +273,12 @@ export default async function BookingDetailPage({
             <QuotePanel booking={booking} />
           ) : null}
 
-          <PaymentPanel booking={booking} />
+          <ChargesPanel booking={booking} charges={charges} />
+
+          <PaymentPanel
+            booking={booking}
+            hasUnpaidCharges={charges.some((charge) => !charge.paidAt)}
+          />
 
           <ActivityTrail entries={activity} />
         </div>

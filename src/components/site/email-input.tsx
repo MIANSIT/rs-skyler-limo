@@ -49,6 +49,10 @@ export function EmailInput({
         autoComplete="email"
         required
         maxLength={maxLength}
+        // A browser's own email check accepts `name@gmail` with no dot. This
+        // asks for a real domain ending, the same as the API.
+        pattern="[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}"
+        title="A full email address, like name@gmail.com"
         value={value}
         onChange={(event) => {
           setValue(event.target.value);

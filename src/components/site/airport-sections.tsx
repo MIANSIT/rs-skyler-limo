@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Reveal } from "@/components/motion/reveal";
 import { Faq } from "@/components/site/home-sections";
-import { PageHeader } from "@/components/site/page-header";
+import { ServicePageHeader } from "@/components/site/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { PlaneIcon } from "@/components/ui/icon";
 import { Section, SectionHeading } from "@/components/ui/section";
@@ -293,7 +293,12 @@ export function AirportPage({
 
   return (
     <>
-      <PageHeader eyebrow={page.eyebrow} title={page.title} intro={page.intro} />
+      <ServicePageHeader
+        service="airport-transfers"
+        eyebrow={page.eyebrow}
+        title={page.title}
+        intro={page.intro}
+      />
 
       <Section tone="light">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
