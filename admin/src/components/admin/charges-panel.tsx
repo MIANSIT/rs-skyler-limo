@@ -259,7 +259,9 @@ export function ChargesPanel({ booking, charges }: { booking: Booking; charges: 
           </div>
           {unpaidCharges.length > 0 ? (
             <p className="mt-2 font-sans text-[13px] font-normal text-charcoal/70">
-              The payment link below collects the unpaid amount.
+              {booking.paymentMethod === "card"
+                ? "The payment link below collects the unpaid amount."
+                : "This booking pays cash on delivery, so collect these in cash and press Mark paid, or switch it to card in the Payment panel to send a link."}
             </p>
           ) : null}
         </dl>

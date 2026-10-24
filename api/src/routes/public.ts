@@ -236,15 +236,17 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
    * payment link that never comes, and silently switching them to cash could
    * put someone in a car with no way to pay.
    */
-  if (input.paymentMethod === "card" && !stripeAvailable()) {
+  if (!stripeAvailable()) {
     throw new ApiError(
       503,
       "card_payments_unavailable",
-      "Card payment is unavailable right now. Choose cash on delivery, or email us.",
+      "Card payment is unavailable right now. Please email us and we will arrange your booking.",
     );
   }
 
-  const booking = await createBooking(input, "website", fare);
+  // Customers always pay by card. Cash on delivery is something only an
+  // operator can set afterwards, so a method sent from outside is ignored.
+  const booking = await createBooking({ ...input, paymentMethod: "card" }, "website", fare);
 
   /**
    * Confirmation to the customer, notification to the office.

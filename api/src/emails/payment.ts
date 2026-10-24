@@ -98,8 +98,10 @@ export function buildPaymentLinkEmail(
   const html = shell({
     preheader: `${formatReference(booking.reference)} · ${fare} · pay securely by card`,
     eyebrow: "Payment",
-    headline: "Pay for your booking.",
-    intro: `Thank you, ${firstName(booking.customerName)}. Your trip is priced and ready to pay. One tap below takes you to Stripe's secure page.`,
+    headline: hasExtras ? "Additional charges on your booking." : "Pay for your booking.",
+    intro: hasExtras
+      ? `Hello ${firstName(booking.customerName)}. Some additional charges were added to your booking. The amount due is below, and one tap takes you to Stripe's secure page.`
+      : `Thank you, ${firstName(booking.customerName)}. Your trip is priced and ready to pay. One tap below takes you to Stripe's secure page.`,
     headerFacts: [
       { label: "Pick-up date", value: formatDate(booking.pickupAt) },
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
@@ -131,5 +133,5 @@ export function buildPaymentLinkEmail(
     `${CONTACT.email}`,
   ].join("\n");
 
-  return { subject: `Pay for your booking — ${formatReference(booking.reference)}`, html, text };
+  return { subject: `${hasExtras ? "Additional charges" : "Pay for your booking"} — ${formatReference(booking.reference)}`, html, text };
 }

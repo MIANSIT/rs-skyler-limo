@@ -202,9 +202,9 @@ export function PaymentPanel({
       </form>
 
       {/* Only where a link can actually be paid: card, priced, unpaid, live. */}
-      {/* Also once the fare is paid, if extra charges are still owing. */}
+      {/* Card bookings only, and also once the fare is paid if extra charges are still owing. */}
       {booking.status !== "cancelled" &&
-      ((!paid && !cash && booking.quotedTotalCents !== null) || hasUnpaidCharges) ? (
+      !cash && ((!paid && booking.quotedTotalCents !== null) || hasUnpaidCharges) ? (
         <PaymentLinkBox kind="booking" id={booking.id} email={booking.customerEmail} />
       ) : null}
     </section>

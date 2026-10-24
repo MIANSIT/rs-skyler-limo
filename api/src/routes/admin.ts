@@ -375,10 +375,10 @@ adminRouter.post("/bookings/:id/payment-link", async (req, res) => {
     throw ApiError.conflict(
       booking.status === "cancelled"
         ? "This booking is cancelled."
-        : booking.paymentStatus === "paid"
-          ? "Nothing is owing — the fare and every charge are paid."
-          : booking.paymentMethod !== "card"
-            ? "This booking is set to cash on delivery. Switch it to card first."
+        : booking.paymentMethod !== "card"
+          ? "This booking is set to cash on delivery, so its charges are collected in cash. Press Mark paid when they are, or switch the booking to card first."
+          : booking.paymentStatus === "paid" && due.charges.every((charge) => charge.paidAt)
+            ? "Nothing is owing: the fare and every charge are paid."
             : booking.quotedTotalCents === null
               ? "Set a price before sending a payment link."
               : "Card payment is not configured on the server.",
