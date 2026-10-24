@@ -8,6 +8,7 @@ import {
   reorderHeroMedia,
   replaceHeroMedia,
   setHeroMediaActive,
+  setHeroPoster,
   uploadHeroMedia,
   type HeroFormState,
 } from "@/lib/admin/hero-actions";
@@ -76,6 +77,10 @@ function SlideCard({
 }) {
   const [state, formAction] = useActionState<HeroFormState, FormData>(
     replaceHeroMedia,
+    { status: "idle" },
+  );
+  const [posterState, posterAction] = useActionState<HeroFormState, FormData>(
+    setHeroPoster,
     { status: "idle" },
   );
 
@@ -176,6 +181,44 @@ function SlideCard({
             </p>
           ) : null}
         </form>
+
+        {/*
+          Video slides only. A poster is what a visitor actually sees when the
+          video is declined — Data Saver, 3G or slower, reduced motion — or
+          before it has decoded, so a slide without one shows a bare midnight
+          panel. This used to be settable at creation and never again.
+        */}
+        {item.kind === "video" ? (
+          <form
+            action={posterAction}
+            className="flex flex-col gap-2 border-t border-midnight/10 pt-3"
+          >
+            <input type="hidden" name="id" value={item.id} />
+            <label className="font-sans text-[12px] font-medium tracking-[0.06em] text-charcoal/70 uppercase">
+              {item.posterUrl ? "Replace poster" : "Add poster"}
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                name="poster"
+                type="file"
+                required
+                accept="image/jpeg,image/png,image/webp"
+                className="min-w-0 flex-1 font-sans text-[13px] text-midnight file:mr-3 file:rounded-sm file:border-0 file:bg-midnight file:px-3 file:py-1.5 file:font-sans file:text-[12px] file:font-semibold file:text-white"
+              />
+              <SubmitButton>Save poster</SubmitButton>
+            </div>
+            {item.posterUrl ? null : (
+              <p className="font-sans text-[12px] text-charcoal/60">
+                No poster yet — this slide is blank until the video decodes.
+              </p>
+            )}
+            {posterState.status === "error" ? (
+              <p role="alert" className="font-sans text-[12px] text-red-800">
+                {posterState.message}
+              </p>
+            ) : null}
+          </form>
+        ) : null}
       </div>
     </li>
   );

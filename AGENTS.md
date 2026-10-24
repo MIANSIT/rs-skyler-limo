@@ -91,6 +91,37 @@ Things that are easy to get wrong here:
   change here, check `find node_modules -path '*node_modules/sharp'` returns one
   path, and clear `.next/cache/images` on the server or the passthroughs persist.
   The durable fix is a host with a modern CPU model.
+- **A hero video slide loads only when it is the slide on screen.** `autoPlay`
+  on a carousel is a trap: the browser honours it on mount for *every* slide at
+  once, so the 4.2MB MP4 sitting on the homepage's **second** slide — not
+  visible for another seven seconds — was fetched in full on every page load,
+  phones included, competing with the hero image, the fonts and the JS for the
+  connection. It was 4.2MB of the homepage's 4.9MB, and nothing in the page
+  looked wrong, so it never showed up as a bug. `HeroVideo` in
+  `src/components/site/hero.tsx` therefore renders `preload="none"` with **no
+  `src` and no `<source>`** and assigns `video.src` imperatively in an effect
+  once its slide is active — in an effect so the server markup carries nothing
+  for the preload scanner to find and there is no attribute to mismatch on
+  hydrate. `shouldPlayVideo()` declines entirely on Data Saver, on 3G or worse,
+  and under `prefers-reduced-motion`, falling back to the poster. Never put
+  `autoPlay` back, and never render the `src` during render.
+- **A hero video is content, and it needs encoding discipline.** The slide that
+  shipped was 1920x1080 at **4975 kbps** for 7 seconds — about four times what a
+  background loop needs, behind a midnight scrim at 55-92% opacity that hid the
+  detail anyway. Re-encoded at `-crf 28 -preset slower -movflags +faststart`
+  it is **1.2MB at VMAF 92.8** against the original, same resolution and frame
+  rate; `+faststart` matters, because without the moov atom first the browser
+  cannot start playing until the whole file has arrived. Anything over ~1.5MB
+  for a short loop should be re-encoded before it is uploaded — the recipe and
+  the measured CRF/VMAF table are in `hero-media/README.md` (git-ignored, it
+  holds the prepared files and the original). A **poster** belongs on every
+  video slide: it is what a visitor actually sees when the video is declined,
+  and without one the slide is a bare midnight panel. `poster_path` was
+  supported end to end (`PUT /api/admin/hero/:id/poster`) but only
+  `uploadHeroMedia` ever called it, so a poster could be set at creation and
+  never afterwards; `setHeroPoster` and the per-slide control in
+  `admin/src/components/admin/hero-media-manager.tsx` now fix one in place
+  without deleting the slide and losing its position.
 - **The sitemap fails the build if a page is unaccounted for.** `src/app/sitemap.ts`
   is hand-listed, because a sitemap is a claim that a URL is worth indexing. It
   also reads `src/app/(site)` at build and throws when a page is in neither

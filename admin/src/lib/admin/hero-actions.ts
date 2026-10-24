@@ -164,6 +164,49 @@ export async function replaceHeroMedia(
   return { status: "saved", message: "Slide updated." };
 }
 
+/**
+ * Sets or replaces the poster on an existing video slide.
+ *
+ * `PUT /api/admin/hero/:id/poster` has always existed, but only `uploadHeroMedia`
+ * called it, so a poster could be attached at creation and never afterwards —
+ * the only way to add one to a live slide was to delete it and re-add it,
+ * losing its position. A poster is what a visitor sees when the video is
+ * declined (Data Saver, 3G or slower, reduced motion) or has not decoded yet,
+ * so it needs to be fixable in place.
+ */
+export async function setHeroPoster(
+  _previous: HeroFormState,
+  formData: FormData,
+): Promise<HeroFormState> {
+  const { token } = await verifySession();
+
+  const id = Number(formData.get("id"));
+  const poster = formData.get("poster");
+
+  if (!Number.isInteger(id) || id < 1) {
+    return { status: "error", message: "Unknown slide." };
+  }
+  if (!(poster instanceof File) || poster.size === 0) {
+    return { status: "error", message: "Choose a poster image." };
+  }
+
+  try {
+    await apiFetch(`/api/admin/hero/${id}/poster`, {
+      method: "PUT",
+      token,
+      rawBody: {
+        bytes: Buffer.from(await poster.arrayBuffer()),
+        contentType: poster.type || "application/octet-stream",
+      },
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  await afterWrite();
+  return { status: "saved", message: "Poster updated." };
+}
+
 export async function setHeroMediaActive(formData: FormData) {
   const { token } = await verifySession();
   const id = Number(formData.get("id"));
