@@ -32,7 +32,7 @@ const detail = [
     Icon: PlaneIcon,
     name: "Airport transfers",
     body: "To or from JFK, LaGuardia, Newark, Teterboro and Westchester. Give us the flight number and your complimentary waiting runs from when you actually land.",
-    pricing: "Fixed fare within the five boroughs, shown before you book.",
+    pricing: "Fixed fare to and from Manhattan, shown before you book. Other boroughs are quoted.",
     link: { href: "/airport-transportation", label: "Airports and fares" },
   },
   {

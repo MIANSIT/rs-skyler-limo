@@ -61,10 +61,33 @@ Things that are easy to get wrong here:
   `demoReviews` in `content.ts` is development-only.
 - **The server decides the fare, never the browser.** `decideFare` in
   `api/src/services/pricing.ts` re-derives it on every submission; the form's
-  figure is a preview. Airport-inside-NYC with a published rate is `fixed`,
-  everything else is `quote`. Adding a booking status means updating the
+  figure is a preview. An airport transfer whose **non-airport end is in
+  Manhattan** and which has a published rate is `fixed`; everything else is
+  `quote`. Adding a booking status means updating the
   `Record<BookingStatus, …>` maps in `admin/src/components/admin/booking-actions.tsx`
   — and `admin/src/lib/api/types.ts`, or TypeScript will not tell you.
+- **A published airport fare is Manhattan-only.** Changed Oct 2026 at the
+  client's request; it used to be all five boroughs. The rule has one home,
+  `FIXED_FARE_AREA` in `api/src/services/pricing.ts`, and `decideFare` turns on
+  `isManhattan` — **not** `isNewYorkCity`, which still exists because the other
+  four boroughs are still served and the copy has to say so. Confusing the two
+  is how a Brooklyn trip would get a Manhattan price. Manhattan is detected in
+  `interpretPlace` (`services/places.ts`) by `administrative_area_level_2 ===
+  "New York County"`, with `sublocality_level_1 === "Manhattan"` as a fallback:
+  the county is exact and coterminous with the borough, where the *name* "New
+  York" is shared by the city, the county and the state, so matching on it
+  alone misfires. Verified against 13 real Places payloads — Manhattan, the
+  four outer boroughs, NJ, Westchester and CT. `interpretPlace` is exported and
+  pure precisely so that check needs no API key.
+  Three things have to move together or the site lies to customers: the rule
+  here, the preview in `booking-form.tsx` (via `isManhattan` on
+  `/api/places/resolve`, which returns **both** flags), and the fare copy on
+  the public pages — the marketing text promised fixed fares "from every
+  borough" in eleven files including the Terms, and a price promise the booking
+  form then refuses is a dispute at the moment of sale. Bookings taken under
+  the old rule keep their agreed price; the dashboard marks them with
+  `isPreManhattanFixedFare` (`admin/src/lib/admin/fixed-fare-area.ts`), derived
+  from the stored locality rather than a column, so it cannot go stale.
 - **Every price is stored with sales tax already in it.** `quoted_total_cents`
   and `agreed_price_cents` are what the customer pays; each order also stores its
   own `tax_rate` (a percentage, copied from the `settings` table's default —

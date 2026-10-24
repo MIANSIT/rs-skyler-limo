@@ -39,14 +39,25 @@ export type ResolvedPlace = {
   region: string | null;
   /** True only for the five boroughs of New York City. */
   isNewYorkCity: boolean;
+  /**
+   * True only for the borough of Manhattan.
+   *
+   * Narrower than `isNewYorkCity` and kept separate from it: the fixed airport
+   * fare is Manhattan-only (see `decideFare`), while "inside the city" is still
+   * what some copy talks about. Deciding the fare on the wrong one of these
+   * two is how a Brooklyn trip would quietly get a Manhattan price.
+   */
+  isManhattan: boolean;
 };
 
 /**
  * The five boroughs as Google labels them.
  *
- * Google returns `sublocality_level_1` as the borough ("Brooklyn", "Queens")
- * and `locality` as "New York" for Manhattan addresses — Manhattan itself is
- * usually only in `sublocality_level_1`. Both are checked.
+ * Google returns the borough in `sublocality_level_1` ("Manhattan",
+ * "Brooklyn", "The Bronx"). Manhattan addresses carry `locality: "New York"`
+ * as well; the outer boroughs usually have no `locality` at all. Both fields
+ * are checked, and "new york" is in the set because a Manhattan address that
+ * omits the sublocality would otherwise look like it is outside the city.
  */
 const NYC_BOROUGHS = new Set([
   "manhattan",
@@ -57,6 +68,22 @@ const NYC_BOROUGHS = new Set([
   "staten island",
   "new york",
 ]);
+
+/**
+ * Manhattan, identified by county rather than by name.
+ *
+ * `administrative_area_level_2` is the reliable discriminator, verified against
+ * the live Places API: Manhattan is **New York County**, where Brooklyn is
+ * Kings, Queens is Queens, the Bronx is Bronx and Staten Island is Richmond.
+ * The county is exact — it is coterminous with the borough — whereas the name
+ * "New York" is shared by the city, the state and the county, so matching on
+ * it alone would hand a Brooklyn address a Manhattan fare.
+ *
+ * `sublocality_level_1 === "Manhattan"` is accepted too, for the address that
+ * carries the borough but not the county.
+ */
+const MANHATTAN_COUNTY = "new york county";
+const MANHATTAN_BOROUGH = "manhattan";
 
 type AutocompleteResponse = {
   suggestions?: {
@@ -203,6 +230,21 @@ async function fetchPlace(
     { method: "GET", fieldMask: "id,formattedAddress,addressComponents" },
   );
 
+  return interpretPlace(placeId, data);
+}
+
+/**
+ * Turns Google's address components into the two facts the fare turns on.
+ *
+ * Separated from the fetch, and exported, because this is where a Brooklyn
+ * address could be mistaken for a Manhattan one — and that is worth being able
+ * to check against real Google payloads without calling Google. A pure
+ * function of its input: no network, no key, no clock.
+ */
+export function interpretPlace(
+  placeId: string,
+  data: DetailsResponse,
+): ResolvedPlace {
   const components = data.addressComponents ?? [];
   const find = (type: string) =>
     components.find((component) => component.types?.includes(type));
@@ -210,20 +252,28 @@ async function fetchPlace(
   const borough = find("sublocality_level_1") ?? find("sublocality");
   const locality = find("locality");
   const region = find("administrative_area_level_1");
+  const county = find("administrative_area_level_2");
 
   const localityName = borough?.longText ?? locality?.longText ?? null;
   const regionCode = region?.shortText ?? null;
+  const countyName = county?.longText?.trim().toLowerCase() ?? null;
+  const boroughName = borough?.longText?.trim().toLowerCase() ?? null;
+
+  // Both halves matter: "New York" is also a town in several other states,
+  // and a borough name alone could appear outside NY.
+  const inNewYorkState = regionCode === "NY";
 
   return {
     placeId: data.id ?? placeId,
     formattedAddress: data.formattedAddress ?? "",
     locality: localityName,
     region: regionCode,
-    // Both halves matter: "New York" is also a town in several other states,
-    // and a borough name alone could appear outside NY.
     isNewYorkCity:
-      regionCode === "NY" &&
+      inNewYorkState &&
       Boolean(localityName) &&
       NYC_BOROUGHS.has(localityName!.trim().toLowerCase()),
+    isManhattan:
+      inNewYorkState &&
+      (countyName === MANHATTAN_COUNTY || boroughName === MANHATTAN_BOROUGH),
   };
 }

@@ -79,7 +79,7 @@ export function AirportRateTable({
     <div tabIndex={0} role="region" aria-label={`${name} fares`} className="relative overflow-x-auto">
       <table className="w-full min-w-[30rem] border-collapse text-left">
         <caption className="sr-only">
-          Fixed fares between {name} and the five boroughs
+          Fixed fares between {name} and Manhattan
         </caption>
         <thead>
           <tr className="border-b border-midnight/15">
@@ -182,8 +182,7 @@ export function AirportRateGrid({
         style={{ minWidth: `${14 + fleet.length * 9}rem` }}
       >
         <caption className="sr-only">
-          Fixed airport fares by vehicle, between each airport and the five
-          boroughs
+          Fixed airport fares by vehicle, between each airport and Manhattan
         </caption>
         <thead>
           <tr className="border-b border-midnight/15">

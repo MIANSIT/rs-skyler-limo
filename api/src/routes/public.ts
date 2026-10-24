@@ -178,15 +178,24 @@ publicRouter.get("/places/autocomplete", placesLimit, async (req, res) => {
 });
 
 /**
- * Whether a chosen address is inside the five boroughs — the one fact the
- * form's fare preview cannot know on its own. Only the yes/no leaves: the
- * address itself is already in the customer's field. `null` means we could
- * not tell, which the form treats as a quote, the same as the server does.
+ * Where a chosen address sits — the one fact the form's fare preview cannot
+ * know on its own. Only the yes/no leaves: the address itself is already in
+ * the customer's field. `null` means we could not tell, which the form treats
+ * as a quote, the same as the server does on submission.
+ *
+ * `isManhattan` is the one the fare turns on (see `FIXED_FARE_AREA` in
+ * `services/pricing.ts`). `isNewYorkCity` is still returned because the form
+ * words the "why not" differently for a Brooklyn address than for one in
+ * Connecticut, and telling a customer in Queens that we do not cover them
+ * would be false — we do, by quote.
  */
 publicRouter.get("/places/resolve", placesLimit, async (req, res) => {
   const { placeId, session } = placesResolveSchema.parse(req.query);
   const place = await resolvePlace(placeId, session).catch(() => null);
-  res.json({ isNewYorkCity: place ? place.isNewYorkCity : null });
+  res.json({
+    isNewYorkCity: place ? place.isNewYorkCity : null,
+    isManhattan: place ? place.isManhattan : null,
+  });
 });
 
 publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) => {

@@ -24,10 +24,12 @@ export default async function RatesPage() {
           Airport rates
         </h1>
         <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/70">
-          Fixed fares for airport transfers inside the five boroughs. A customer
-          whose trip matches a price here books it instantly at that fare.
-          Everything else — point to point, hourly, anywhere outside New York
-          City — comes in as a request for you to price. To add, rename, hide or
+          Fixed fares for airport transfers to and from{" "}
+          <strong className="font-semibold text-midnight">Manhattan</strong>. A
+          customer whose trip matches a price here books it instantly at that
+          fare. Everything else — Brooklyn, Queens, the Bronx, Staten Island,
+          anywhere outside the city, and every point-to-point or hourly trip —
+          comes in as a request for you to price. To add, rename, hide or
           delete an airport, use{" "}
           <Link href="/airports" className="text-midnight underline underline-offset-4">
             Airports
@@ -72,8 +74,9 @@ export default async function RatesPage() {
           Regional rate reference
         </h2>
         <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/70">
-          Your own price list for trips outside the five boroughs — Nassau,
-          Suffolk and Westchester in New York, and the NJ and CT counties.
+          Your own price list for trips beyond Manhattan — the outer boroughs,
+          Nassau, Suffolk and Westchester in New York, and the NJ and CT
+          counties.
           Nothing on this card is published to customers or booked
           automatically; every one of these still arrives as a quote request,
           exactly as it does today. This is only here so whoever is pricing

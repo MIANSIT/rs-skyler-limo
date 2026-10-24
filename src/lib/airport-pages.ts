@@ -50,13 +50,13 @@ export const airportPages: AirportPageContent[] = [
     name: "JFK",
     metaTitle: "JFK Airport Car Service",
     metaDescription:
-      "Chauffeured transfers between JFK and all five boroughs at a fixed, published fare. Sixty minutes of complimentary waiting on international arrivals.",
+      "Chauffeured transfers between JFK and Manhattan at a fixed, published fare, and a quoted one to the other boroughs. Sixty minutes of complimentary waiting on international arrivals.",
     eyebrow: "JFK International",
     summary:
       "International arrivals, with sixty minutes' waiting from your actual landing.",
     title: "JFK car service, timed to when you actually land",
     intro:
-      "New York's international gateway, in southeast Queens. A fixed fare to or from anywhere in the five boroughs, and an hour of waiting on international arrivals before the meter moves.",
+      "New York's international gateway, in southeast Queens. A fixed fare to or from Manhattan, and an hour of waiting on international arrivals before the meter moves.",
     facts: [
       { label: "Where", value: "Southeast Queens, on Jamaica Bay" },
       { label: "Mostly", value: "International and long-haul flights" },
@@ -104,7 +104,7 @@ export const airportPages: AirportPageContent[] = [
     name: "LaGuardia",
     metaTitle: "LaGuardia Airport Car Service",
     metaDescription:
-      "Fixed-fare car service between LaGuardia (LGA) and the five boroughs. Tell us your flight and we pick you up at the right one of LaGuardia's three terminals.",
+      "Fixed-fare car service between LaGuardia (LGA) and Manhattan, quoted to the other boroughs. Tell us your flight and we pick you up at the right one of LaGuardia's three terminals.",
     eyebrow: "LaGuardia (LGA)",
     summary:
       "Three terminals, not all in one place. Your flight number puts the car at the right one.",
@@ -174,7 +174,7 @@ export const airportPages: AirportPageContent[] = [
       paragraphs: [
         "There is no toll-free way between Newark and New York City. From Manhattan the route runs through the Holland or Lincoln Tunnel; from Staten Island, over the Goethals Bridge. Either way there is a toll.",
         "On a fixed airport fare the toll is included. It does not appear later as a line on your invoice, and it does not change with the route your chauffeur takes.",
-        "The fixed fare covers trips between Newark and the five boroughs. A trip from Newark to somewhere else in New Jersey is quoted by a person instead, and agreed before you travel.",
+        "The fixed fare covers trips between Newark and Manhattan. A trip from Newark to the outer boroughs, or to somewhere else in New Jersey, is quoted by a person instead, and agreed before you travel.",
       ],
     },
     arriving: [
@@ -195,7 +195,7 @@ export const airportPages: AirportPageContent[] = [
       {
         question: "I am going from Newark to an address in New Jersey. Is that a fixed fare?",
         answer:
-          "No. Fixed fares cover trips between the airport and the five boroughs. Send us the trip and a person prices it; nothing is charged until you agree it.",
+          "No. Fixed fares cover trips between the airport and Manhattan. Send us the trip and a person prices it; nothing is charged until you agree it.",
       },
       {
         question: "Is Newark priced the same as JFK?",
@@ -234,7 +234,7 @@ export const airportPages: AirportPageContent[] = [
     arriving: [
       "Book with the tail number and the FBO handling the aircraft.",
       "Private arrival times move. Email us the moment yours does.",
-      "The fare from Teterboro to the five boroughs is fixed where it is published below, tolls and gratuity included.",
+      "The fare from Teterboro to Manhattan is fixed where it is published below, tolls and gratuity included. Other destinations are quoted first.",
     ],
     departing: [
       "Give us the wheels-up time and the FBO, and we set the pickup around it.",
@@ -264,13 +264,13 @@ export const airportPages: AirportPageContent[] = [
     name: "Westchester",
     metaTitle: "Westchester Airport (HPN) Car Service",
     metaDescription:
-      "Car service between Westchester County Airport (HPN) and New York City. Fixed fares to the five boroughs; trips within Westchester are quoted before you travel.",
+      "Car service between Westchester County Airport (HPN) and New York City. Fixed fares to Manhattan; the outer boroughs and trips within Westchester are quoted before you travel.",
     eyebrow: "Westchester County (HPN)",
     summary:
-      "North of the city. Fixed into the five boroughs, quoted around Westchester.",
+      "North of the city. Fixed into Manhattan, quoted elsewhere.",
     title: "Westchester County Airport, between the city and the suburbs",
     intro:
-      "A single-terminal airport north of the city, near White Plains. A fixed fare to or from the five boroughs; a quoted one for anywhere in Westchester itself.",
+      "A single-terminal airport north of the city, near White Plains. A fixed fare to or from Manhattan; a quoted one for the outer boroughs and anywhere in Westchester itself.",
     facts: [
       { label: "Where", value: "Near White Plains, Westchester County" },
       { label: "Terminal", value: "One passenger terminal" },
@@ -280,8 +280,8 @@ export const airportPages: AirportPageContent[] = [
       eyebrow: "Where the fixed fare ends",
       title: "Into the city is fixed. Around Westchester is quoted.",
       paragraphs: [
-        "Westchester County Airport sits just outside the fixed-fare area. A trip between HPN and any address in the five boroughs is priced from the rate card, and you see that fare before you book.",
-        "A trip between HPN and somewhere in Westchester, Connecticut or elsewhere outside the city is quoted by a person. You send the details, we come back with a price, and nothing is charged until you accept it.",
+        "Westchester County Airport sits just outside the fixed-fare area. A trip between HPN and a Manhattan address is priced from the rate card, and you see that fare before you book.",
+        "A trip between HPN and the outer boroughs, Westchester, Connecticut or elsewhere outside the city is quoted by a person. You send the details, we come back with a price, and nothing is charged until you accept it.",
         "There is one passenger terminal, so there is no wrong door to wait at. Your flight number is still what tells us when you land.",
       ],
     },
@@ -298,7 +298,7 @@ export const airportPages: AirportPageContent[] = [
       {
         question: "Is there a fixed fare from my home in Westchester?",
         answer:
-          "No. Fixed airport fares cover the five boroughs. A trip from a Westchester address is quoted by a person and agreed before you travel.",
+          "No. Fixed airport fares cover Manhattan. A trip from a Westchester address is quoted by a person and agreed before you travel.",
       },
       {
         question: "How long will the chauffeur wait if my flight is delayed?",

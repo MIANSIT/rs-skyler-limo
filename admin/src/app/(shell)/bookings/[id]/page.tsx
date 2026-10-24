@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { BookingActions } from "@/components/admin/booking-actions";
 import { ChangedTag } from "@/components/admin/changed-tag";
+import { OutsideAreaTag } from "@/components/admin/outside-area-tag";
+import { isPreManhattanFixedFare } from "@/lib/admin/fixed-fare-area";
 import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
 import { PaymentPanel } from "@/components/admin/payment-panel";
 import { QuotePanel } from "@/components/admin/quote-panel";
@@ -64,6 +66,7 @@ export default async function BookingDetailPage({
           </h1>
           <StatusBadge status={booking.status} />
           {booking.customerChangePending ? <ChangedTag /> : null}
+          {isPreManhattanFixedFare(booking) ? <OutsideAreaTag /> : null}
           <Link
             href={`/bookings/${booking.id}/edit`}
             className="ml-auto rounded-sm border border-midnight/25 bg-white px-4 py-2 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey"

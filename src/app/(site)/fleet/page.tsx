@@ -123,11 +123,11 @@ export default async function FleetPage() {
               </table>
             </div>
             <p data-reveal className="mt-5 text-[13px] text-charcoal/70">
-              Airport transfers within the five boroughs have a published fare,
-              shown before you confirm. Point-to-point and hourly travel is
-              priced by a reservations agent — send the details and we come back
-              with a fare. Child seats are $35 each. All fares include tolls and
-              gratuity.
+              Airport transfers to and from Manhattan have a published fare,
+              shown before you confirm. The other boroughs, point-to-point and
+              hourly travel are priced by a reservations agent — send the
+              details and we come back with a fare. Child seats are $35 each.
+              All fares include tolls and gratuity.
             </p>
           </Reveal>
         </Section>

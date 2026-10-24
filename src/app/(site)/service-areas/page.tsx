@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/service-areas" },
   title: "Service Areas",
   description:
-    "Chauffeured car service across Manhattan, Brooklyn, Queens, the Bronx and Staten Island, with fixed airport fares from every borough. Trips beyond the city are quoted.",
+    "Chauffeured car service across Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Published airport fares cover Manhattan; every other trip is quoted before you travel.",
 };
 
 /**
@@ -25,6 +25,13 @@ export const metadata: Metadata = {
  * `serviceAreas` (content.ts) is the switch. The other side of the same rule:
  * nothing here names New Jersey, Westchester or Connecticut as served. Trips
  * there are quoted, which is what the page says.
+ *
+ * Service area and pricing are two different claims and this page has to keep
+ * them apart. All five boroughs are served — that has not changed. Only
+ * Manhattan carries a *published* fare (`FIXED_FARE_AREA` in
+ * `api/src/services/pricing.ts`, Oct 2026); the rest are quoted. Saying "every
+ * borough is inside the fixed fare", as this page used to, would now be a
+ * price promise the booking form refuses to honour.
  */
 export default function ServiceAreasPage() {
   return (
@@ -32,7 +39,7 @@ export default function ServiceAreasPage() {
       <PageHeader
         eyebrow="Service areas"
         title="All five boroughs, run to one standard"
-        intro="Pickups and drop-offs anywhere in Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Every one of them is inside the fixed airport fare."
+        intro="Pickups and drop-offs anywhere in Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Airport transfers to and from Manhattan carry a published fare; everywhere else a reservations agent prices the trip before you travel."
       />
 
       <Section tone="light">
@@ -40,7 +47,7 @@ export default function ServiceAreasPage() {
           <SectionHeading
             eyebrow="Borough by borough"
             title="Where we drive"
-            intro="The fixed fare to each airport is the same from anywhere in the city, so which borough you leave from changes the route, not the price."
+            intro="Published airport fares cover Manhattan, and the fare to each airport is the same from anywhere on the island. From the other four boroughs a reservations agent prices the trip and agrees it with you first."
             data-reveal
           />
         </Reveal>

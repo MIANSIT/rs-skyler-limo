@@ -222,12 +222,14 @@ export function BookingForm({
     "from-airport",
   );
   const [cityPlaceId, setCityPlaceId] = useState<string | null>(null);
-  // Whether the chosen address is inside the five boroughs, as the API
-  // answered for that place id. Keyed by id so an answer for an address the
-  // customer has since replaced is never read for the new one.
+  // Where the chosen address sits, as the API answered for that place id.
+  // Keyed by id so an answer for an address the customer has since replaced is
+  // never read for the new one. `isManhattan` is what the fare turns on;
+  // `isNewYorkCity` only decides how the "why not" is worded.
   const [cityCheck, setCityCheck] = useState<{
     placeId: string;
     isNewYorkCity: boolean | null;
+    isManhattan: boolean | null;
   } | null>(null);
   // The address text as typed, for the trip summary only — the fields
   // themselves still submit their own values.
@@ -362,9 +364,15 @@ export function BookingForm({
       `/api/places/resolve?placeId=${encodeURIComponent(cityPlaceId)}&session=${encodeURIComponent(sessionToken)}`,
       { signal: controller.signal },
     )
-      .then((response) => (response.ok ? response.json() : { isNewYorkCity: null }))
-      .then((data: { isNewYorkCity: boolean | null }) =>
-        setCityCheck({ placeId: cityPlaceId, isNewYorkCity: data.isNewYorkCity }),
+      .then((response) =>
+        response.ok ? response.json() : { isNewYorkCity: null, isManhattan: null },
+      )
+      .then((data: { isNewYorkCity: boolean | null; isManhattan: boolean | null }) =>
+        setCityCheck({
+          placeId: cityPlaceId,
+          isNewYorkCity: data.isNewYorkCity,
+          isManhattan: data.isManhattan,
+        }),
       )
       .catch(() => {
         // Aborted, or offline: the preview stays a quote, which is safe.
@@ -373,14 +381,18 @@ export function BookingForm({
     return () => controller.abort();
   }, [cityPlaceId, sessionToken, cityCheck]);
 
-  // Only an address the API has placed inside the five boroughs is fixed.
-  // Until it answers — or when it cannot — the trip previews as a quote, the
-  // same direction `decideFare` fails in.
-  const cityInNewYork =
-    cityPlaceId !== null && cityCheck?.placeId === cityPlaceId
-      ? cityCheck.isNewYorkCity === true
-      : false;
-  const isFixed = Boolean(published) && cityInNewYork;
+  // Only an address the API has placed in Manhattan gets the published fare —
+  // see `FIXED_FARE_AREA` in `api/src/services/pricing.ts`, which is the rule
+  // this previews. Until the API answers, or when it cannot, the trip previews
+  // as a quote, the same direction `decideFare` fails in.
+  const answered =
+    cityPlaceId !== null && cityCheck?.placeId === cityPlaceId ? cityCheck : null;
+  const cityInManhattan = answered?.isManhattan === true;
+  // A known address in one of the other four boroughs. Worth separating: those
+  // customers are covered, just quoted, and saying otherwise would be false.
+  const cityInOuterBorough =
+    answered?.isManhattan === false && answered.isNewYorkCity === true;
+  const isFixed = Boolean(published) && cityInManhattan;
 
   const seatFeeCents = seatsInRange * options.childSeatFeeCents;
   // The rate plus child seats, then sales tax on the lot — the same sum the
@@ -1222,9 +1234,14 @@ Your estimated fare is based on the trip details provided above. The final fare 
                   <p className={clsx("mt-1 max-w-sm text-[15px] leading-[1.6]", body)}>
                     {quoteOnlyAirport
                       ? "This airport is priced by hand. Send the details and a reservations agent comes back with a fare."
-                      : trip === "airport"
-                        ? "Fixed fares cover New York City. We will price this one and come back to you."
-                        : "Send the details and a reservations agent comes back with a fare, usually within the hour."}
+                      : trip !== "airport"
+                        ? "Send the details and a reservations agent comes back with a fare, usually within the hour."
+                        : cityInOuterBorough
+                          ? // Covered, simply not on the published card. Saying
+                            // "we don't cover you" to a customer in Brooklyn
+                            // would be false, and would lose the booking.
+                            "We serve all five boroughs, but published fares cover Manhattan. A reservations agent will price this one, usually within the hour."
+                          : "Published airport fares cover Manhattan. Send the details and we will price this one for you."}
                   </p>
                 </>
               )}
