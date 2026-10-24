@@ -27,15 +27,43 @@ type LinkedBooking = {
   taxCents: number;
   paymentStatus: "paid" | "unpaid";
   canPay: boolean;
+  /** Fare plus extra charges, when the booking has any. */
+  lines?: { label: string; amountCents: number; taxCents: number; paid: boolean }[];
   // Bookings:
   pickupAt?: string;
   pickup?: string;
   destination?: string;
   vehicleName?: string;
+  customerName?: string;
+  tripType?: string;
+  serviceType?: string;
+  passengers?: number;
+  bags?: number;
+  childSeats?: number;
+  airline?: string | null;
+  flightNumber?: string | null;
+  airportCode?: string | null;
+  notes?: string | null;
   // Quote requests:
   serviceLabel?: string;
   eventDate?: string | null;
 };
+
+const TRIP: Record<string, string> = {
+  airport: "Airport transfer",
+  "point-to-point": "Point to point",
+  hourly: "Hourly",
+};
+
+const SERVICE: Record<string, string> = {
+  personal: "Personal",
+  corporate: "Corporate",
+  wedding: "Wedding",
+  event: "Event",
+  other: "Other",
+};
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 const day = (date: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
@@ -144,6 +172,39 @@ export default async function PayLinkPage({
                   { label: "From", value: booking.pickup ?? "" },
                   { label: "To", value: booking.destination ?? "" },
                   { label: "Vehicle", value: booking.vehicleName ?? "" },
+                  { label: "Booked for", value: booking.customerName ?? "" },
+                  {
+                    label: "Trip",
+                    value: [
+                      TRIP[booking.tripType ?? ""] ?? booking.tripType,
+                      SERVICE[booking.serviceType ?? ""],
+                      booking.airportCode,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                  },
+                  {
+                    label: "Passengers & luggage",
+                    value: [
+                      plural(booking.passengers ?? 1, "passenger"),
+                      plural(booking.bags ?? 0, "bag"),
+                      (booking.childSeats ?? 0) > 0
+                        ? plural(booking.childSeats ?? 0, "child seat")
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                  },
+                  ...(booking.airline || booking.flightNumber
+                    ? [
+                        {
+                          label: "Flight",
+                          value: [booking.airline, booking.flightNumber].filter(Boolean).join(" "),
+                        },
+                      ]
+                    : []),
+                  ...(booking.notes ? [{ label: "Instructions", value: booking.notes }] : []),
+                  { label: "Reference", value: formatReference(booking.reference) },
                 ]
             ).map((row) => (
               <div key={row.label} className="border-t border-midnight/10 py-5 last:border-b">
@@ -163,7 +224,44 @@ export default async function PayLinkPage({
               <p className="font-display mt-2 text-[40px] leading-none font-semibold text-midnight tabular-nums">
                 {amount ?? "—"}
               </p>
-              {booking.amountCents !== null && booking.taxCents > 0 ? (
+              {booking.lines && booking.lines.length > 0 ? (
+                <dl className="mt-4 flex flex-col gap-1.5 font-sans text-[14px] text-charcoal tabular-nums">
+                  {booking.lines.map((line, index) => (
+                    <div key={`${line.label}-${index}`} className="flex justify-between gap-4">
+                      <dt>
+                        {line.label}
+                        {line.paid ? " · paid" : ""}
+                      </dt>
+                      <dd>{formatFare(line.amountCents - line.taxCents)}</dd>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-4">
+                    <dt>Sales tax ({formatRate(booking.taxRate)})</dt>
+                    <dd>
+                      {formatFare(booking.lines.reduce((sum, line) => sum + line.taxCents, 0))}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t border-midnight/15 pt-1.5 font-semibold text-midnight">
+                    <dt>Total</dt>
+                    <dd>
+                      {formatFare(booking.lines.reduce((sum, line) => sum + line.amountCents, 0))}
+                    </dd>
+                  </div>
+                  {booking.lines.some((line) => line.paid) ? (
+                    <div className="flex justify-between gap-4">
+                      <dt>Already paid</dt>
+                      <dd>
+                        −
+                        {formatFare(
+                          booking.lines
+                            .filter((line) => line.paid)
+                            .reduce((sum, line) => sum + line.amountCents, 0),
+                        )}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : booking.amountCents !== null && booking.taxCents > 0 ? (
                 <p className="mt-3 font-sans text-[14px] text-charcoal tabular-nums">
                   {formatFare(booking.amountCents - booking.taxCents)}{" "}
                   {booking.kind === "quote" ? "price" : "fare"} + {formatFare(booking.taxCents)} sales
