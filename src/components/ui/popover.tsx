@@ -49,7 +49,10 @@ const EDGE = 8;
 export const popoverLayer = "fixed z-[60]";
 
 /** What a popup is given before it has been measured, and while closed. */
-const HIDDEN: CSSProperties = { visibility: "hidden" };
+const HIDDEN: CSSProperties = {
+  visibility: "hidden",
+  pointerEvents: "none",
+};
 
 /**
  * `useLayoutEffect` warns when a component is rendered on the server. These
@@ -151,5 +154,9 @@ export function PopoverLayer({ children }: { children: ReactNode }) {
   // Only reached from an open popup, which only opens after a tap — but the
   // guard keeps this safe if one is ever rendered open on the server.
   if (typeof document === "undefined") return null;
-  return createPortal(children, document.body);
+
+  return createPortal(
+    <div style={{ pointerEvents: "auto", isolation: "isolate" }}>{children}</div>,
+    document.body,
+  );
 }
