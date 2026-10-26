@@ -138,7 +138,7 @@ export function FleetCard({
             }
             dark={dark}
           />
-          <Spec label="From" value={fareFrom(vehicle.baseFareCents)} dark={dark} />
+          {/* <Spec label="From" value={fareFrom(vehicle.baseFareCents)} dark={dark} /> */}
         </dl>
 
         <div className="mt-6">
@@ -320,7 +320,7 @@ function CompactFleetCard({
             dark ? "border-white/10" : "border-midnight/10",
           )}
         >
-          <p className={clsx("text-[14px]", dark ? "text-white/60" : "text-charcoal/70")}>
+          {/* <p className={clsx("text-[14px]", dark ? "text-white/60" : "text-charcoal/70")}>
             From{" "}
             <span
               className={clsx(
@@ -330,7 +330,7 @@ function CompactFleetCard({
             >
               {fareFrom(vehicle.baseFareCents)}
             </span>
-          </p>
+          </p> */}
           <span
             className={clsx(
               "inline-flex items-center gap-1.5 font-sans text-[14px] font-semibold underline-offset-4 group-hover:underline",
