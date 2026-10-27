@@ -316,21 +316,10 @@ function CompactFleetCard({
 
         <div
           className={clsx(
-            "mt-5 flex items-center justify-between gap-3 border-t pt-4",
+            "mt-5 flex items-center justify-end gap-3 border-t pt-4",
             dark ? "border-white/10" : "border-midnight/10",
           )}
         >
-          <p className={clsx("text-[14px]", dark ? "text-white/60" : "text-charcoal/70")}>
-            From{" "}
-            <span
-              className={clsx(
-                "font-semibold tabular-nums",
-                dark ? "text-white" : "text-midnight",
-              )}
-            >
-              {fareFrom(vehicle.baseFareCents)}
-            </span>
-          </p>
           <span
             className={clsx(
               "inline-flex items-center gap-1.5 font-sans text-[14px] font-semibold underline-offset-4 group-hover:underline",
