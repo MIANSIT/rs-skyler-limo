@@ -6,6 +6,7 @@ import { ApiError } from "../lib/http.js";
 import { getBookingById, type Booking } from "./bookings.js";
 import { listCharges, payableLines, recordChargesPaid } from "./charges.js";
 import { getQuoteById, type Quote } from "./quotes.js";
+import { sendPaymentReceivedEmails } from "./mail.js";
 import { getVehicleBySlug } from "./vehicles.js";
 
 /**
@@ -276,6 +277,8 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
   const amountOf = (row: Booking | Quote) =>
     "agreedPriceCents" in row ? row.agreedPriceCents : row.quotedTotalCents;
 
+  let newlyRecorded = false;
+  let paidChargeIds: number[] = [];
   if (session.payment_status === "paid") {
     const paymentIntentId =
       typeof session.payment_intent === "string"
@@ -301,9 +304,11 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
       .split(",")
       .map(Number)
       .filter((value) => Number.isInteger(value) && value > 0);
+    paidChargeIds = chargeIds;
     const chargesPaid = isQuote ? 0 : await recordChargesPaid(id, chargeIds, paymentIntentId);
 
-    if (result.affectedRows > 0 || chargesPaid > 0) {
+    newlyRecorded = result.affectedRows > 0 || chargesPaid > 0;
+    if (newlyRecorded) {
       const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
       await execute(
         `INSERT INTO activity_log
@@ -319,6 +324,13 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
   }
 
   const latest = (isQuote ? await getQuoteById(id) : await getBookingById(id)) ?? current;
+
+  if (newlyRecorded) {
+    void notifyPaid(session, latest, paidChargeIds, coversFareOf(session, isQuote)).catch((error) =>
+      console.error(`[mail] payment receipt for ${latest.reference} failed: ${String(error)}`),
+    );
+  }
+
   return {
     reference: latest.reference,
     paymentStatus: latest.paymentStatus === "paid" ? "paid" : "unpaid",
@@ -329,6 +341,62 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
         ? session.amount_total
         : amountOf(latest),
   };
+}
+
+const coversFareOf = (session: Stripe.Checkout.Session, isQuote: boolean) =>
+  isQuote || session.metadata?.fare !== "0";
+
+/**
+ * Emails the customer and the office that a payment came in: what was paid and,
+ * if anything is still owing, the balance. Built from the stored rows after the
+ * payment is recorded, so the figures are the database's, not the session's.
+ */
+async function notifyPaid(
+  session: Stripe.Checkout.Session,
+  row: Booking | Quote,
+  paidChargeIds: number[],
+  coversFare: boolean,
+): Promise<void> {
+  const paidFor: { label: string; amountCents: number }[] = [];
+  const dueLines: { label: string; amountCents: number }[] = [];
+  let trip: Parameters<typeof sendPaymentReceivedEmails>[0]["trip"];
+
+  if ("agreedPriceCents" in row) {
+    paidFor.push({ label: "Agreed price", amountCents: row.agreedPriceCents ?? 0 });
+  } else {
+    if (coversFare) paidFor.push({ label: "Trip fare", amountCents: row.quotedTotalCents ?? 0 });
+    else if (row.paymentStatus !== "paid" && row.quotedTotalCents && row.status !== "cancelled") {
+      dueLines.push({ label: "Trip fare", amountCents: row.quotedTotalCents });
+    }
+    for (const charge of await listCharges(row.id)) {
+      if (paidChargeIds.includes(charge.id)) {
+        paidFor.push({ label: charge.title, amountCents: charge.amountCents });
+      } else if (!charge.paidAt) {
+        dueLines.push({ label: charge.title, amountCents: charge.amountCents });
+      }
+    }
+    const vehicle = (await getVehicleBySlug(row.vehicleClass).catch(() => null))?.name;
+    trip = {
+      pickup: row.pickup,
+      destination: row.destination,
+      pickupAt: row.pickupAt,
+      vehicle: vehicle ?? row.vehicleClass,
+    };
+  }
+
+  await sendPaymentReceivedEmails({
+    reference: row.reference,
+    kind: "agreedPriceCents" in row ? "quote" : "booking",
+    customerName: row.customerName,
+    customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    paidCents: session.amount_total ?? paidFor.reduce((sum, line) => sum + line.amountCents, 0),
+    paidFor,
+    paidAt: new Date(),
+    dueCents: dueLines.reduce((sum, line) => sum + line.amountCents, 0),
+    dueLines,
+    trip,
+  });
 }
 
 /**
