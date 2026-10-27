@@ -55,7 +55,10 @@ export function BookingSheet({ fleet }: { fleet: FleetVehicle[] }) {
 
   return (
     <div
-      className={clsx("fixed inset-0 z-50 md:hidden", !open && "pointer-events-none")}
+      className={clsx(
+        "fixed inset-0 z-50 md:hidden",
+        open ? "pointer-events-auto" : "pointer-events-none",
+      )}
       inert={!open}
     >
       <div
@@ -63,7 +66,7 @@ export function BookingSheet({ fleet }: { fleet: FleetVehicle[] }) {
         onClick={bookingSheet.close}
         className={clsx(
           "absolute inset-0 bg-midnight-deep/70 backdrop-blur-sm transition-opacity duration-300",
-          open ? "opacity-100" : "opacity-0",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       />
 

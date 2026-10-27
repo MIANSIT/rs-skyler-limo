@@ -180,6 +180,26 @@ export async function saveRates(
  */
 export const CHILD_SEAT_FEE_CENTS = 3500;
 
+/**
+ * Where a published airport fare applies: **Manhattan only**.
+ *
+ * Changed Oct 2026 at the client's request. It was the five boroughs, which is
+ * why `isNewYorkCity` exists and is still used for copy; the fare now turns on
+ * `isManhattan`. Everywhere else — Brooklyn, Queens, the Bronx, Staten Island,
+ * and anything outside the city — goes through the same quote process as a
+ * point-to-point or hourly trip.
+ *
+ * This is the one place the rule is stated. `decideFare` reads it, the public
+ * form previews it through `isManhattan` on `/api/places/resolve`, and the
+ * dashboard's rate grid is labelled from the same fact. Widening it later means
+ * changing the `isManhattan` test here and the wording below, nothing else.
+ */
+export const FIXED_FARE_AREA = "Manhattan";
+
+/** Shown to the customer when the trip falls outside that area. */
+export const FIXED_FARE_AREA_REASON =
+  `Published airport fares cover ${FIXED_FARE_AREA}. We will price this one for you.`;
+
 export type FareDecision = {
   pricingMode: "fixed" | "quote";
   /**
@@ -199,8 +219,8 @@ export type FareDecision = {
  * Server-side and authoritative. The form shows a price beforehand, but that
  * number is a preview — this runs again on submission against the live rate
  * card, so a stale page or a tampered request cannot book a Sprinter at a sedan
- * fare. Every path that is not unambiguously a priced NYC airport transfer
- * returns `quote`, which is the direction that fails safe.
+ * fare. Every path that is not unambiguously a priced Manhattan airport
+ * transfer returns `quote`, which is the direction that fails safe.
  */
 export async function decideFare(input: {
   tripType: string;
@@ -247,16 +267,14 @@ export async function decideFare(input: {
     return quote(`${airport.name} transfers are priced by a person.`);
   }
 
-  // The non-airport end of the trip is the one that has to be in the city.
+  // The non-airport end of the trip is the one that has to be in Manhattan.
   const cityEnd =
     input.airportDirection === "to-airport" ? pickupPlace : destinationPlace;
 
   // No resolved place — including when no Places key is configured — means
-  // nothing proves the trip is inside the city, so it is quoted.
-  if (!cityEnd?.isNewYorkCity) {
-    return quote(
-      "Fixed airport fares cover the five boroughs. We will price this one for you.",
-    );
+  // nothing proves where the trip starts or ends, so it is quoted.
+  if (!cityEnd?.isManhattan) {
+    return quote(FIXED_FARE_AREA_REASON);
   }
 
   const rate = await queryOne<RowDataPacket & { price_cents: number }>(

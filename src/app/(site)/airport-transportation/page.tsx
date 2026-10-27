@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/airport-transportation" },
   title: "Airport Transportation",
   description:
-    "Fixed-fare car service between the five boroughs and JFK, LaGuardia, Newark, Teterboro and Westchester. Every fare published before you book, tolls and gratuity included.",
+    "Fixed-fare car service between Manhattan and JFK, LaGuardia, Newark, Teterboro and Westchester, published before you book with tolls and gratuity included. The other boroughs are quoted and agreed first.",
 };
 
 /**
@@ -46,7 +46,7 @@ const steps = [
 const included = [
   {
     title: "Tolls and gratuity",
-    body: "Inside every fixed airport fare. They do not appear later as extra lines.",
+    body: "Inside every fixed airport fare, and inside the figure a reservations agent quotes you. They do not appear later as extra lines.",
   },
   {
     title: "Waiting, counted from landing",

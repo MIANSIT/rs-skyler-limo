@@ -47,8 +47,8 @@ export function AirportTransfers({
           <SectionHeading
             tone={dark ? "dark" : "light"}
             eyebrow="Airport transfers"
-            title="A fixed fare between the airport and the five boroughs"
-            intro="Tell us the airport, the direction and the vehicle, and the fare appears before you book. Tolls and gratuity are included."
+            title="A fixed fare between the airport and Manhattan"
+            intro="Tell us the airport, the direction and the vehicle, and the fare appears before you book. Tolls and gratuity are included. We serve all five boroughs; trips beyond Manhattan are priced by a reservations agent first."
             data-reveal
           />
           <div data-reveal className="mt-8 flex flex-wrap gap-4">

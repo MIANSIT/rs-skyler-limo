@@ -3,16 +3,20 @@
 Everything runs on one Ubuntu 24.04 server: `184.94.215.246`, 4 vCPU, 6 GB RAM,
 118 GB disk.
 
+Cutover is done: both apps answer on their own hostnames over TLS, and the
+bare IP is only how you reach the box over SSH.
+
 | | | |
 |---|---|---|
-| Public site | http://184.94.215.246 | Next.js on `:3000` (loopback) |
-| Dashboard | http://184.94.215.246:8080 | Next.js on `:3001` (loopback) |
+| Public site | https://www.rsskylerlimo.com | Next.js on `:3000` (loopback) |
+| Dashboard | https://admin.rsskylerlimo.com | Next.js on `:3001` (loopback) |
 | API | not exposed | Express on `:4000` (loopback) |
 | MySQL | not exposed | `:3306` (loopback), firewalled |
 
-Only ports 22, 80, 443 and 8080 are open. The three apps bind to `127.0.0.1`,
-so nginx is the only way in — the firewall is the second line of defence, not
-the only one.
+Only ports 22, 80 and 443 are open — `8080` carried the dashboard before it
+had its own hostname and was closed at cutover (step 6 below). The three apps
+bind to `127.0.0.1`, so nginx is the only way in — the firewall is the second
+line of defence, not the only one.
 
 Secrets live in `deploy/production.env`, which is **git-ignored**. The server
 holds the live originals; that file is a copy for your reference.

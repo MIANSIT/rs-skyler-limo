@@ -242,7 +242,7 @@ export const corporateFeatures = [
   },
   {
     title: "Fixed airport fares",
-    body: "Transfers between the five boroughs and the New York airports are priced from a published rate card, so a finance team can check a trip against it.",
+    body: "Transfers between Manhattan and the New York airports are priced from a published rate card, so a finance team can check a trip against it. The other boroughs are quoted and agreed before travel.",
   },
   {
     title: "Priced before you travel",
@@ -403,9 +403,15 @@ export const boroughs = [
 /**
  * The Service Areas page, one entry per borough.
  *
- * `note` is geography and the rules that already apply everywhere — which
- * airports sit nearest, and that the fixed fare covers the whole borough. It
- * makes no claim about travel times or local knowledge.
+ * `note` is geography and the rules that already apply — which airports sit
+ * nearest, and how the trip is priced. It makes no claim about travel times or
+ * local knowledge.
+ *
+ * Only Manhattan's note may promise a published fare: since Oct 2026 the fixed
+ * airport fare is Manhattan-only (`FIXED_FARE_AREA` in
+ * `api/src/services/pricing.ts`). The other four are served exactly as before
+ * and are quoted, so their notes say so rather than implying a price the
+ * booking form will refuse to show.
  *
  * `neighbourhoods` is empty on purpose. The brief allows only places the
  * business actually serves, and it has confirmed boroughs, not neighbourhoods.
@@ -419,19 +425,19 @@ export const serviceAreas: {
 }[] = [
   {
     borough: "Manhattan",
-    note: "From the Battery to Inwood. Every Manhattan address is inside the fixed-fare area, so an airport transfer is priced before you book.",
+    note: "From the Battery to Inwood. Every Manhattan address is inside the published-fare area, so an airport transfer is priced before you book.",
     nearestAirports: ["LGA", "JFK", "EWR"],
     neighbourhoods: [],
   },
   {
     borough: "Brooklyn",
-    note: "The whole borough, from Williamsburg to Coney Island. JFK is the usual airport from here, and the fare is the same whichever part of Brooklyn you leave from.",
+    note: "The whole borough, from Williamsburg to Coney Island. JFK is the usual airport from here. Brooklyn transfers are priced by a reservations agent and agreed with you before you travel.",
     nearestAirports: ["JFK", "LGA"],
     neighbourhoods: [],
   },
   {
     borough: "Queens",
-    note: "Home to both JFK and LaGuardia. A short hop from Astoria to LaGuardia carries the same published fare as any other pickup in the borough.",
+    note: "Home to both JFK and LaGuardia, so the run is usually a short one. Queens transfers are priced by a reservations agent and agreed with you before you travel.",
     nearestAirports: ["LGA", "JFK"],
     neighbourhoods: [],
   },
@@ -443,7 +449,7 @@ export const serviceAreas: {
   },
   {
     borough: "Staten Island",
-    note: "The whole island. Newark is across the Goethals Bridge, which often makes it the nearer airport — and the tolls are inside a fixed fare.",
+    note: "The whole island. Newark is across the Goethals Bridge, which often makes it the nearer airport. Staten Island transfers are quoted by a reservations agent, tolls included in the figure you agree.",
     nearestAirports: ["EWR", "JFK"],
     neighbourhoods: [],
   },

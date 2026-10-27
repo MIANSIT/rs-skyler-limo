@@ -2,6 +2,8 @@ import { formatReference } from "@/lib/admin/reference";
 import Link from "next/link";
 
 import { ChangedTag } from "@/components/admin/changed-tag";
+import { OutsideAreaTag } from "@/components/admin/outside-area-tag";
+import { isPreManhattanFixedFare } from "@/lib/admin/fixed-fare-area";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
   formatMoney,
@@ -114,6 +116,7 @@ export function BookingsTable({
                 <div className="flex flex-col items-start gap-1.5">
                   <StatusBadge status={booking.status} />
                   {booking.customerChangePending ? <ChangedTag /> : null}
+                  {isPreManhattanFixedFare(booking) ? <OutsideAreaTag /> : null}
                   {booking.possibleClashes ? (
                     <span
                       title="Another booking for this vehicle class is within 3 hours"

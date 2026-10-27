@@ -333,12 +333,13 @@ export default function TermsPage() {
             data-reveal
             className="mt-10 max-w-2xl text-[15px] leading-[1.7] text-charcoal"
           >
-            Airport transfers within the five boroughs carry a published fare,
-            shown in full before you confirm. Every other trip — point to point,
-            hourly, or anywhere outside New York City — is priced by a person:
-            you send the details, we come back with a fare, and nothing is
-            charged until you accept it. Either way, there is no figure on the
-            final invoice you have not already seen or asked for.
+            Airport transfers to and from Manhattan carry a published fare,
+            shown in full before you confirm. Every other trip — the other four
+            boroughs, anywhere outside the city, and all point-to-point and
+            hourly travel — is priced by a person: you send the details, we
+            come back with a fare, and nothing is charged until you accept it.
+            Either way, there is no figure on the final invoice you have not
+            already seen or asked for.
           </p>
         </Reveal>
       </Section>

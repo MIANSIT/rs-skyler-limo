@@ -7,10 +7,6 @@ import { ArrowRightIcon, UsersIcon } from "@/components/ui/icon";
 import { Rule } from "@/components/ui/section";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
-import { formatFare } from "@/lib/content";
-
-/** Exact to the cent: `$95` or `$95.50`, never rounded. */
-const fareFrom = formatFare;
 
 function childSeatLabel(max: number): string {
   if (max === 0) return "No child seats";
@@ -138,7 +134,6 @@ export function FleetCard({
             }
             dark={dark}
           />
-          <Spec label="From" value={fareFrom(vehicle.baseFareCents)} dark={dark} />
         </dl>
 
         <div className="mt-6">
@@ -208,8 +203,7 @@ export function FleetCard({
 }
 
 /**
- * The homepage strip's card: photo, who it seats, four amenities, the starting
- * fare. Everything else — the paragraph, child seats, interiors — is one click
+ * The homepage strip's card: photo, who it seats, three amenities. Everything else — the paragraph, child seats, interiors — is one click
  * away on `/fleet`, which is where the whole card links.
  *
  * Gold appears only as graphics — the badge icon, the amenity dots, the arrow —
