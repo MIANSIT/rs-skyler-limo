@@ -24,8 +24,11 @@ function SubmitButton() {
   );
 }
 
+// The autofill rules matter: browsers paint a saved email or password pale blue
+// with dark text, which erased the white show/hide icon. The inset shadow
+// repaints the midnight ground and the fill colour keeps the text white.
 const field =
-  "w-full rounded-sm border border-white/25 bg-white/5 px-4 py-3 font-sans text-[15px] text-white transition-colors placeholder:text-white/35 hover:border-white/40 focus:border-gold focus:outline-none";
+  "w-full rounded-sm border border-white/25 bg-white/5 px-4 py-3 font-sans text-[15px] text-white transition-colors placeholder:text-white/35 hover:border-white/40 focus:border-gold focus:outline-none autofill:shadow-[inset_0_0_0_1000px_var(--color-midnight)] autofill:[-webkit-text-fill-color:white]";
 
 export function LoginForm() {
   const [state, formAction] = useActionState<LoginState, FormData>(
