@@ -54,7 +54,7 @@ export default async function BookingDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
-      {booking.status === "new" ? <MarkOpened kind="booking" id={booking.id} /> : null}
+      <MarkOpened kind="booking" id={booking.id} status={booking.status} />
       <div>
         <Link
           href="/bookings"

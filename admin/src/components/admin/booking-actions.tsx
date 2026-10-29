@@ -29,7 +29,8 @@ const nextStep: Partial<
 const secondarySteps: Record<BookingStatus, BookingStatus[]> = {
   new: ["pending", "cancelled"],
   quoted: ["pending", "cancelled"],
-  pending: ["cancelled"],
+  // Back to New undoes an accidental open (see MarkOpened).
+  pending: ["new", "cancelled"],
   confirmed: ["pending", "cancelled"],
   completed: ["confirmed"],
   cancelled: ["new", "confirmed"],

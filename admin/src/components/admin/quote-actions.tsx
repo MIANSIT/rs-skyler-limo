@@ -17,7 +17,8 @@ const nextStep: Partial<
 
 const secondarySteps: Record<QuoteStatus, QuoteStatus[]> = {
   new: ["pending", "lost"],
-  pending: ["lost"],
+  // Back to New undoes an accidental open (see MarkOpened).
+  pending: ["new", "lost"],
   quoted: ["lost", "pending"],
   won: ["quoted"],
   lost: ["new", "quoted"],

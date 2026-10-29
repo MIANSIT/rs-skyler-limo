@@ -43,7 +43,7 @@ export default async function QuoteDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
-      {quote.status === "new" ? <MarkOpened kind="quote" id={quote.id} /> : null}
+      <MarkOpened kind="quote" id={quote.id} status={quote.status} />
       <div>
         <Link
           href="/quotes"
