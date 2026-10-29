@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ActivityTrail } from "@/components/admin/activity-trail";
 import { BookingActions } from "@/components/admin/booking-actions";
 import { ChangedTag } from "@/components/admin/changed-tag";
+import { MarkOpened } from "@/components/admin/mark-opened";
 import { OutsideAreaTag } from "@/components/admin/outside-area-tag";
 import { isPreManhattanFixedFare } from "@/lib/admin/fixed-fare-area";
 import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
@@ -53,6 +54,7 @@ export default async function BookingDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
+      {booking.status === "new" ? <MarkOpened kind="booking" id={booking.id} /> : null}
       <div>
         <Link
           href="/bookings"

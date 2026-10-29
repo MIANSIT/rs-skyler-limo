@@ -319,11 +319,17 @@ export async function listBookings(
         ) ELSE 0 END AS clash_count
        FROM bookings ${where}
       ORDER BY
-        -- New requests first, the latest arrival on top, so a booking that has
-        -- just come in is on page one whatever its pick-up date; then soonest pickup.
-        CASE WHEN status = 'new' THEN 0 ELSE 1 END,
-        CASE WHEN status = 'new' THEN created_at END DESC,
-        pickup_at ASC
+        -- Grouped by what needs doing, and within every live group by soonest
+        -- pick-up, so tomorrow's trip is always above next week's. New and
+        -- Pending lead (a booking drops to Pending the moment it is opened and
+        -- must not vanish); finished trips come last, most recent first, so
+        -- old pick-ups never push live work down the pages.
+        CASE status
+          WHEN 'new' THEN 0 WHEN 'pending' THEN 1 WHEN 'confirmed' THEN 2
+          WHEN 'quoted' THEN 3 ELSE 4
+        END,
+        CASE WHEN status NOT IN ('completed','cancelled') THEN pickup_at END ASC,
+        CASE WHEN status IN ('completed','cancelled') THEN pickup_at END DESC
       LIMIT ${perPage} OFFSET ${offset}`,
     params,
   );

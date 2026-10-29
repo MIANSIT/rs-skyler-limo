@@ -7,6 +7,7 @@ import { ActivityTrail } from "@/components/admin/activity-trail";
 import { ChangedTag } from "@/components/admin/changed-tag";
 import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
 import { DetailRow } from "@/components/admin/detail-row";
+import { MarkOpened } from "@/components/admin/mark-opened";
 import { QuoteActions } from "@/components/admin/quote-actions";
 import { QuotePaymentPanel } from "@/components/admin/quote-payment-panel";
 import { QuotePricePanel } from "@/components/admin/quote-price-panel";
@@ -42,6 +43,7 @@ export default async function QuoteDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
+      {quote.status === "new" ? <MarkOpened kind="quote" id={quote.id} /> : null}
       <div>
         <Link
           href="/quotes"

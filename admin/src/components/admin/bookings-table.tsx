@@ -77,6 +77,11 @@ export function BookingsTable({
                 >
                   {formatReference(booking.reference)}
                 </Link>
+                {/* When it was booked, so the order never has to be guessed:
+                    the list runs by pick-up, and this says how fresh it is. */}
+                <span className="mt-1 block whitespace-nowrap font-sans text-[12px] font-normal text-charcoal/55">
+                  Booked {formatPickup(booking.createdAt)}
+                </span>
               </td>
               <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">
                 {formatPickup(booking.pickupAt)}

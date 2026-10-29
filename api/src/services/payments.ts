@@ -156,7 +156,7 @@ async function openCheckout(item: Payable): Promise<string> {
       },
     })),
     customer_email: item.email,
-    // A draft is swept after DRAFT_TTL_HOURS, so its payment page must die well
+    // A draft is swept after DRAFT_TTL_DAYS, so its payment page must die well
     // before that — otherwise a late payment would find no trip to book.
     // Booking and quote sessions keep Stripe's 24-hour default.
     ...(item.kind === "draft"
@@ -228,8 +228,12 @@ export async function createCheckout(
 
 /** How long a staged booking's Stripe page stays payable (Stripe's minimum is 30). */
 const DRAFT_SESSION_MINUTES = 60;
-/** How long an unpaid draft is kept. Must stay well above the session's life. */
-const DRAFT_TTL_HOURS = 3;
+/**
+ * How long an unclaimed draft is kept. The Stripe page dies after an hour, but a
+ * customer who paid at minute 58 and closed the tab depends on the webhook, and
+ * Stripe retries a failing webhook for up to 3 days — so the draft must outlast that.
+ */
+const DRAFT_TTL_DAYS = 3;
 
 type BookingInput = z.infer<typeof createBookingSchema>;
 type DraftPayload = { input: BookingInput; fare: FareDecision };
@@ -252,10 +256,10 @@ export async function createDraftCheckout(
   const taxRate = await getDefaultTaxRate();
   const totalCents = withTax(fare.fareCents ?? 0, taxRate).totalCents;
 
-  // Housekeeping: a draft older than its Stripe session can never be paid.
+  // Housekeeping: an unclaimed draft past the webhook retry window is dead.
   await execute(
     `DELETE FROM booking_drafts
-      WHERE claimed_at IS NULL AND created_at < (UTC_TIMESTAMP() - INTERVAL ${DRAFT_TTL_HOURS} HOUR)`,
+      WHERE claimed_at IS NULL AND created_at < (UTC_TIMESTAMP() - INTERVAL ${DRAFT_TTL_DAYS} DAY)`,
   ).catch(() => undefined);
 
   const id = randomUUID();

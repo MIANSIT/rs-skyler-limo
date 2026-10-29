@@ -381,7 +381,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 -- exist yet: it is created from `payload` when Stripe confirms the money, so an
 -- abandoned checkout leaves no order, no dashboard row and no email. `claimed_at`
 -- lets the success page and the webhook race safely; `booking_id` is the result.
--- Unpaid rows are deleted 3 hours on; their Stripe session expires after 1 hour.
+-- Unpaid rows are deleted after 3 days (Stripe's webhook retry window); the Stripe session expires after 1 hour.
 CREATE TABLE IF NOT EXISTS booking_drafts (
   id                         CHAR(36) NOT NULL,
   payload                    JSON NOT NULL,

@@ -44,6 +44,13 @@ const stepLabels: Record<BookingStatus, string> = {
   pending: "Hold as pending",
 };
 
+/** The moves that are hard to take back or that tell the customer something. */
+const CONFIRM_QUESTIONS: Partial<Record<BookingStatus, string>> = {
+  confirmed: "Confirm this booking?",
+  completed: "Mark this booking as completed?",
+  cancelled: "Cancel this booking?",
+};
+
 function StatusButton({
   status,
   label,
@@ -61,6 +68,18 @@ function StatusButton({
       name="status"
       value={status}
       disabled={pending}
+      onClick={(event) => {
+        const question = CONFIRM_QUESTIONS[status];
+        if (!question) return;
+        // Says plainly whether the customer is about to get an email, since the
+        // tick box above is easy to miss.
+        const notify = event.currentTarget.form?.elements.namedItem("notify");
+        const emails = notify instanceof HTMLInputElement && notify.checked;
+        const ok = window.confirm(
+          `${question}\n\n${emails ? "The customer will be emailed." : "The customer will not be emailed."}`,
+        );
+        if (!ok) event.preventDefault();
+      }}
       className={
         variant === "cta"
           ? "w-full rounded-sm bg-gold px-5 py-3 font-sans text-[15px] font-semibold text-midnight transition-colors hover:bg-gold/90 disabled:opacity-60"

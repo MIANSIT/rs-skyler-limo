@@ -10,6 +10,9 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   day: "numeric",
   month: "short",
+  // Without the year, "Oct 23" is 2026 or 2027 — a trip booked far ahead
+  // looks identical to one this month.
+  year: "numeric",
   hour: "numeric",
   minute: "2-digit",
 });
