@@ -131,10 +131,15 @@ export async function createBooking(
    * who could name their own price would.
    */
   fare: FareDecision,
+  /**
+   * A booking made from a paid draft keeps the rate its Stripe charge was
+   * computed with, so the stored total always equals the money taken.
+   */
+  taxRateOverride?: number,
 ): Promise<Booking> {
   // The booking keeps the rate of the day it was made, priced or not, so an
   // operator who quotes it next week adds the tax the customer was told about.
-  const taxRate = await getDefaultTaxRate();
+  const taxRate = taxRateOverride ?? (await getDefaultTaxRate());
   const taxed = fare.fareCents === null ? null : withTax(fare.fareCents, taxRate);
 
   // A reference collision is a ~1-in-34-billion event, but a booking lost to
@@ -265,7 +270,9 @@ function bookingFilters(filters: {
     conditions.push(`(reference LIKE :q OR customer_name LIKE :q
       OR customer_email LIKE :q OR customer_phone LIKE :q
       OR pickup LIKE :q OR destination LIKE :q)`);
-    params.q = `%${escapeLike(filters.q)}%`;
+    // References are shown as `#66465` but stored as `66465`, so a search
+    // pasted straight from the screen must lose its `#` to match.
+    params.q = `%${escapeLike(filters.q.replace(/^#/, ""))}%`;
   }
 
   if (filters.from) {
@@ -312,8 +319,10 @@ export async function listBookings(
         ) ELSE 0 END AS clash_count
        FROM bookings ${where}
       ORDER BY
-        -- New requests first regardless of date; then soonest pickup.
+        -- New requests first, the latest arrival on top, so a booking that has
+        -- just come in is on page one whatever its pick-up date; then soonest pickup.
         CASE WHEN status = 'new' THEN 0 ELSE 1 END,
+        CASE WHEN status = 'new' THEN created_at END DESC,
         pickup_at ASC
       LIMIT ${perPage} OFFSET ${offset}`,
     params,

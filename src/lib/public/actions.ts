@@ -164,7 +164,8 @@ export async function submitBooking(
       : text("destination");
 
     const result = await apiFetch<{
-      reference: string;
+      // Null for a fixed fare: the booking is created only once it is paid.
+      reference: string | null;
       pricingMode: PricingMode;
       quotedTotalCents: number | null;
       taxCents: number;
@@ -201,7 +202,7 @@ export async function submitBooking(
 
     checkoutUrl = result.checkoutUrl;
 
-    if (!checkoutUrl) {
+    if (!checkoutUrl && result.reference) {
       return {
         status: "success",
         reference: result.reference,
@@ -225,14 +226,14 @@ export async function submitBooking(
   }
 
   // Only a Stripe-hosted page is ever a redirect target from here.
-  if (!checkoutUrl.startsWith("https://checkout.stripe.com/")) {
+  if (!checkoutUrl?.startsWith("https://checkout.stripe.com/")) {
     throw new Error("Unexpected payment URL from the API.");
   }
   redirect(checkoutUrl);
 }
 
 /* -------------------------------------------------------------------------- */
-/* Quote requests                                                             */
+/* Quote requests                                                            */
 /* -------------------------------------------------------------------------- */
 
 export type QuoteFormState =

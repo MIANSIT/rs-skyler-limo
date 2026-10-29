@@ -40,7 +40,7 @@ export function BookingsTable({
     /* `relative` contains any `sr-only` (position: absolute) descendant inside
        the scroll box — see the note in rate-grid-form. */
     <div className="relative overflow-x-auto rounded-sm border border-midnight/10 bg-white">
-      <table className="w-full min-w-[52rem] border-collapse text-left">
+      <table className="w-full min-w-208 border-collapse text-left">
         <caption className="sr-only">Bookings</caption>
         <thead>
           <tr className="border-b border-midnight/10">
@@ -109,7 +109,7 @@ export function BookingsTable({
                     paid is shown for either method. */}
                 <span className="block whitespace-nowrap text-charcoal/55">
                   {booking.paymentMethod === "cash" ? "Cash" : "Card"}
-                  {booking.paymentStatus === "paid" ? " · paid" : ""}
+                  {booking.paymentStatus === "paid" ? " · Paid" : " · Unpaid"}
                 </span>
               </td>
               <td className="px-4 py-4">

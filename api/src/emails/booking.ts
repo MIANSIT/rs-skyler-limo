@@ -172,7 +172,9 @@ export function buildBookingEmail(
             booking.paymentMethod === "cash"
               ? " Paid in cash to your chauffeur at the end of the trip."
               : fixed
-                ? " Payment is by card through Stripe. If you did not finish paying, you can pay from the tracking page."
+                ? booking.paymentStatus === "paid"
+                  ? " Paid by card through Stripe."
+                  : " Payment is by card through Stripe. If you did not finish paying, you can pay from the tracking page."
                 : ""
           }
         </div>

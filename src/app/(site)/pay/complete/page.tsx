@@ -90,7 +90,7 @@ export default async function PaymentCompletePage({
             </div>
           ) : null}
 
-          {result ? (
+          {result?.reference ? (
             <dl className="flex flex-col">
               <div className="border-t border-midnight/10 py-5">
                 <dt className="font-sans text-[13px] font-medium tracking-[0.12em] text-charcoal/70 uppercase">
@@ -116,7 +116,7 @@ export default async function PaymentCompletePage({
           <div className="mt-10 flex flex-wrap gap-4">
             <ButtonLink
               href={
-                result ? `/track?reference=${encodeURIComponent(result.reference)}` : "/track"
+                result?.reference ? `/track?reference=${encodeURIComponent(result.reference)}` : "/track"
               }
               variant="primary"
             >
