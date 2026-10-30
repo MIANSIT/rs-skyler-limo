@@ -6,12 +6,15 @@ export function Pagination({
   page,
   perPage,
   total,
+  pageParam = "page",
 }: {
   basePath: string;
   params: Record<string, string | string[] | undefined>;
   page: number;
   perPage: number;
   total: number;
+  /** The query key for this list's page, for a screen that holds two lists. */
+  pageParam?: string;
 }) {
   const lastPage = Math.max(1, Math.ceil(total / perPage));
   if (lastPage <= 1) return null;
@@ -19,11 +22,11 @@ export function Pagination({
   const href = (target: number) => {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (key === "page") continue;
+      if (key === pageParam) continue;
       const single = Array.isArray(value) ? value[0] : value;
       if (single) search.set(key, single);
     }
-    if (target > 1) search.set("page", String(target));
+    if (target > 1) search.set(pageParam, String(target));
     const query = search.toString();
     return query ? `${basePath}?${query}` : basePath;
   };

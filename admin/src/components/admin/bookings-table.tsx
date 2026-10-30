@@ -6,8 +6,10 @@ import { OutsideAreaTag } from "@/components/admin/outside-area-tag";
 import { isPreManhattanFixedFare } from "@/lib/admin/fixed-fare-area";
 import { StatusBadge } from "@/components/admin/status-badge";
 import {
+  formatBooked,
+  formatDay,
   formatMoney,
-  formatPickup,
+  formatTime,
   formatTrip,
   formatVehicle,
 } from "@/lib/admin/format";
@@ -80,13 +82,17 @@ export function BookingsTable({
                 {/* When it was booked, so the order never has to be guessed:
                     the list runs by pick-up, and this says how fresh it is. */}
                 <span className="mt-1 block whitespace-nowrap font-sans text-[12px] font-normal text-charcoal/55">
-                  Booked {formatPickup(booking.createdAt)}
+                  Booked {formatBooked(booking.createdAt)}
                 </span>
               </td>
-              <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">
-                {formatPickup(booking.pickupAt)}
+              {/* Day on one line, time on the next, never wrapped word by word:
+                  with the year added the one-line form was too wide and the
+                  cell broke into a column of single words. */}
+              <td className="px-4 py-4 font-sans text-[14px] whitespace-nowrap text-midnight tabular-nums">
+                <span className="block">{formatDay(booking.pickupAt)}</span>
+                <span className="block text-charcoal/70">{formatTime(booking.pickupAt)}</span>
               </td>
-              <td className="max-w-[18rem] px-4 py-4 font-sans text-[14px] text-charcoal/80">
+              <td className="max-w-60 px-4 py-4 font-sans text-[14px] text-charcoal/80">
                 <span className="block truncate">{booking.pickup}</span>
                 <span className="block truncate text-charcoal/55">
                   → {booking.destination}

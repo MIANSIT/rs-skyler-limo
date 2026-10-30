@@ -170,7 +170,9 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
 
-  if (filters.status) {
+  if (filters.status === "action") {
+    conditions.push("status IN ('new','pending')");
+  } else if (filters.status) {
     conditions.push("status = :status");
     params.status = filters.status;
   }
@@ -198,7 +200,7 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
 
   const rows = await query<QuoteRow>(
     `SELECT ${SELECT_COLUMNS} FROM quotes ${where}
-      ORDER BY CASE WHEN status = 'new' THEN 0 ELSE 1 END, created_at DESC
+      ORDER BY created_at DESC, id DESC
       LIMIT ${perPage} OFFSET ${offset}`,
     params,
   );

@@ -147,8 +147,8 @@ adminRouter.get("/bookings", async (req, res) => {
  * id. `no-store`: it is customer data and must not sit in any cache.
  */
 adminRouter.get("/bookings/export", async (req, res) => {
-  const { status, q, from, to, changed } = listBookingsSchema.parse(req.query);
-  const bookings = await listBookingsForExport({ status, q, from, to, changed });
+  const { status, q, from, to, changed, kind } = listBookingsSchema.parse(req.query);
+  const bookings = await listBookingsForExport({ status, q, from, to, changed, kind });
   const file = await bookingsWorkbook(bookings);
 
   res.setHeader(

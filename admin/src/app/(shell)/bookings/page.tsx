@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { BookingsTable } from "@/components/admin/bookings-table";
 import { ChangedToggle } from "@/components/admin/changed-toggle";
 import { FilterBar } from "@/components/admin/filter-bar";
 import { Pagination } from "@/components/admin/pagination";
 import { getBookings } from "@/lib/admin/dal";
-import { bookingStatuses } from "@/lib/api/types";
 
 export const metadata: Metadata = { title: "Bookings" };
+
+// Workflow order, unfinished work on the left. `action` is New + Pending.
+const statusChips = ["action", "new", "pending", "confirmed", "completed", "cancelled"] as const;
+const validStatus = (value?: string) => Boolean(value && (statusChips as readonly string[]).includes(value));
 
 export default async function BookingsPage({
   searchParams,
@@ -26,8 +30,10 @@ export default async function BookingsPage({
   const changed = single("changed") === "1" ? "1" : undefined;
   const page = Number(single("page") ?? 1);
 
-  const exportParams = new URLSearchParams();
-  if (status && bookingStatuses.includes(status as never)) exportParams.set("status", status);
+  // Bookings are fixed-fare trips plus quotes that have been confirmed. A trip
+  // still being quoted lives on the Quotes page, whichever form it came from.
+  const exportParams = new URLSearchParams({ kind: "booking" });
+  if (status && validStatus(status)) exportParams.set("status", status);
   if (query) exportParams.set("q", query);
   if (changed) exportParams.set("changed", changed);
 
@@ -35,12 +41,31 @@ export default async function BookingsPage({
   const toggleParams = new URLSearchParams(exportParams);
   if (changed) toggleParams.delete("changed");
   else toggleParams.set("changed", "1");
+  toggleParams.delete("kind");
+  const sort = single("sort") === "pickup" ? "pickup" : undefined;
+  if (sort) toggleParams.set("sort", sort);
   const toggleHref = toggleParams.size > 0 ? `/bookings?${toggleParams}` : "/bookings";
-  const exportQuery = exportParams.size > 0 ? `?${exportParams}` : "";
+  const exportQuery = `?${exportParams}`;
+
+  // Sort links keep the status, search and "changed" filter; only the order flips.
+  const sortHref = (target?: "pickup") => {
+    const next = new URLSearchParams(toggleParams);
+    next.delete("sort");
+    next.delete("changed");
+    if (changed) next.set("changed", changed);
+    if (target) next.set("sort", target);
+    return next.size > 0 ? `/bookings?${next}` : "/bookings";
+  };
+  const sortLink = (active: boolean) =>
+    active
+      ? "rounded-sm border border-midnight bg-midnight px-3 py-1.5 font-sans text-[13px] font-medium tracking-[0.04em] text-white"
+      : "rounded-sm border border-midnight/20 bg-white px-3 py-1.5 font-sans text-[13px] font-medium tracking-[0.04em] text-charcoal hover:border-midnight/50";
 
   const { bookings, total, perPage } = await getBookings({
+    kind: "booking",
+    sort,
     // Anything not a known status is dropped rather than passed to the API.
-    status: bookingStatuses.includes(status as never) ? status : undefined,
+    status: validStatus(status) ? status : undefined,
     q: query,
     changed,
     page: Number.isInteger(page) && page > 0 ? page : 1,
@@ -69,15 +94,22 @@ export default async function BookingsPage({
 
       <FilterBar
         basePath="/bookings"
-        statuses={bookingStatuses}
+        statuses={statusChips}
         activeStatus={status}
         query={query}
         placeholder="Reference, name, phone, address"
-        keep={changed ? { changed } : {}}
+        keep={{ ...(changed ? { changed } : {}), ...(sort ? { sort } : {}) }}
       />
 
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <ChangedToggle href={toggleHref} active={Boolean(changed)} />
+        <span className="ml-auto font-sans text-[13px] text-charcoal/60">Order</span>
+        <Link href={sortHref()} aria-pressed={!sort} className={sortLink(!sort)}>
+          Newest booked
+        </Link>
+        <Link href={sortHref("pickup")} aria-pressed={Boolean(sort)} className={sortLink(Boolean(sort))}>
+          Soonest pickup
+        </Link>
       </div>
 
       <BookingsTable

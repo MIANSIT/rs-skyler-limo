@@ -33,6 +33,31 @@ export function formatDay(iso: string): string {
   return dayOnly.format(new Date(iso));
 }
 
+const timeOnly = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIME_ZONE,
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** `3:02 PM` — for a table cell that shows the day on one line and this on the next. */
+export function formatTime(iso: string): string {
+  return timeOnly.format(new Date(iso));
+}
+
+const bookedAt = new Intl.DateTimeFormat("en-US", {
+  timeZone: TIME_ZONE,
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** `Oct 21, 2026, 2:52 PM` — the short form for a "Booked …" caption. */
+export function formatBooked(iso: string): string {
+  return bookedAt.format(new Date(iso));
+}
+
 /** `2026-09-20` — a calendar date with no time, so parse it as one. */
 export function formatEventDate(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
