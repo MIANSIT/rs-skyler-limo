@@ -39,9 +39,65 @@ export function BookingsTable({
   }
 
   return (
-    /* `relative` contains any `sr-only` (position: absolute) descendant inside
-       the scroll box — see the note in rate-grid-form. */
-    <div className="relative overflow-x-auto rounded-sm border border-midnight/10 bg-white">
+    <>
+      {/* Below `xl` each booking is a stacked card: the seven-column table needs
+          about 1100px and either scrolled sideways or cut things off. */}
+      <ul className="flex flex-col gap-3 xl:hidden">
+        {bookings.map((booking) => (
+          <li key={booking.id}>
+            <Link
+              href={`/bookings/${booking.id}`}
+              className="block rounded-sm border border-midnight/10 bg-white p-4 transition-colors hover:bg-grey sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+                <div>
+                  <span className="font-sans text-[15px] font-semibold text-midnight tabular-nums">
+                    {formatReference(booking.reference)}
+                  </span>
+                  <span className="mt-0.5 block font-sans text-[12px] text-charcoal/55">
+                    Booked {formatBooked(booking.createdAt)}
+                  </span>
+                </div>
+                <StatusTags booking={booking} row />
+              </div>
+
+              <p className="mt-3 font-sans text-[15px] font-medium text-midnight tabular-nums">
+                {formatDay(booking.pickupAt)} · {formatTime(booking.pickupAt)}
+              </p>
+
+              <p className="mt-1 font-sans text-[14px] break-words text-charcoal/80">
+                {booking.pickup}
+                <span className="text-charcoal/55"> → {booking.destination}</span>
+              </p>
+
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 font-sans text-[14px] sm:grid-cols-3">
+                <div className="min-w-0">
+                  <dt className="text-[12px] tracking-[0.06em] text-charcoal/55 uppercase">Customer</dt>
+                  <dd className="break-words text-charcoal/80">{booking.customerName}</dd>
+                  <dd className="text-charcoal/55 tabular-nums">{booking.customerPhone}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-[12px] tracking-[0.06em] text-charcoal/55 uppercase">Vehicle</dt>
+                  <dd className="text-charcoal/80">{formatVehicle(booking.vehicleClass)}</dd>
+                  <dd className="text-charcoal/55">{formatTrip(booking.tripType)}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-[12px] tracking-[0.06em] text-charcoal/55 uppercase">Fare</dt>
+                  <dd className="text-midnight tabular-nums">{formatMoney(booking.quotedTotalCents)}</dd>
+                  <dd className="text-charcoal/55">
+                    {booking.paymentMethod === "cash" ? "Cash" : "Card"}
+                    {booking.paymentStatus === "paid" ? " · Paid" : " · Unpaid"}
+                  </dd>
+                </div>
+              </dl>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+    {/* `relative` contains any `sr-only` (position: absolute) descendant inside
+       the scroll box — see the note in rate-grid-form. */}
+    <div className="relative hidden overflow-x-auto rounded-sm border border-midnight/10 bg-white xl:block">
       <table className="w-full min-w-208 border-collapse text-left">
         <caption className="sr-only">Bookings</caption>
         <thead>
@@ -124,24 +180,46 @@ export function BookingsTable({
                 </span>
               </td>
               <td className="px-4 py-4">
-                <div className="flex flex-col items-start gap-1.5">
-                  <StatusBadge status={booking.status} />
-                  {booking.customerChangePending ? <ChangedTag /> : null}
-                  {isPreManhattanFixedFare(booking) ? <OutsideAreaTag /> : null}
-                  {booking.possibleClashes ? (
-                    <span
-                      title="Another booking for this vehicle class is within 3 hours"
-                      className="rounded-sm border border-midnight/30 px-2 py-0.5 font-sans text-[12px] font-medium tracking-[0.06em] whitespace-nowrap text-midnight uppercase"
-                    >
-                      Possible clash
-                    </span>
-                  ) : null}
-                </div>
+                <StatusTags booking={booking} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+    </>
+  );
+}
+
+/**
+ * The status badge and the attention tags under it. In the table it is a
+ * capped column so the tags wrap onto two lines instead of running past the
+ * edge, where they were cut off; on a card (`row`) they sit side by side.
+ */
+function StatusTags({ booking, row = false }: { booking: Booking; row?: boolean }) {
+  return (
+    <div
+      className={
+        row
+          ? "flex flex-wrap items-center gap-1.5"
+          : "flex max-w-36 flex-col items-start gap-1.5"
+      }
+    >
+      <StatusBadge status={booking.status} />
+      {booking.customerChangePending ? (
+        <ChangedTag className="leading-tight whitespace-normal!" />
+      ) : null}
+      {isPreManhattanFixedFare(booking) ? (
+        <OutsideAreaTag className="leading-tight whitespace-normal!" />
+      ) : null}
+      {booking.possibleClashes ? (
+        <span
+          title="Another booking for this vehicle class is within 3 hours"
+          className="rounded-sm border border-midnight/30 px-2 py-0.5 font-sans text-[12px] leading-tight font-medium tracking-[0.06em] text-midnight uppercase"
+        >
+          Possible clash
+        </span>
+      ) : null}
     </div>
   );
 }
