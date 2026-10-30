@@ -131,10 +131,15 @@ export async function createBooking(
    * who could name their own price would.
    */
   fare: FareDecision,
+  /**
+   * A booking made from a paid draft keeps the rate its Stripe charge was
+   * computed with, so the stored total always equals the money taken.
+   */
+  taxRateOverride?: number,
 ): Promise<Booking> {
   // The booking keeps the rate of the day it was made, priced or not, so an
   // operator who quotes it next week adds the tax the customer was told about.
-  const taxRate = await getDefaultTaxRate();
+  const taxRate = taxRateOverride ?? (await getDefaultTaxRate());
   const taxed = fare.fareCents === null ? null : withTax(fare.fareCents, taxRate);
 
   // A reference collision is a ~1-in-34-billion event, but a booking lost to
@@ -239,6 +244,16 @@ export type BookingList = {
 };
 
 /**
+ * Where a trip lives in the dashboard. A fixed-fare trip is a booking from the
+ * start. A trip with no published fare is a quote until an operator has priced
+ * it *and* confirmed it; from Confirmed on it is a booking and counts as one.
+ * Lists, dashboard counts and reports all use these two fragments, so they
+ * cannot disagree. (A confirmed quote trip later cancelled stays a booking.)
+ */
+export const IS_BOOKING_SQL = `(pricing_mode = 'fixed' OR status IN ('confirmed','completed'))`;
+export const IS_QUOTE_SQL = `(pricing_mode = 'quote' AND status NOT IN ('confirmed','completed'))`;
+
+/**
  * The WHERE clause for the bookings list, shared with the Excel export so a
  * download holds exactly what the operator was looking at.
  */
@@ -248,11 +263,17 @@ function bookingFilters(filters: {
   from?: string;
   to?: string;
   changed?: string;
+  kind?: "booking" | "quote";
 }): { where: string; params: Record<string, unknown> } {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
 
-  if (filters.status) {
+  if (filters.kind) conditions.push(filters.kind === "booking" ? IS_BOOKING_SQL : IS_QUOTE_SQL);
+
+  if (filters.status === "action") {
+    // "Needs action": New plus Pending — what an operator has yet to finish.
+    conditions.push("status IN ('new','pending')");
+  } else if (filters.status) {
     conditions.push("status = :status");
     params.status = filters.status;
   }
@@ -265,7 +286,9 @@ function bookingFilters(filters: {
     conditions.push(`(reference LIKE :q OR customer_name LIKE :q
       OR customer_email LIKE :q OR customer_phone LIKE :q
       OR pickup LIKE :q OR destination LIKE :q)`);
-    params.q = `%${escapeLike(filters.q)}%`;
+    // References are shown as `#66465` but stored as `66465`, so a search
+    // pasted straight from the screen must lose its `#` to match.
+    params.q = `%${escapeLike(filters.q.replace(/^#/, ""))}%`;
   }
 
   if (filters.from) {
@@ -300,6 +323,22 @@ export async function listBookings(
   const perPage = filters.perPage;
   const offset = (filters.page - 1) * perPage;
 
+  /**
+   * The order never depends on status. It used to put New first, so opening a
+   * booking (New → Pending) made it jump to another page and "vanish". Status
+   * is a badge, not a sort key: a row stays where it is while its status moves.
+   *
+   * Default is newest booked first. `pickup` is for dispatch: upcoming trips by
+   * soonest pick-up, then past ones, most recent first. `id` breaks ties so the
+   * pages are stable.
+   */
+  const orderBy =
+    filters.sort === "pickup"
+      ? `(pickup_at < UTC_TIMESTAMP()) ASC,
+         CASE WHEN pickup_at >= UTC_TIMESTAMP() THEN pickup_at END ASC,
+         pickup_at DESC, id DESC`
+      : `created_at DESC, id DESC`;
+
   const rows = await query<BookingRow & { clash_count: number }>(
     `SELECT ${SELECT_COLUMNS},
         CASE WHEN status IN ('new','quoted','confirmed','pending') THEN (
@@ -311,10 +350,7 @@ export async function listBookings(
              AND other.pickup_at < bookings.pickup_at + INTERVAL 180 MINUTE
         ) ELSE 0 END AS clash_count
        FROM bookings ${where}
-      ORDER BY
-        -- New requests first regardless of date; then soonest pickup.
-        CASE WHEN status = 'new' THEN 0 ELSE 1 END,
-        pickup_at ASC
+      ORDER BY ${orderBy}
       LIMIT ${perPage} OFFSET ${offset}`,
     params,
   );
@@ -337,6 +373,7 @@ export async function listBookingsForExport(filters: {
   from?: string;
   to?: string;
   changed?: string;
+  kind?: "booking" | "quote";
 }): Promise<Booking[]> {
   const { where, params } = bookingFilters(filters);
   const rows = await query<BookingRow>(

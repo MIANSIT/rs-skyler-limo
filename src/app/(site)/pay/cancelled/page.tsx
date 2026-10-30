@@ -30,8 +30,12 @@ export default async function PaymentCancelledPage({
     <>
       <PageHeader
         eyebrow="Payment"
-        title="Your booking is saved. It is not paid yet."
-        intro="You left the card payment before it finished, so nothing was charged. Pay whenever you are ready from the tracking page, or email us."
+        title={reference ? "Your booking is saved. It is not paid yet." : "Payment not completed."}
+        intro={
+          reference
+            ? "You left the card payment before it finished, so nothing was charged. Pay whenever you are ready from the tracking page, or email us."
+            : "You left the card payment before it finished, so nothing was charged and no booking was made. Start again whenever you are ready, or email us."
+        }
       />
 
       <Section tone="light">
@@ -47,18 +51,20 @@ export default async function PaymentCancelledPage({
             </div>
           ) : null}
 
-          <p className="mt-8 text-[15px] leading-[1.7] text-charcoal">
-            On the tracking page, enter your reference and the phone number on
-            the booking, then choose Pay by card.
-          </p>
+          {reference ? (
+            <p className="mt-8 text-[15px] leading-[1.7] text-charcoal">
+              On the tracking page, enter your reference and the phone number on
+              the booking, then choose Pay by card.
+            </p>
+          ) : null}
 
           <div className="mt-8 flex flex-wrap gap-4">
             {/* The page's one gold action: finishing the payment. */}
             <ButtonLink
-              href={reference ? `/track?reference=${reference}` : "/track"}
+              href={reference ? `/track?reference=${reference}` : "/book"}
               variant="cta"
             >
-              Pay from the tracking page
+              {reference ? "Pay from the tracking page" : "Book again"}
             </ButtonLink>
             <ButtonLink href={`mailto:${contact.email}`} variant="secondary">
               Email {contact.email}

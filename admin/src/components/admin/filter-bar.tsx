@@ -3,6 +3,12 @@ import Link from "next/link";
 import { clsx } from "@/lib/clsx";
 
 /**
+ * `action` is a filter rather than a status: New and Pending together, which is
+ * everything an operator has yet to finish. It reads better than its key.
+ */
+const STATUS_LABELS: Record<string, string> = { action: "Needs action" };
+
+/**
  * Filters are links and the search is a plain GET form, so the state lives in
  * the URL. An operator can bookmark "new bookings", send the link to a
  * colleague, and the back button behaves.
@@ -60,7 +66,7 @@ export function FilterBar({
                 : "border-midnight/20 bg-white text-charcoal hover:border-midnight/50",
             )}
           >
-            {status}
+            {STATUS_LABELS[status] ?? status}
           </Link>
         ))}
       </div>

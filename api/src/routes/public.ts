@@ -66,7 +66,9 @@ import {
   canPayOnline,
   canPayQuoteOnline,
   createCheckout,
+  createDraftCheckout,
   createQuoteCheckout,
+  needsPaymentFirst,
   recordCheckout,
   stripeAvailable,
 } from "../services/payments.js";
@@ -253,6 +255,43 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     );
   }
 
+  /**
+   * A fixed fare is not an order until it is paid.
+   *
+   * It is staged as a draft and the customer goes straight to Stripe; the
+   * booking, its reference and every email come into being only when Stripe
+   * confirms the money (`recordDraftSession`). Backing out of Stripe leaves no
+   * order and no email. If Stripe cannot open, this fails honestly rather than
+   * saving an unpaid booking the customer believes is done.
+   */
+  if (needsPaymentFirst(fare)) {
+    let url: string;
+    try {
+      url = await createDraftCheckout({ ...input, paymentMethod: "card" }, fare);
+    } catch (error) {
+      console.error(
+        "[stripe] could not open checkout for a draft booking:",
+        error instanceof Error ? error.message : error,
+      );
+      throw new ApiError(
+        502,
+        "payments_failed",
+        "We could not open the payment page. Please try again in a moment.",
+      );
+    }
+    res.status(201).json({
+      reference: null,
+      pricingMode: fare.pricingMode,
+      quotedTotalCents: null,
+      fareCents: fare.fareCents,
+      taxRate: null,
+      taxCents: 0,
+      fareReason: fare.reason,
+      checkoutUrl: url,
+    });
+    return;
+  }
+
   // Customers always pay by card. Cash on delivery is something only an
   // operator can set afterwards, so a method sent from outside is ignored.
   const booking = await createBooking({ ...input, paymentMethod: "card" }, "website", fare);
@@ -272,23 +311,9 @@ publicRouter.post("/bookings", submitLimit, requireFormGuard, async (req, res) =
     );
   });
 
-  /**
-   * A fixed fare paid by card goes straight to Stripe. The booking is already
-   * saved, so if Stripe is down the customer still has their reference and can
-   * pay later from the tracking page — a payment failure is logged, never
-   * returned as a failed booking.
-   */
-  let checkoutUrl: string | null = null;
-  if (canPayOnline(booking)) {
-    try {
-      checkoutUrl = await createCheckout(booking);
-    } catch (error) {
-      console.error(
-        `[stripe] could not open checkout for ${booking.reference}:`,
-        error instanceof Error ? error.message : error,
-      );
-    }
-  }
+  // Only a quoted trip reaches here (a fixed fare is staged above), and it has
+  // no price to pay yet: an operator prices it and sends a payment link.
+  const checkoutUrl: string | null = null;
 
   res.status(201).json({
     reference: booking.reference,

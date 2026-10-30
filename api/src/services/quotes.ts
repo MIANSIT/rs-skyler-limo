@@ -170,7 +170,9 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
 
-  if (filters.status) {
+  if (filters.status === "action") {
+    conditions.push("status IN ('new','pending')");
+  } else if (filters.status) {
     conditions.push("status = :status");
     params.status = filters.status;
   }
@@ -182,7 +184,8 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
   if (filters.q) {
     conditions.push(`(reference LIKE :q OR customer_name LIKE :q
       OR customer_email LIKE :q OR customer_phone LIKE :q OR company LIKE :q)`);
-    params.q = `%${filters.q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+    // Shown as `#482915`, stored as `482915` — see the same note in bookings.ts.
+    params.q = `%${filters.q.replace(/^#/, "").replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -197,7 +200,7 @@ export async function listQuotes(filters: z.infer<typeof listQuotesSchema>) {
 
   const rows = await query<QuoteRow>(
     `SELECT ${SELECT_COLUMNS} FROM quotes ${where}
-      ORDER BY CASE WHEN status = 'new' THEN 0 ELSE 1 END, created_at DESC
+      ORDER BY created_at DESC, id DESC
       LIMIT ${perPage} OFFSET ${offset}`,
     params,
   );

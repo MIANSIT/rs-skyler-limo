@@ -266,19 +266,25 @@ export const reportSchema = z
   });
 
 export const listBookingsSchema = z.object({
-  status: z.enum(bookingStatuses).optional(),
+  /** `action` is a filter, not a status: New and Pending together, everything unfinished. */
+  status: z.enum([...bookingStatuses, "action"]).optional(),
   /** Matches reference, customer name, email, phone, pickup or destination. */
   q: z.string().trim().max(120).optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   /** `1` lists only bookings the customer changed and nobody has reviewed yet. */
   changed: z.enum(["1"]).optional(),
+  /** `booking`: the Bookings page. `quote`: trips still being quoted (Quotes page). See IS_BOOKING_SQL. */
+  kind: z.enum(["booking", "quote"]).optional(),
+  /** `booked`: newest first (default). `pickup`: soonest upcoming pick-up first. */
+  sort: z.enum(["booked", "pickup"]).default("booked"),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 export const listQuotesSchema = z.object({
-  status: z.enum(quoteStatuses).optional(),
+  /** `action`: New and Pending together, as on the bookings list. */
+  status: z.enum([...quoteStatuses, "action"]).optional(),
   q: z.string().trim().max(120).optional(),
   changed: z.enum(["1"]).optional(),
   page: z.coerce.number().int().min(1).default(1),

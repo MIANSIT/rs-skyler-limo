@@ -17,10 +17,12 @@ const nextStep: Partial<
 
 const secondarySteps: Record<QuoteStatus, QuoteStatus[]> = {
   new: ["pending", "lost"],
+  // Pending is where an opened request waits; it goes on to Quoted or Lost.
   pending: ["lost"],
   quoted: ["lost", "pending"],
   won: ["quoted"],
-  lost: ["new", "quoted"],
+  // One way back, to Pending, as with a cancelled booking.
+  lost: ["pending"],
 };
 
 const stepLabels: Record<QuoteStatus, string> = {
@@ -123,7 +125,7 @@ export function QuoteActions({
             <StatusButton
               key={step}
               status={step}
-              label={stepLabels[step]}
+              label={status === "lost" ? "Reopen request" : stepLabels[step]}
               variant="outline"
             />
           ))}

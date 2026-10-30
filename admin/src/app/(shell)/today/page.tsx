@@ -18,11 +18,25 @@ export default async function TodayPage() {
   const { user } = await verifySession();
 
   // Independent reads; run them together rather than in series.
-  const [stats, incoming, quotes] = await Promise.all([
-    getStats(),
-    getBookings({ status: "new", page: 1 }),
-    getQuotes({ status: "new", page: 1 }),
-  ]);
+  // "Waiting on you" is New plus Pending: opening an item makes it Pending, but
+  // it is still waiting until someone confirms or prices it, so it stays listed.
+  const [stats, newBookings, pendingBookings, newTrips, pendingTrips, newQuotes, pendingQuotes] =
+    await Promise.all([
+      getStats(),
+      getBookings({ kind: "booking", status: "new", page: 1 }),
+      getBookings({ kind: "booking", status: "pending", page: 1 }),
+      // Trips with no published fare are quotes until priced and confirmed.
+      getBookings({ kind: "quote", status: "new", page: 1 }),
+      getBookings({ kind: "quote", status: "pending", page: 1 }),
+      getQuotes({ status: "new", page: 1 }),
+      getQuotes({ status: "pending", page: 1 }),
+    ]);
+
+  const newest = <T extends { createdAt: string }>(...lists: T[][]) =>
+    lists.flat().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const incoming = { bookings: newest(newBookings.bookings, pendingBookings.bookings) };
+  const tripQuotes = { bookings: newest(newTrips.bookings, pendingTrips.bookings) };
+  const quotes = { quotes: newest(newQuotes.quotes, pendingQuotes.quotes) };
 
   const firstName = user.name.split(" ")[0];
 
@@ -33,10 +47,10 @@ export default async function TodayPage() {
           Good {greeting()}, {firstName}.
         </h1>
         <p className="mt-2 font-sans text-[15px] text-charcoal/70">
-          {stats.bookings.new === 0
+          {stats.bookings.new + stats.quotes.new === 0
             ? "Nothing new is waiting. Every request has been picked up."
-            : `${stats.bookings.new} ${
-                stats.bookings.new === 1 ? "request needs" : "requests need"
+            : `${stats.bookings.new + stats.quotes.new} ${
+                stats.bookings.new + stats.quotes.new === 1 ? "request needs" : "requests need"
               } an answer.`}
         </p>
       </div>
@@ -119,10 +133,18 @@ export default async function TodayPage() {
           </Link>
         </div>
 
+        {tripQuotes.bookings.length > 0 ? (
+          <div className="mt-4">
+            <BookingsTable bookings={tripQuotes.bookings.slice(0, 5)} emptyMessage="" />
+          </div>
+        ) : null}
+
         {quotes.quotes.length === 0 ? (
-          <p className="mt-4 rounded-sm border border-midnight/10 bg-white px-6 py-8 text-center font-sans text-[15px] text-charcoal/60">
-            No new quote requests.
-          </p>
+          tripQuotes.bookings.length === 0 ? (
+            <p className="mt-4 rounded-sm border border-midnight/10 bg-white px-6 py-8 text-center font-sans text-[15px] text-charcoal/60">
+              No new quote requests.
+            </p>
+          ) : null
         ) : (
           <ul className="mt-4 flex flex-col gap-px overflow-hidden rounded-sm border border-midnight/10 bg-midnight/10">
             {quotes.quotes.slice(0, 5).map((quote) => (

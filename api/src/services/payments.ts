@@ -1,11 +1,19 @@
-import Stripe from "stripe";
+import { randomUUID } from "node:crypto";
 
-import { execute } from "../db.js";
+import Stripe from "stripe";
+import type { z } from "zod";
+
+import { execute, queryOne, type RowDataPacket } from "../db.js";
 import { env } from "../env.js";
 import { ApiError } from "../lib/http.js";
-import { getBookingById, type Booking } from "./bookings.js";
+import { withTax } from "../lib/tax.js";
+import type { createBookingSchema } from "../schemas.js";
+import { createBooking, getBookingById, type Booking } from "./bookings.js";
 import { listCharges, payableLines, recordChargesPaid } from "./charges.js";
 import { getQuoteById, type Quote } from "./quotes.js";
+import { sendBookingEmails, sendPaymentReceivedEmails } from "./mail.js";
+import type { FareDecision } from "./pricing.js";
+import { getDefaultTaxRate } from "./settings.js";
 import { getVehicleBySlug } from "./vehicles.js";
 
 /**
@@ -99,9 +107,10 @@ export function canPayQuoteOnline(quote: Quote): boolean {
 
 /** What a Checkout Session is opened for. Bookings and quote requests alike. */
 type Payable = {
-  kind: "booking" | "quote";
-  id: number;
-  reference: string;
+  /** `draft` is a booking that does not exist yet: it is created when this is paid. */
+  kind: "booking" | "quote" | "draft";
+  id: number | string;
+  reference: string | null;
   /** One Stripe line item each. A booking may owe its fare plus extra charges. */
   lines: { name: string; amountCents: number }[];
   /** Booking only: whether the trip fare is among the lines, and which charges. */
@@ -119,14 +128,16 @@ async function openCheckout(item: Payable): Promise<string> {
   // `bookingId` keeps its original key so sessions opened before quote
   // requests could be paid still resolve; quotes carry `quoteId`.
   const metadata: Record<string, string> =
-    item.kind === "booking"
-      ? {
-          bookingId: String(item.id),
-          reference: item.reference,
-          fare: item.includesFare === false ? "0" : "1",
-          ...(item.chargeIds?.length ? { chargeIds: item.chargeIds.join(",") } : {}),
-        }
-      : { quoteId: String(item.id), reference: item.reference };
+    item.kind === "draft"
+      ? { draftId: String(item.id) }
+      : item.kind === "booking"
+        ? {
+            bookingId: String(item.id),
+            reference: item.reference ?? "",
+            fare: item.includesFare === false ? "0" : "1",
+            ...(item.chargeIds?.length ? { chargeIds: item.chargeIds.join(",") } : {}),
+          }
+        : { quoteId: String(item.id), reference: item.reference ?? "" };
 
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
@@ -138,17 +149,30 @@ async function openCheckout(item: Payable): Promise<string> {
         product_data: {
           // What was bought and its reference. Addresses stay with us.
           name: `RSSkyler Limo — ${line.name}`,
-          description: `${item.kind === "booking" ? "Booking" : "Request"} ${item.reference}`,
+          description: item.reference
+            ? `${item.kind === "booking" ? "Booking" : "Request"} ${item.reference}`
+            : "Chauffeured transfer",
         },
       },
     })),
     customer_email: item.email,
-    client_reference_id: item.reference,
+    // A draft is swept after DRAFT_TTL_DAYS, so its payment page must die well
+    // before that — otherwise a late payment would find no trip to book.
+    // Booking and quote sessions keep Stripe's 24-hour default.
+    ...(item.kind === "draft"
+      ? { expires_at: Math.floor(Date.now() / 1000) + DRAFT_SESSION_MINUTES * 60 }
+      : {}),
+    ...(item.reference ? { client_reference_id: item.reference } : {}),
     metadata,
     payment_intent_data: { metadata },
     success_url: siteUrl("/pay/complete?session_id={CHECKOUT_SESSION_ID}"),
     cancel_url:
-      item.cancelUrl ?? siteUrl(`/pay/cancelled?reference=${encodeURIComponent(item.reference)}`),
+      item.cancelUrl ??
+      siteUrl(
+        item.reference
+          ? `/pay/cancelled?reference=${encodeURIComponent(item.reference)}`
+          : "/pay/cancelled",
+      ),
   });
 
   if (!session.url) {
@@ -156,7 +180,7 @@ async function openCheckout(item: Payable): Promise<string> {
   }
 
   await execute(
-    `UPDATE ${item.kind === "booking" ? "bookings" : "quotes"}
+    `UPDATE ${item.kind === "draft" ? "booking_drafts" : item.kind === "booking" ? "bookings" : "quotes"}
         SET stripe_checkout_session_id = :sessionId WHERE id = :id`,
     { sessionId: session.id, id: item.id },
   );
@@ -200,6 +224,184 @@ export async function createCheckout(
     email: booking.customerEmail,
     cancelUrl: options.cancelUrl,
   });
+}
+
+/** How long a staged booking's Stripe page stays payable (Stripe's minimum is 30). */
+const DRAFT_SESSION_MINUTES = 60;
+/**
+ * How long an unclaimed draft is kept. The Stripe page dies after an hour, but a
+ * customer who paid at minute 58 and closed the tab depends on the webhook, and
+ * Stripe retries a failing webhook for up to 3 days — so the draft must outlast that.
+ */
+const DRAFT_TTL_DAYS = 3;
+
+type BookingInput = z.infer<typeof createBookingSchema>;
+type DraftPayload = { input: BookingInput; fare: FareDecision };
+
+/** A fixed-fare website booking is staged, not saved, until it is paid. */
+export function needsPaymentFirst(fare: FareDecision): boolean {
+  return stripeAvailable() && fare.pricingMode === "fixed" && (fare.fareCents ?? 0) > 0;
+}
+
+/**
+ * Stages a fixed-fare booking and opens Stripe for it. Nothing is written to
+ * `bookings` and no email is sent: the booking is created by `recordDraftSession`
+ * once Stripe says the money is in, so an abandoned checkout leaves no order.
+ * The amount is the fare `decideFare` just set, with the day's tax rate added.
+ */
+export async function createDraftCheckout(
+  input: BookingInput,
+  fare: FareDecision,
+): Promise<string> {
+  const taxRate = await getDefaultTaxRate();
+  const totalCents = withTax(fare.fareCents ?? 0, taxRate).totalCents;
+
+  // Housekeeping: an unclaimed draft past the webhook retry window is dead.
+  await execute(
+    `DELETE FROM booking_drafts
+      WHERE claimed_at IS NULL AND created_at < (UTC_TIMESTAMP() - INTERVAL ${DRAFT_TTL_DAYS} DAY)`,
+  ).catch(() => undefined);
+
+  const id = randomUUID();
+  const payload: DraftPayload = { input, fare };
+  await execute(
+    `INSERT INTO booking_drafts (id, payload, tax_rate, created_at)
+     VALUES (:id, :payload, :taxRate, UTC_TIMESTAMP())`,
+    { id, payload: JSON.stringify(payload), taxRate },
+  );
+
+  let vehicleName = input.vehicleClass;
+  try {
+    vehicleName = (await getVehicleBySlug(input.vehicleClass))?.name ?? vehicleName;
+  } catch {
+    // The slug is a fine fallback for a line-item name.
+  }
+
+  return openCheckout({
+    kind: "draft",
+    id,
+    reference: null,
+    lines: [{ name: vehicleName, amountCents: totalCents }],
+    email: input.customerEmail.toLowerCase(),
+  });
+}
+
+type DraftRow = RowDataPacket & {
+  payload: DraftPayload | string;
+  tax_rate: string;
+  booking_id: number | null;
+};
+
+/**
+ * Turns a paid draft into the booking. The success page and the webhook can
+ * arrive together, so the draft is claimed with a single conditional UPDATE:
+ * exactly one caller creates the booking, the other waits for it.
+ */
+async function recordDraftSession(session: Stripe.Checkout.Session): Promise<PaymentRecord> {
+  const draftId = String(session.metadata?.draftId);
+  const draft = await queryOne<DraftRow>(
+    `SELECT payload, tax_rate, booking_id FROM booking_drafts WHERE id = :draftId`,
+    { draftId },
+  );
+  if (!draft) throw ApiError.notFound("No booking matches that payment.");
+
+  if (session.payment_status !== "paid") {
+    return { reference: "", paymentStatus: "unpaid", amountCents: null };
+  }
+
+  let bookingId = draft.booking_id;
+
+  if (bookingId === null) {
+    const claim = await execute(
+      `UPDATE booking_drafts SET claimed_at = UTC_TIMESTAMP()
+        WHERE id = :draftId AND claimed_at IS NULL`,
+      { draftId },
+    );
+
+    if (claim.affectedRows > 0) {
+      try {
+        const { input, fare } = (
+          typeof draft.payload === "string" ? JSON.parse(draft.payload) : draft.payload
+        ) as DraftPayload;
+        const created = await createBooking(
+          { ...input, paymentMethod: "card" },
+          "website",
+          fare,
+          Number(draft.tax_rate),
+        );
+        bookingId = created.id;
+        const paymentIntentId =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : (session.payment_intent?.id ?? null);
+
+        await execute(
+          `UPDATE bookings
+              SET payment_status = 'paid', paid_at = UTC_TIMESTAMP(), payment_method = 'card',
+                  -- Paid, so it is not "New" (that is for what needs pricing); it
+                  -- waits as Pending until an operator confirms it.
+                  status = 'pending',
+                  stripe_checkout_session_id = :sessionId,
+                  stripe_payment_intent_id = :paymentIntentId
+            WHERE id = :id`,
+          { id: created.id, sessionId: session.id, paymentIntentId },
+        );
+        await execute(`UPDATE booking_drafts SET booking_id = :id WHERE id = :draftId`, {
+          id: created.id,
+          draftId,
+        });
+        await execute(
+          `INSERT INTO activity_log
+             (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+           VALUES ('booking', :id, NULL, 'payment_paid', NULL, NULL, :note)`,
+          {
+            id: created.id,
+            note: `Booked and paid $${((session.amount_total ?? 0) / 100).toFixed(2)} by card through Stripe.`,
+          },
+        );
+
+        const paid = (await getBookingById(created.id)) ?? created;
+        if (session.amount_total !== paid.quotedTotalCents) {
+          console.error(
+            `[stripe] ${paid.reference}: Stripe took ${session.amount_total}, booking total is ${paid.quotedTotalCents}`,
+          );
+        }
+
+        // The booking exists only now, so this is the first the customer and
+        // the office hear of it — confirmation, then the receipt.
+        void sendBookingEmails(paid)
+          .then(() => notifyPaid(session, paid, [], true))
+          .catch((error) =>
+            console.error(`[mail] emails for ${paid.reference} failed: ${String(error)}`),
+          );
+      } catch (error) {
+        // Let the next attempt (the webhook retries) try again.
+        await execute(`UPDATE booking_drafts SET claimed_at = NULL WHERE id = :draftId`, {
+          draftId,
+        }).catch(() => undefined);
+        throw error;
+      }
+    } else {
+      // The other caller is creating it. Wait briefly for the result.
+      for (let attempt = 0; attempt < 40 && bookingId === null; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        bookingId =
+          (
+            await queryOne<DraftRow>(`SELECT booking_id FROM booking_drafts WHERE id = :draftId`, {
+              draftId,
+            })
+          )?.booking_id ?? null;
+      }
+    }
+  }
+
+  const booking = bookingId === null ? null : await getBookingById(bookingId);
+  if (!booking) throw new ApiError(503, "booking_pending", "Your booking is still being set up.");
+  return {
+    reference: booking.reference,
+    paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
+    amountCents: session.amount_total ?? booking.quotedTotalCents,
+  };
 }
 
 const QUOTE_SERVICE: Record<string, string> = {
@@ -264,6 +466,8 @@ export async function recordCheckout(sessionId: string): Promise<PaymentRecord> 
 }
 
 async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentRecord> {
+  if (session.metadata?.draftId) return recordDraftSession(session);
+
   const isQuote = Boolean(session.metadata?.quoteId);
   const id = Number(isQuote ? session.metadata?.quoteId : session.metadata?.bookingId);
   if (!Number.isInteger(id)) throw ApiError.notFound("No booking matches that payment.");
@@ -276,6 +480,8 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
   const amountOf = (row: Booking | Quote) =>
     "agreedPriceCents" in row ? row.agreedPriceCents : row.quotedTotalCents;
 
+  let newlyRecorded = false;
+  let paidChargeIds: number[] = [];
   if (session.payment_status === "paid") {
     const paymentIntentId =
       typeof session.payment_intent === "string"
@@ -301,9 +507,11 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
       .split(",")
       .map(Number)
       .filter((value) => Number.isInteger(value) && value > 0);
+    paidChargeIds = chargeIds;
     const chargesPaid = isQuote ? 0 : await recordChargesPaid(id, chargeIds, paymentIntentId);
 
-    if (result.affectedRows > 0 || chargesPaid > 0) {
+    newlyRecorded = result.affectedRows > 0 || chargesPaid > 0;
+    if (newlyRecorded) {
       const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
       await execute(
         `INSERT INTO activity_log
@@ -319,6 +527,13 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
   }
 
   const latest = (isQuote ? await getQuoteById(id) : await getBookingById(id)) ?? current;
+
+  if (newlyRecorded) {
+    void notifyPaid(session, latest, paidChargeIds, coversFareOf(session, isQuote)).catch((error) =>
+      console.error(`[mail] payment receipt for ${latest.reference} failed: ${String(error)}`),
+    );
+  }
+
   return {
     reference: latest.reference,
     paymentStatus: latest.paymentStatus === "paid" ? "paid" : "unpaid",
@@ -329,6 +544,62 @@ async function recordSession(session: Stripe.Checkout.Session): Promise<PaymentR
         ? session.amount_total
         : amountOf(latest),
   };
+}
+
+const coversFareOf = (session: Stripe.Checkout.Session, isQuote: boolean) =>
+  isQuote || session.metadata?.fare !== "0";
+
+/**
+ * Emails the customer and the office that a payment came in: what was paid and,
+ * if anything is still owing, the balance. Built from the stored rows after the
+ * payment is recorded, so the figures are the database's, not the session's.
+ */
+async function notifyPaid(
+  session: Stripe.Checkout.Session,
+  row: Booking | Quote,
+  paidChargeIds: number[],
+  coversFare: boolean,
+): Promise<void> {
+  const paidFor: { label: string; amountCents: number }[] = [];
+  const dueLines: { label: string; amountCents: number }[] = [];
+  let trip: Parameters<typeof sendPaymentReceivedEmails>[0]["trip"];
+
+  if ("agreedPriceCents" in row) {
+    paidFor.push({ label: "Agreed price", amountCents: row.agreedPriceCents ?? 0 });
+  } else {
+    if (coversFare) paidFor.push({ label: "Trip fare", amountCents: row.quotedTotalCents ?? 0 });
+    else if (row.paymentStatus !== "paid" && row.quotedTotalCents && row.status !== "cancelled") {
+      dueLines.push({ label: "Trip fare", amountCents: row.quotedTotalCents });
+    }
+    for (const charge of await listCharges(row.id)) {
+      if (paidChargeIds.includes(charge.id)) {
+        paidFor.push({ label: charge.title, amountCents: charge.amountCents });
+      } else if (!charge.paidAt) {
+        dueLines.push({ label: charge.title, amountCents: charge.amountCents });
+      }
+    }
+    const vehicle = (await getVehicleBySlug(row.vehicleClass).catch(() => null))?.name;
+    trip = {
+      pickup: row.pickup,
+      destination: row.destination,
+      pickupAt: row.pickupAt,
+      vehicle: vehicle ?? row.vehicleClass,
+    };
+  }
+
+  await sendPaymentReceivedEmails({
+    reference: row.reference,
+    kind: "agreedPriceCents" in row ? "quote" : "booking",
+    customerName: row.customerName,
+    customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    paidCents: session.amount_total ?? paidFor.reduce((sum, line) => sum + line.amountCents, 0),
+    paidFor,
+    paidAt: new Date(),
+    dueCents: dueLines.reduce((sum, line) => sum + line.amountCents, 0),
+    dueLines,
+    trip,
+  });
 }
 
 /**

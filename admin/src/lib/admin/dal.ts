@@ -82,6 +82,10 @@ export type BookingFilters = {
   q?: string;
   /** `"1"`: only bookings changed by the customer and not yet reviewed. */
   changed?: string;
+  /** `booking`: the Bookings page. `quote`: trips still being quoted, on the Quotes page. */
+  kind?: "booking" | "quote";
+  /** `pickup`: soonest upcoming pick-up first. Default is newest booked first. */
+  sort?: "pickup";
   from?: string;
   to?: string;
   page?: number;

@@ -1,4 +1,5 @@
 import { queryOne, type RowDataPacket } from "../db.js";
+import { IS_BOOKING_SQL, IS_QUOTE_SQL } from "./bookings.js";
 import { addDays, newYorkMidnight, todayInNewYork } from "../lib/new-york.js";
 
 /**
@@ -34,7 +35,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const dayStart = newYorkMidnight(today);
   const dayEnd = newYorkMidnight(addDays(today, 1));
 
-  const [bookingRow, quoteRow] = await Promise.all([
+  const [bookingRow, quoteRow, tripQuoteRow] = await Promise.all([
     queryOne<
       RowDataPacket & {
         new_count: number;
@@ -55,7 +56,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
              AND status IN ('new','confirmed'))                     AS week_count,
          SUM(customer_change_pending = 1)                           AS changed_count,
          COUNT(*)                                                   AS total
-       FROM bookings`,
+       FROM bookings
+      WHERE ${IS_BOOKING_SQL}`,
       { dayStart, dayEnd },
     ),
     queryOne<
@@ -65,6 +67,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
               SUM(customer_change_pending = 1) AS changed_count,
               COUNT(*) AS total
          FROM quotes`,
+    ),
+    // Trips from the booking form still being quoted count as quote requests.
+    queryOne<
+      RowDataPacket & { new_count: number; changed_count: number; total: number }
+    >(
+      `SELECT SUM(status = 'new') AS new_count,
+              SUM(customer_change_pending = 1) AS changed_count,
+              COUNT(*) AS total
+         FROM bookings
+        WHERE ${IS_QUOTE_SQL}`,
     ),
   ]);
 
@@ -78,9 +90,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       changed: Number(bookingRow?.changed_count ?? 0),
     },
     quotes: {
-      new: Number(quoteRow?.new_count ?? 0),
-      total: Number(quoteRow?.total ?? 0),
-      changed: Number(quoteRow?.changed_count ?? 0),
+      new: Number(quoteRow?.new_count ?? 0) + Number(tripQuoteRow?.new_count ?? 0),
+      total: Number(quoteRow?.total ?? 0) + Number(tripQuoteRow?.total ?? 0),
+      changed: Number(quoteRow?.changed_count ?? 0) + Number(tripQuoteRow?.changed_count ?? 0),
     },
   };
 }

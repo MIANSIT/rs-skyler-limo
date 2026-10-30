@@ -7,10 +7,6 @@ import { ArrowRightIcon, UsersIcon } from "@/components/ui/icon";
 import { Rule } from "@/components/ui/section";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
-import { formatFare } from "@/lib/content";
-
-/** Exact to the cent: `$95` or `$95.50`, never rounded. */
-const fareFrom = formatFare;
 
 function childSeatLabel(max: number): string {
   if (max === 0) return "No child seats";
@@ -138,7 +134,6 @@ export function FleetCard({
             }
             dark={dark}
           />
-          {/* <Spec label="From" value={fareFrom(vehicle.baseFareCents)} dark={dark} /> */}
         </dl>
 
         <div className="mt-6">
@@ -208,8 +203,7 @@ export function FleetCard({
 }
 
 /**
- * The homepage strip's card: photo, who it seats, four amenities, the starting
- * fare. Everything else — the paragraph, child seats, interiors — is one click
+ * The homepage strip's card: photo, who it seats, three amenities. Everything else — the paragraph, child seats, interiors — is one click
  * away on `/fleet`, which is where the whole card links.
  *
  * Gold appears only as graphics — the badge icon, the amenity dots, the arrow —
@@ -316,21 +310,10 @@ function CompactFleetCard({
 
         <div
           className={clsx(
-            "mt-5 flex items-center justify-between gap-3 border-t pt-4",
+            "mt-5 flex items-center justify-end gap-3 border-t pt-4",
             dark ? "border-white/10" : "border-midnight/10",
           )}
         >
-          {/* <p className={clsx("text-[14px]", dark ? "text-white/60" : "text-charcoal/70")}>
-            From{" "}
-            <span
-              className={clsx(
-                "font-semibold tabular-nums",
-                dark ? "text-white" : "text-midnight",
-              )}
-            >
-              {fareFrom(vehicle.baseFareCents)}
-            </span>
-          </p> */}
           <span
             className={clsx(
               "inline-flex items-center gap-1.5 font-sans text-[14px] font-semibold underline-offset-4 group-hover:underline",

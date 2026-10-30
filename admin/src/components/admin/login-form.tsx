@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { signIn, type LoginState } from "@/lib/admin/actions";
@@ -24,14 +24,18 @@ function SubmitButton() {
   );
 }
 
+// The autofill rules matter: browsers paint a saved email or password pale blue
+// with dark text, which erased the white show/hide icon. The inset shadow
+// repaints the midnight ground and the fill colour keeps the text white.
 const field =
-  "w-full rounded-sm border border-white/25 bg-white/5 px-4 py-3 font-sans text-[15px] text-white transition-colors placeholder:text-white/35 hover:border-white/40 focus:border-gold focus:outline-none";
+  "w-full rounded-sm border border-white/25 bg-white/5 px-4 py-3 font-sans text-[15px] text-white transition-colors placeholder:text-white/35 hover:border-white/40 focus:border-gold focus:outline-none autofill:shadow-[inset_0_0_0_1000px_var(--color-midnight)] autofill:[-webkit-text-fill-color:white]";
 
 export function LoginForm() {
   const [state, formAction] = useActionState<LoginState, FormData>(
     signIn,
     undefined,
   );
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} className="mt-8 flex flex-col gap-5">
@@ -63,14 +67,38 @@ export function LoginForm() {
         >
           Password
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={field}
-        />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            className={`${field} pr-12`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((shown) => !shown)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/60 transition-colors hover:text-white focus-visible:text-gold focus-visible:outline-none"
+          >
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="3" />
+              {showPassword ? <path d="M4 4l16 16" /> : null}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {state?.error ? (

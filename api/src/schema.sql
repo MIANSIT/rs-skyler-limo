@@ -377,6 +377,23 @@ CREATE TABLE IF NOT EXISTS activity_log (
     FOREIGN KEY (admin_user_id) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A fixed-fare trip waiting on its card payment. The booking itself does not
+-- exist yet: it is created from `payload` when Stripe confirms the money, so an
+-- abandoned checkout leaves no order, no dashboard row and no email. `claimed_at`
+-- lets the success page and the webhook race safely; `booking_id` is the result.
+-- Unpaid rows are deleted after 3 days (Stripe's webhook retry window); the Stripe session expires after 1 hour.
+CREATE TABLE IF NOT EXISTS booking_drafts (
+  id                         CHAR(36) NOT NULL,
+  payload                    JSON NOT NULL,
+  tax_rate                   DECIMAL(6,3) NOT NULL,
+  stripe_checkout_session_id VARCHAR(255) NULL,
+  claimed_at                 DATETIME NULL,
+  booking_id                 BIGINT UNSIGNED NULL,
+  created_at                 DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_booking_drafts_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Customer reviews, left on the website after a trip is completed.
 --
 -- One per booking (the unique key), and only for a booking whose status is

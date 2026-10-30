@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ConfirmDialog, type ConfirmTone } from "@/components/admin/confirm-dialog";
 import {
   addBookingNote,
   updateBookingStatus,
@@ -29,10 +30,13 @@ const nextStep: Partial<
 const secondarySteps: Record<BookingStatus, BookingStatus[]> = {
   new: ["pending", "cancelled"],
   quoted: ["pending", "cancelled"],
+  // Pending is where an opened booking waits; it goes on to Confirm or Cancel.
   pending: ["cancelled"],
   confirmed: ["pending", "cancelled"],
   completed: ["confirmed"],
-  cancelled: ["new", "confirmed"],
+  // One way back, to Pending (not New, which means "nobody has opened it", and
+  // not straight to Confirmed): an operator reviews it, then confirms.
+  cancelled: ["pending"],
 };
 
 const stepLabels: Record<BookingStatus, string> = {
@@ -42,6 +46,39 @@ const stepLabels: Record<BookingStatus, string> = {
   completed: "Mark completed",
   cancelled: "Cancel booking",
   pending: "Hold as pending",
+};
+
+/**
+ * The moves that are hard to take back or that tell the customer something.
+ * Anything not listed (hold as pending, reopen) goes straight through.
+ */
+const CONFIRM_COPY: Partial<
+  Record<
+    BookingStatus,
+    { title: string; body: string; action: string; cancel: string; tone: ConfirmTone }
+  >
+> = {
+  confirmed: {
+    title: "Confirm this booking?",
+    body: "It will be marked Confirmed and counted as a booking.",
+    action: "Confirm booking",
+    cancel: "Go back",
+    tone: "primary",
+  },
+  completed: {
+    title: "Mark this trip as completed?",
+    body: "Use this once the trip has been driven.",
+    action: "Mark completed",
+    cancel: "Go back",
+    tone: "primary",
+  },
+  cancelled: {
+    title: "Cancel this booking?",
+    body: "It will be marked Cancelled. You can reopen it later if this was a mistake.",
+    action: "Cancel booking",
+    cancel: "Keep booking",
+    tone: "danger",
+  },
 };
 
 function StatusButton({
@@ -54,21 +91,59 @@ function StatusButton({
   variant: "cta" | "outline";
 }) {
   const { pending } = useFormStatus();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // Whether the customer will be emailed, read from the tick box when the
+  // dialog opens, since that box is easy to miss.
+  const [asking, setAsking] = useState<{ emails: boolean } | null>(null);
+  const copy = CONFIRM_COPY[status];
 
   return (
-    <button
-      type="submit"
-      name="status"
-      value={status}
-      disabled={pending}
-      className={
-        variant === "cta"
-          ? "w-full rounded-sm bg-gold px-5 py-3 font-sans text-[15px] font-semibold text-midnight transition-colors hover:bg-gold/90 disabled:opacity-60"
-          : "w-full rounded-sm border border-midnight/25 bg-white px-5 py-2.5 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey disabled:opacity-60"
-      }
-    >
-      {label}
-    </button>
+    <>
+      <button
+        ref={buttonRef}
+        type="submit"
+        name="status"
+        value={status}
+        disabled={pending}
+        onClick={(event) => {
+          if (!copy) return;
+          event.preventDefault();
+          const notify = event.currentTarget.form?.elements.namedItem("notify");
+          setAsking({ emails: notify instanceof HTMLInputElement && notify.checked });
+        }}
+        className={
+          variant === "cta"
+            ? "w-full rounded-sm bg-gold px-5 py-3 font-sans text-[15px] font-semibold text-midnight transition-colors hover:bg-gold/90 disabled:opacity-60"
+            : "w-full rounded-sm border border-midnight/25 bg-white px-5 py-2.5 font-sans text-[14px] font-medium text-midnight transition-colors hover:border-midnight hover:bg-grey disabled:opacity-60"
+        }
+      >
+        {label}
+      </button>
+
+      {copy ? (
+        <ConfirmDialog
+          open={asking !== null}
+          title={copy.title}
+          body={copy.body}
+          note={
+            asking?.emails
+              ? "The customer will be emailed about this change."
+              : "The customer will not be emailed."
+          }
+          confirmLabel={copy.action}
+          cancelLabel={copy.cancel}
+          tone={copy.tone}
+          onCancel={() => setAsking(null)}
+          onConfirm={() => {
+            setAsking(null);
+            // `requestSubmit` with the button as submitter sends its name and
+            // value exactly as a real click would, without re-running onClick.
+            const button = buttonRef.current;
+            button?.form?.requestSubmit(button);
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -154,7 +229,7 @@ export function BookingActions({
             <StatusButton
               key={step}
               status={step}
-              label={stepLabels[step]}
+              label={status === "cancelled" ? "Reopen booking" : stepLabels[step]}
               variant="outline"
             />
           ))}

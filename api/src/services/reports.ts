@@ -81,6 +81,8 @@ export type Report = {
 
 type StatusRow = RowDataPacket & {
   status: string;
+  /** Bookings only: a quote trip still being quoted is counted as a quote. */
+  pricing_mode?: string;
   count: number;
   value_cents: number;
   unpriced: number;
@@ -137,7 +139,7 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
   const [bookingRows, quoteRows, tripRows, vehicleRows, bookingPlaced, quotePlaced, bookingPaid, quotePaid, chargesPaid] =
     await Promise.all([
       query<StatusRow>(
-        `SELECT status,
+        `SELECT status, pricing_mode,
                 COUNT(*)                                            AS count,
                 COALESCE(SUM(quoted_total_cents), 0)                AS value_cents,
                 SUM(quoted_total_cents IS NULL)                     AS unpriced,
@@ -147,7 +149,7 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
                                   THEN tax_cents END), 0)           AS unpaid_tax_cents
            FROM bookings
           WHERE ${inWindow}
-          GROUP BY status`,
+          GROUP BY status, pricing_mode`,
         window,
       ),
       query<StatusRow>(
@@ -251,7 +253,14 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
       const paid = Number(row.paid_cents);
       const unpriced = Number(row.unpriced);
 
-      if (row.status in counts) counts[row.status] = count;
+      // Counts follow the same rule as the Bookings and Quotes pages: a quote
+      // trip is a quote until confirmed (a cancelled one reads as lost). The
+      // money below is by status alone, so it is unaffected.
+      const asQuote =
+        isBooking && row.pricing_mode === "quote" && !committedBooking.includes(row.status);
+      const target: Record<string, number> = asQuote ? quotesByStatus : counts;
+      const key = asQuote && row.status === "cancelled" ? "lost" : row.status;
+      if (key in target) target[key] = (target[key] ?? 0) + count;
       value.collectedCents += paid;
 
       if (committed.includes(row.status)) {

@@ -112,6 +112,41 @@ export async function updateBookingStatus(
 }
 
 /**
+ * A New booking or quote request becomes Pending the first time an operator
+ * opens it, so New means "nobody has looked". Called from a client effect after
+ * the page is on screen — never from the page render, which Next also runs when
+ * it prefetches a link that has only scrolled into view. Silent to the customer,
+ * and logged under the operator's name. Only ever moves `new`; a booking that
+ * moved on meanwhile is left alone by the status check in the API's own history.
+ */
+export async function markOpened(kind: "booking" | "quote", id: number): Promise<void> {
+  const { token } = await verifySession();
+  if (!Number.isInteger(id) || id < 1) return;
+
+  try {
+    const current = await apiFetch<{ booking?: { status: string }; quote?: { status: string } }>(
+      `/api/admin/${kind === "booking" ? "bookings" : "quotes"}/${id}`,
+      { token },
+    );
+    if ((current.booking ?? current.quote)?.status !== "new") return;
+
+    await apiFetch(`/api/admin/${kind === "booking" ? "bookings" : "quotes"}/${id}`, {
+      method: "PATCH",
+      token,
+      body: { status: "pending", note: "Opened by an operator.", notifyCustomer: false },
+    });
+  } catch (error) {
+    if (error instanceof ApiRequestError) return;
+    throw error;
+  }
+
+  revalidatePath(`/${kind === "booking" ? "bookings" : "quotes"}/${id}`);
+  revalidatePath(kind === "booking" ? "/bookings" : "/quotes");
+  revalidatePath("/");
+  revalidatePath("/today");
+}
+
+/**
  * Payment method and paid/unpaid, one field per submit — the panel's buttons
  * each send exactly the change they name. `paid_at` is stamped by the API.
  */

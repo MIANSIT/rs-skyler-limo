@@ -5,6 +5,7 @@ import { CONTACT } from "../emails/render.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
 import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
 import { buildPaymentLinkEmail } from "../emails/payment.js";
+import { buildReceiptEmail, type ReceiptInput } from "../emails/receipt.js";
 import {
   buildBookingChangedEmail,
   buildChangeCodeEmail,
@@ -288,6 +289,34 @@ export async function sendPaymentLinkEmail(
     html: email.html,
     text: email.text,
   });
+}
+
+/**
+ * "Payment received", to the customer and to the office, once Stripe has
+ * confirmed a card payment. Called only when the payment was newly recorded, so
+ * the success page and the webhook arriving together send one pair, not two.
+ * Same rules as every other send: not awaited, never throws.
+ */
+export async function sendPaymentReceivedEmails(input: ReceiptInput): Promise<void> {
+  const customer = buildReceiptEmail(input, "customer");
+  const ops = buildReceiptEmail(input, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: input.customerEmail,
+      replyTo: CONTACT.email,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      ...opsEnvelope(),
+      replyTo: input.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
 }
 
 /**
