@@ -2,6 +2,14 @@
   "name": "@rsskyler/admin",
   "version": "0.1.0",
   "private": true,
+  "//browserslist": "Mirrors the root package.json, for the same reason and with the same warning there — Next 16 defaults to Safari 16.4+ and compiled its own App Router runtime with a class static block, a SyntaxError below 16.4 that stops the router booting and leaves every onClick in the dashboard dead while links still work. An operator on an older iPad could not change a booking status. Keep the two files in step, the way the @theme block and the API client already are.",
+  "browserslist": [
+    "chrome 111",
+    "edge 111",
+    "firefox 111",
+    "safari 13.1",
+    "ios_saf 13.4"
+  ],
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, type ReactNode } from "react";
+import { useActionState, useCallback, useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { AddressField } from "@/components/site/address-field";
@@ -333,7 +333,30 @@ function BookingEdit({
   const [date, setDate] = useState(values?.date ?? start.date);
   const [time, setTime] = useState(values?.time ?? start.time);
   const [vehicle, setVehicle] = useState(values?.vehicle ?? details.vehicleClass);
-  const [sessionToken] = useState(() => crypto.randomUUID());
+  /**
+   * One Places session token for the whole run of keystrokes, created on the
+   * first keystroke — not during render.
+   *
+   * Generating it in a `useState` initialiser ran it on the server and again
+   * on the client, which never agree: a hydration mismatch on the hidden
+   * `placesSessionToken` input. It also called `crypto.randomUUID()`
+   * unguarded, which is undefined before Safari 15.4 and threw during render,
+   * taking the whole change form down on those browsers. `booking-form.tsx`
+   * carries the same comment and the same shape; `AddressField` already
+   * expects an empty token on the first render and holds its query until one
+   * exists.
+   */
+  const [sessionToken, setSessionToken] = useState("");
+
+  const startPlacesSession = useCallback(() => {
+    setSessionToken((current) =>
+      current
+        ? current
+        : typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `t-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+  }, []);
 
   const chosen = fleet.find((item) => item.slug === vehicle);
   // A vehicle no longer on the site still shows, so the booking reads true.
@@ -386,6 +409,7 @@ function BookingEdit({
               required
               enabled={placesEnabled}
               sessionToken={sessionToken}
+              onTypingStart={startPlacesSession}
               defaultValue={value("pickup", details.pickup)}
             />
           </Field>
@@ -406,6 +430,7 @@ function BookingEdit({
               required
               enabled={placesEnabled}
               sessionToken={sessionToken}
+              onTypingStart={startPlacesSession}
               defaultValue={value("destination", details.destination)}
             />
           </Field>

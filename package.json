@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "//sharp": "sharp is pinned to 0.33.x and FORCED with `overrides` \u2014 do not remove either, and do not upgrade without testing on the server. Next 16 declares sharp ^0.35.4, whose prebuilt Linux x64 binaries require the x86-64-v2 microarchitecture. The VPS presents a 'QEMU Virtual CPU version 2.5+' reporting no popcnt, sse3, ssse3, sse4_1, sse4_2 or cmpxchg16b, so 0.35 refuses to load, Next's optimiser throws, and every image is served as the unresized original \u2014 a 176px thumbnail downloaded 2.4MB. A plain dependency pin is NOT enough: npm then nests Next's own copy at node_modules/next/node_modules/sharp and Next resolves that one, so the pin has no effect. `overrides` is what collapses it to a single 0.33.x copy. The real fix is a host with a modern CPU model.",
+  "//browserslist": "Next 16 targets Safari 16.4+ by default, and with no browserslist here it compiled its OWN App Router runtime with a class static block — `class y extends Component{static{this.contextType=AppRouterContext}}` — which is a SyntaxError below Safari 16.4. The chunk then never executes, the router never boots, React never hydrates, and EVERY onClick on EVERY page silently does nothing while plain <a href> links still work, because those are server-rendered. It presents as \"the buttons do not work\", with no visible error. Safari 16.4 needs iOS 16.4, so every iPhone 7 or older was locked out. Do not remove this field; after changing it, rebuild and check that `grep -c 'static{' .next/static/chunks/*.js` finds nothing. Tailwind v4 does not read browserslist and keeps its own 16.4 floor, but it emits @supports fallbacks, so old Safari degrades visually rather than breaking.",
+  "browserslist": [
+    "chrome 111",
+    "edge 111",
+    "firefox 111",
+    "safari 13.1",
+    "ios_saf 13.4"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
