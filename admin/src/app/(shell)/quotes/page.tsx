@@ -6,6 +6,7 @@ import { BookingsTable } from "@/components/admin/bookings-table";
 import { ChangedTag } from "@/components/admin/changed-tag";
 import { ChangedToggle } from "@/components/admin/changed-toggle";
 import { FilterBar } from "@/components/admin/filter-bar";
+import { OrderToggle } from "@/components/admin/order-toggle";
 import { Pagination } from "@/components/admin/pagination";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getBookings, getQuotes } from "@/lib/admin/dal";
@@ -45,6 +46,8 @@ export default async function QuotesPage({
   };
   const safePage = pageOf("page");
   const tripsPage = pageOf("tripsPage");
+  // The order applies to the trip quotes; event requests are always newest first.
+  const sort = single("sort") === "pickup" ? "pickup" : undefined;
 
   const quoteStatus =
     status === "action" || quoteStatuses.includes(status as never) ? status : undefined;
@@ -57,7 +60,7 @@ export default async function QuotesPage({
 
   const [trips, requests] = await Promise.all([
     tripsApply
-      ? getBookings({ kind: "quote", status: tripStatus, q: query, changed, page: tripsPage })
+      ? getBookings({ kind: "quote", sort, status: tripStatus, q: query, changed, page: tripsPage })
       : null,
     requestsApply
       ? getQuotes({ status: quoteStatus, q: query, changed, page: safePage })
@@ -70,8 +73,19 @@ export default async function QuotesPage({
   const toggleParams = new URLSearchParams();
   if (status) toggleParams.set("status", status);
   if (query) toggleParams.set("q", query);
+  if (sort) toggleParams.set("sort", sort);
   if (!changed) toggleParams.set("changed", "1");
   const toggleHref = toggleParams.size > 0 ? `/quotes?${toggleParams}` : "/quotes";
+
+  // Order links keep the status, search and "changed" filter; only the order flips.
+  const sortHref = (target?: "pickup") => {
+    const next = new URLSearchParams();
+    if (status) next.set("status", status);
+    if (query) next.set("q", query);
+    if (changed) next.set("changed", changed);
+    if (target) next.set("sort", target);
+    return next.size > 0 ? `/quotes?${next}` : "/quotes";
+  };
 
   const filtered = Boolean(status || query || changed);
 
@@ -92,7 +106,7 @@ export default async function QuotesPage({
         activeStatus={status}
         query={query}
         placeholder="Reference, name, company, address"
-        keep={changed ? { changed } : {}}
+        keep={{ ...(changed ? { changed } : {}), ...(sort ? { sort } : {}) }}
       />
 
       <div>
@@ -102,9 +116,16 @@ export default async function QuotesPage({
       {/* Trips from the booking form that have no published fare. They are
           bookings underneath, so each row opens the booking page. */}
       <section className="flex flex-col gap-4">
-        <h2 className={sectionHeading}>
-          Trip quotes{trips ? ` · ${trips.total}` : ""}
-        </h2>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <h2 className={sectionHeading}>
+            Trip quotes{trips ? ` · ${trips.total}` : ""}
+          </h2>
+          <OrderToggle
+            active={sort ?? "booked"}
+            newestHref={sortHref()}
+            pickupHref={sortHref("pickup")}
+          />
+        </div>
         {trips && trips.bookings.length > 0 ? (
           <>
             <BookingsTable bookings={trips.bookings} emptyMessage="" />

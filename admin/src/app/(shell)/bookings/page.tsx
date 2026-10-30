@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { BookingsTable } from "@/components/admin/bookings-table";
 import { ChangedToggle } from "@/components/admin/changed-toggle";
 import { FilterBar } from "@/components/admin/filter-bar";
+import { OrderToggle } from "@/components/admin/order-toggle";
 import { Pagination } from "@/components/admin/pagination";
 import { getBookings } from "@/lib/admin/dal";
 
@@ -56,10 +56,6 @@ export default async function BookingsPage({
     if (target) next.set("sort", target);
     return next.size > 0 ? `/bookings?${next}` : "/bookings";
   };
-  const sortLink = (active: boolean) =>
-    active
-      ? "rounded-sm border border-midnight bg-midnight px-3 py-1.5 font-sans text-[13px] font-medium tracking-[0.04em] text-white"
-      : "rounded-sm border border-midnight/20 bg-white px-3 py-1.5 font-sans text-[13px] font-medium tracking-[0.04em] text-charcoal hover:border-midnight/50";
 
   const { bookings, total, perPage } = await getBookings({
     kind: "booking",
@@ -103,13 +99,11 @@ export default async function BookingsPage({
 
       <div className="flex flex-wrap items-center gap-3">
         <ChangedToggle href={toggleHref} active={Boolean(changed)} />
-        <span className="ml-auto font-sans text-[13px] text-charcoal/60">Order</span>
-        <Link href={sortHref()} aria-pressed={!sort} className={sortLink(!sort)}>
-          Newest booked
-        </Link>
-        <Link href={sortHref("pickup")} aria-pressed={Boolean(sort)} className={sortLink(Boolean(sort))}>
-          Soonest pickup
-        </Link>
+        <OrderToggle
+          active={sort ?? "booked"}
+          newestHref={sortHref()}
+          pickupHref={sortHref("pickup")}
+        />
       </div>
 
       <BookingsTable

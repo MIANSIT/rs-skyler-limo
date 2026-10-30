@@ -65,7 +65,7 @@ export function BookingsTable({
                 {formatDay(booking.pickupAt)} · {formatTime(booking.pickupAt)}
               </p>
 
-              <p className="mt-1 font-sans text-[14px] break-words text-charcoal/80">
+              <p className="mt-1 font-sans text-[14px] wrap-break-word text-charcoal/80">
                 {booking.pickup}
                 <span className="text-charcoal/55"> → {booking.destination}</span>
               </p>
@@ -73,7 +73,7 @@ export function BookingsTable({
               <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 font-sans text-[14px] sm:grid-cols-3">
                 <div className="min-w-0">
                   <dt className="text-[12px] tracking-[0.06em] text-charcoal/55 uppercase">Customer</dt>
-                  <dd className="break-words text-charcoal/80">{booking.customerName}</dd>
+                  <dd className="wrap-break-word text-charcoal/80">{booking.customerName}</dd>
                   <dd className="text-charcoal/55 tabular-nums">{booking.customerPhone}</dd>
                 </div>
                 <div className="min-w-0">
@@ -98,7 +98,7 @@ export function BookingsTable({
     {/* `relative` contains any `sr-only` (position: absolute) descendant inside
        the scroll box — see the note in rate-grid-form. */}
     <div className="relative hidden overflow-x-auto rounded-sm border border-midnight/10 bg-white xl:block">
-      <table className="w-full min-w-208 border-collapse text-left">
+      <table className="w-full min-w-240 border-collapse text-left">
         <caption className="sr-only">Bookings</caption>
         <thead>
           <tr className="border-b border-midnight/10">
@@ -114,7 +114,7 @@ export function BookingsTable({
               <th
                 key={heading}
                 scope="col"
-                className="px-4 py-3 font-sans text-[12px] font-medium tracking-[0.08em] text-charcoal/60 uppercase"
+                className="px-3 py-3 font-sans text-[12px] font-medium tracking-[0.08em] whitespace-nowrap text-charcoal/60 uppercase"
               >
                 {heading}
               </th>
@@ -128,7 +128,7 @@ export function BookingsTable({
               key={booking.id}
               className="border-b border-midnight/8 last:border-0 hover:bg-grey"
             >
-              <td className="px-4 py-4">
+              <td className="px-3 py-3.5">
                 <Link
                   href={`/bookings/${booking.id}`}
                   className="font-sans text-[14px] font-semibold text-midnight tabular-nums underline-offset-4 hover:underline"
@@ -144,23 +144,26 @@ export function BookingsTable({
               {/* Day on one line, time on the next, never wrapped word by word:
                   with the year added the one-line form was too wide and the
                   cell broke into a column of single words. */}
-              <td className="px-4 py-4 font-sans text-[14px] whitespace-nowrap text-midnight tabular-nums">
+              <td className="px-3 py-3.5 font-sans text-[14px] whitespace-nowrap text-midnight tabular-nums">
                 <span className="block">{formatDay(booking.pickupAt)}</span>
                 <span className="block text-charcoal/70">{formatTime(booking.pickupAt)}</span>
               </td>
-              <td className="max-w-60 px-4 py-4 font-sans text-[14px] text-charcoal/80">
+              {/* `w-full max-w-0` makes the route soak up whatever width is left
+                  and truncate with an ellipsis, so every other column can stay
+                  on one line and the table never needs a sideways scroll. */}
+              <td className="w-full max-w-0 px-3 py-3.5 font-sans text-[14px] text-charcoal/80">
                 <span className="block truncate">{booking.pickup}</span>
                 <span className="block truncate text-charcoal/55">
                   → {booking.destination}
                 </span>
               </td>
-              <td className="px-4 py-4 font-sans text-[14px] text-charcoal/80">
-                <span className="block">{booking.customerName}</span>
+              <td className="px-3 py-3.5 font-sans text-[14px] whitespace-nowrap text-charcoal/80">
+                <span className="block max-w-44 truncate">{booking.customerName}</span>
                 <span className="block text-charcoal/55 tabular-nums">
                   {booking.customerPhone}
                 </span>
               </td>
-              <td className="px-4 py-4 font-sans text-[14px] text-charcoal/80">
+              <td className="px-3 py-3.5 font-sans text-[14px] whitespace-nowrap text-charcoal/80">
                 <span className="block">
                   {formatVehicle(booking.vehicleClass)}
                 </span>
@@ -168,7 +171,7 @@ export function BookingsTable({
                   {formatTrip(booking.tripType)}
                 </span>
               </td>
-              <td className="px-4 py-4 font-sans text-[14px] text-midnight tabular-nums">
+              <td className="px-3 py-3.5 font-sans text-[14px] text-midnight tabular-nums">
                 <span className="block">
                   {formatMoney(booking.quotedTotalCents)}
                 </span>
@@ -179,7 +182,7 @@ export function BookingsTable({
                   {booking.paymentStatus === "paid" ? " · Paid" : " · Unpaid"}
                 </span>
               </td>
-              <td className="px-4 py-4">
+              <td className="px-3 py-3.5">
                 <StatusTags booking={booking} />
               </td>
             </tr>
