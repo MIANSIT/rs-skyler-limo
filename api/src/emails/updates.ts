@@ -213,7 +213,7 @@ const QUOTE_SERVICE_LABELS: Record<string, string> = {
   wedding: "Wedding",
   event: "Event",
   hourly: "Hourly charter",
-  other: "Something else",
+  other: "Other",
 };
 
 function quoteCopy(quote: Quote): BookingCopy {

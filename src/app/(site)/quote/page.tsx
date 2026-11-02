@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 /**
  * The general quote surface.
  *
- * Airport transfers inside the five boroughs are priced from the published rate
+ * Airport transfers to and from Manhattan are priced from the published rate
  * card and should go through the booking form instead — a customer who can see
  * a fixed fare should not have to wait for a person. This page is for
  * everything the rate card does not cover, which is most of the business.
@@ -46,9 +46,9 @@ export default function QuotePage() {
                   Airport runs may not need a quote at all
                 </h3>
                 <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
-                  Transfers between the five boroughs and JFK, LaGuardia,
-                  Newark, Teterboro or Westchester are priced from a published
-                  rate card. You will see the fare before you book.
+                  Transfers between Manhattan and JFK, LaGuardia, Newark,
+                  Teterboro or Westchester are priced from a published rate
+                  card. You will see the fare before you book.
                 </p>
                 <div className="mt-5">
                   <ButtonLink href="/book" variant="secondary">

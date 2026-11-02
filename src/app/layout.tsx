@@ -52,7 +52,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${publicSans.variable}`}>
+    // `data-scroll-behavior` tells Next the smooth scrolling in globals.css is
+    // deliberate, so it switches it off during route changes (a new page
+    // starts at the top instantly instead of gliding there).
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${publicSans.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>{children}</body>
     </html>
   );

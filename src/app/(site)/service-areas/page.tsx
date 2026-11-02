@@ -14,20 +14,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/service-areas" },
   title: "Service Areas",
   description:
-    "Chauffeured car service across Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Published airport fares cover Manhattan; every other trip is quoted before you travel.",
+    "Chauffeured car service across New York City, Long Island, Westchester, New Jersey and Connecticut. Published airport fares cover Manhattan; every other trip is quoted before you travel.",
 };
 
 /**
- * Only the places the business has confirmed it serves: the five boroughs.
+ * Only the places the business has confirmed it serves. Since Nov 2026 the
+ * client states that as New York City, Long Island, Westchester, New Jersey
+ * and Connecticut — the same wording as the homepage and /contact — and the
+ * page has one entry per area (`serviceAreas` in content.ts), each with the
+ * airports that serve it. The borough-by-borough entries were replaced at the
+ * client's request.
  *
  * The brief forbids listing neighbourhoods that are not actually served, so
  * none are listed until the operator supplies them — `neighbourhoods` in
- * `serviceAreas` (content.ts) is the switch. The other side of the same rule:
- * nothing here names New Jersey, Westchester or Connecticut as served. Trips
- * there are quoted, which is what the page says.
+ * `serviceAreas` (content.ts) is the switch.
  *
  * Service area and pricing are two different claims and this page has to keep
- * them apart. All five boroughs are served — that has not changed. Only
+ * them apart. All five areas are served. Only
  * Manhattan carries a *published* fare (`FIXED_FARE_AREA` in
  * `api/src/services/pricing.ts`, Oct 2026); the rest are quoted. Saying "every
  * borough is inside the fixed fare", as this page used to, would now be a
@@ -38,23 +41,23 @@ export default function ServiceAreasPage() {
     <>
       <PageHeader
         eyebrow="Service areas"
-        title="All five boroughs, run to one standard"
-        intro="Pickups and drop-offs anywhere in Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Airport transfers to and from Manhattan carry a published fare; everywhere else a reservations agent prices the trip before you travel."
+        title="Serving New York City and Beyond"
+        intro="Pickup and drop-off service across New York City, Long Island, Westchester, New Jersey, and Connecticut. Airport transfers to and from Manhattan carry a published fare; everywhere else a reservations agent prices the trip before you travel."
       />
 
       <Section tone="light">
         <Reveal>
           <SectionHeading
-            eyebrow="Borough by borough"
-            title="Where we drive"
-            intro="Published airport fares cover Manhattan, and the fare to each airport is the same from anywhere on the island. From the other four boroughs a reservations agent prices the trip and agrees it with you first."
+            eyebrow="Where we drive"
+            title="Five areas, one standard"
+            intro="Published airport fares cover Manhattan, and the fare to each airport is the same from anywhere on the island. Everywhere else a reservations agent prices the trip and agrees it with you first."
             data-reveal
           />
         </Reveal>
 
         <div className="mt-12 grid gap-x-10 gap-y-2 md:grid-cols-2">
           {serviceAreas.map((area) => (
-            <Reveal key={area.borough}>
+            <Reveal key={area.area}>
               <article
                 data-reveal
                 className="flex h-full flex-col border-t border-midnight/15 py-8"
@@ -62,7 +65,7 @@ export default function ServiceAreasPage() {
                 <div className="flex items-center gap-3">
                   <MapPinIcon className="h-6 w-6 shrink-0 text-gold" />
                   <h2 className="font-display text-[22px] font-semibold text-midnight md:text-[26px]">
-                    {area.borough}
+                    {area.area}
                   </h2>
                 </div>
                 <p className="mt-4 max-w-xl text-[15px] leading-[1.7] text-charcoal">
@@ -80,9 +83,9 @@ export default function ServiceAreasPage() {
 
                 <p className="mt-5 font-sans text-[14px] text-charcoal">
                   <span className="font-medium tracking-[0.08em] text-charcoal/70 uppercase">
-                    Nearest airports{" "}
+                    Airports{" "}
                   </span>
-                  {area.nearestAirports.map((code, index) => {
+                  {area.airports.map((code, index) => {
                     const page = airportPages.find((item) => item.code === code);
                     const href = airportPageHref(code);
                     return (
@@ -112,9 +115,9 @@ export default function ServiceAreasPage() {
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-20">
           <Reveal className="lg:col-span-7">
             <SectionHeading
-              eyebrow="Beyond the city"
-              title="Further than the five boroughs? We price it"
-              intro="A pickup or drop-off at an address outside New York City — on Long Island, in New Jersey, in Westchester or further — is not on the fixed rate card, even on an airport run. Send us the details and a person comes back with a fare. Nothing is charged until you accept it."
+              eyebrow="Get a price"
+              title="Somewhere else, or not sure? We price it"
+              intro="Send us the pickup, the drop-off and the date, and a reservations agent comes back with a fare. Nothing is charged until you accept it."
               data-reveal
             />
             <div data-reveal className="mt-8">

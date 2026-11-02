@@ -22,7 +22,7 @@ const SERVICE_TYPES = [
   { value: "corporate", label: "Corporate / business" },
   { value: "wedding", label: "Wedding" },
   { value: "event", label: "Event" },
-  { value: "other", label: "Something else" },
+  { value: "other", label: "Other" },
 ];
 
 function SaveButton() {

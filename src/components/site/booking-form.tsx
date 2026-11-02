@@ -50,7 +50,7 @@ const SERVICE_TYPES = [
   { value: "corporate", label: "Corporate / business" },
   { value: "wedding", label: "Wedding" },
   { value: "event", label: "Event" },
-  { value: "other", label: "Something else" },
+  { value: "other", label: "Other" },
 ] as const;
 
 /**
@@ -217,6 +217,8 @@ export function BookingForm({
     fleet.some((item) => item.slug === initialVehicle) ? initialVehicle : "",
   );
   const [childSeats, setChildSeats] = useState(0);
+  // Held here so "Other" can open its "Please specify" box beside it.
+  const [serviceType, setServiceType] = useState("personal");
   const [airport, setAirport] = useState("");
   const [direction, setDirection] = useState<"from-airport" | "to-airport">(
     "from-airport",
@@ -290,7 +292,7 @@ export function BookingForm({
     const stepOf = (field: string): Step =>
       ["customerName", "customerPhone", "customerEmail", "terms", "paymentMethod"].includes(field)
         ? 3
-        : ["vehicleClass", "serviceType", "passengers", "bags", "childSeats", "notes"].includes(field)
+        : ["vehicleClass", "serviceType", "serviceTypeOther", "passengers", "bags", "childSeats", "notes"].includes(field)
           ? 2
           : 1;
     const flagged = Object.keys(state.fields ?? {}).map(stepOf);
@@ -959,7 +961,11 @@ export function BookingForm({
               id="serviceType"
               name="serviceType"
               tone={tone}
-              defaultValue={prior("serviceType") || "personal"}
+              value={serviceType}
+              onChange={(event) => {
+                setServiceType(event.target.value);
+                recheck();
+              }}
             >
               {SERVICE_TYPES.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -968,6 +974,31 @@ export function BookingForm({
               ))}
             </Select>
           </Field>
+
+          {/*
+            There is no column for it: the action folds it into the notes, which
+            the office already reads on every booking and every email.
+          */}
+          {serviceType === "other" ? (
+            <Field
+              label="Please specify"
+              id="serviceTypeOther"
+              tone={tone}
+              error={invalid.serviceTypeOther}
+            >
+              <Input
+                id="serviceTypeOther"
+                name="serviceTypeOther"
+                tone={tone}
+                required
+                maxLength={120}
+                placeholder="e.g. Prom, funeral, city tour"
+                aria-invalid={invalid.serviceTypeOther ? true : undefined}
+                aria-describedby={invalid.serviceTypeOther ? "serviceTypeOther-error" : undefined}
+                {...restore("serviceTypeOther")}
+              />
+            </Field>
+          ) : null}
 
           {/*
             Airline and flight number together.

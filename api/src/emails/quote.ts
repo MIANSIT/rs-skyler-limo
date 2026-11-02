@@ -39,7 +39,7 @@ const SERVICE_LABELS: Record<string, string> = {
   wedding: "Wedding",
   event: "Event",
   hourly: "Hourly charter",
-  other: "Something else",
+  other: "Other",
 };
 
 /** A calendar date with no time. Noon UTC is the same day in New York. */

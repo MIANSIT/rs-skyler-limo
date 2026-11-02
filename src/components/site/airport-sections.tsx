@@ -344,7 +344,7 @@ export function AirportPage({
           <SectionHeading
             eyebrow="Fares"
             title={`${page.name} fares, before you book`}
-            intro={`Between ${page.name} and any address in the five boroughs, in either direction. Tolls and gratuity are included; child seats are $${childSeatFee} each.`}
+            intro={`Between ${page.name} and any address in Manhattan, in either direction. Tolls and gratuity are included; child seats are $${childSeatFee} each.`}
             data-reveal
           />
           <div data-reveal className="mt-10">
@@ -367,7 +367,7 @@ export function AirportPage({
               href="/quote"
               className="py-2 font-sans text-[15px] font-medium text-midnight underline underline-offset-4"
             >
-              Going beyond the five boroughs? Get a quote
+              Going beyond Manhattan? Get a quote
             </Link>
           </div>
         </Reveal>

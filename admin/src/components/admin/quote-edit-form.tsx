@@ -14,7 +14,7 @@ const SERVICE_TYPES = [
   { value: "wedding", label: "Wedding" },
   { value: "event", label: "Event" },
   { value: "hourly", label: "Hourly charter" },
-  { value: "other", label: "Something else" },
+  { value: "other", label: "Other" },
 ];
 
 function SaveButton() {

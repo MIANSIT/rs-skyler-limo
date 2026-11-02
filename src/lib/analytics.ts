@@ -19,7 +19,30 @@
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || null;
 
-export const analyticsConfigured = Boolean(GA_MEASUREMENT_ID);
+/**
+ * Google Tag Manager container (Nov 2026, `GTM-PBFCRC7F` in production). Held
+ * to exactly the same two switches as GA above: unset, nothing loads; set, it
+ * still waits for the visitor to accept analytics. Tags added inside the
+ * container later inherit that gate, because the container itself is never
+ * fetched without consent — so the promise on the privacy page holds whatever
+ * someone configures in the GTM web UI.
+ */
+export const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim() || null;
+
+export const analyticsConfigured = Boolean(GA_MEASUREMENT_ID || GTM_ID);
+
+/** Set by `<Analytics>` while the container is mounted (consent given). */
+let gtmActive = false;
+export function setGtmActive(active: boolean): void {
+  gtmActive = active;
+}
+
+/** GTM listens on the dataLayer for objects with an `event` key. */
+function pushToGtm(event: string, detail: Record<string, unknown>): void {
+  if (!gtmActive || typeof window === "undefined") return;
+  window.dataLayer ??= [];
+  window.dataLayer.push({ event, ...detail });
+}
 
 type GtagArgs =
   | ["js", Date]
@@ -42,16 +65,21 @@ function gtag(...args: GtagArgs): void {
 
 /** A page view, sent manually: the App Router does not reload between routes. */
 export function trackPageView(path: string): void {
-  if (!GA_MEASUREMENT_ID || typeof window === "undefined") return;
-  gtag("config", GA_MEASUREMENT_ID, { page_path: path });
+  if (typeof window === "undefined") return;
+  if (GA_MEASUREMENT_ID) gtag("config", GA_MEASUREMENT_ID, { page_path: path });
+  // Pushed on the first page and on every route change, because the App
+  // Router never reloads. In the container, trigger page tags on this
+  // `page_view` event rather than on "All Pages" (`gtm.js`), which fires only
+  // once per visit here — using both counts the landing page twice.
+  pushToGtm("page_view", { page_path: path });
 }
 
 /**
  * The conversions the brief actually asks about: which marketing produces
  * customers. Phone clicks, bookings and quote requests — not scroll depth.
  *
- * Safe to call unconditionally. With no measurement ID, or before consent,
- * `window.gtag` is undefined and this is a no-op, so call sites never need to
+ * Safe to call unconditionally. With no measurement ID or container, or before
+ * consent, `window.gtag` is undefined and GTM is inactive, so this is a no-op, so call sites never need to
  * ask whether analytics is on.
  */
 export type ConversionEvent =
@@ -64,6 +92,7 @@ export function trackConversion(
   event: ConversionEvent,
   detail: Record<string, string | number> = {},
 ): void {
-  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-  window.gtag("event", event, detail);
+  if (typeof window === "undefined") return;
+  if (typeof window.gtag === "function") window.gtag("event", event, detail);
+  pushToGtm(event, detail);
 }

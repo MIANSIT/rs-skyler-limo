@@ -28,7 +28,8 @@ import type { FleetVehicle } from "@/lib/api/types";
  */
 export const contact = {
   email: "support@rsskylerlimo.com",
-  serviceArea: "All five boroughs of New York City",
+  serviceArea:
+    "Serving New York City, Long Island, Westchester, New Jersey, and Connecticut.",
 } as const;
 
 /**
@@ -294,7 +295,7 @@ export const faqs: { question: string; answer: string }[] = [
   {
     question: "How do I know what a trip will cost?",
     answer:
-      "Airport transfers between the five boroughs and an airport on our rate card are priced up front, so you see the fare before you book. Anything else — point to point, hourly, or outside New York City — is quoted by a person and agreed before you travel.",
+      "Airport transfers between Manhattan and an airport on our rate card are priced up front, so you see the fare before you book. Anything else — point to point, hourly, or anywhere outside Manhattan — is quoted by a person and agreed before you travel.",
   },
   {
     question: "Are tolls and gratuity included?",
@@ -391,6 +392,19 @@ const demoAbout: About = {
 export const about: About | null = realAbout ?? (showDemo ? demoAbout : null);
 export const aboutIsDemo = realAbout === null && showDemo;
 
+/**
+ * The area as the client states it (Nov 2026), shown as the pin row on the
+ * homepage. Served, not priced: only Manhattan airport runs carry a published
+ * fare, everything else here is quoted.
+ */
+export const regions = [
+  "New York City",
+  "Long Island",
+  "Westchester",
+  "New Jersey",
+  "Connecticut",
+] as const;
+
 /** The one service area the business has confirmed. */
 export const boroughs = [
   "Manhattan",
@@ -401,56 +415,56 @@ export const boroughs = [
 ] as const;
 
 /**
- * The Service Areas page, one entry per borough.
+ * The Service Areas page, one entry per area in `regions` (Nov 2026: the
+ * client replaced the five borough entries with these five).
  *
- * `note` is geography and the rules that already apply — which airports sit
- * nearest, and how the trip is priced. It makes no claim about travel times or
- * local knowledge.
+ * `note` is geography and the rules that already apply — which airports
+ * serve the area, and how the trip is priced. It makes no claim about travel
+ * times or local knowledge.
  *
- * Only Manhattan's note may promise a published fare: since Oct 2026 the fixed
- * airport fare is Manhattan-only (`FIXED_FARE_AREA` in
- * `api/src/services/pricing.ts`). The other four are served exactly as before
- * and are quoted, so their notes say so rather than implying a price the
- * booking form will refuse to show.
+ * Only New York City's note may mention a published fare, and only for
+ * Manhattan: since Oct 2026 the fixed airport fare is Manhattan-only
+ * (`FIXED_FARE_AREA` in `api/src/services/pricing.ts`). Everything else is
+ * quoted, so the other notes say so rather than implying a price the booking
+ * form will refuse to show.
  *
  * `neighbourhoods` is empty on purpose. The brief allows only places the
- * business actually serves, and it has confirmed boroughs, not neighbourhoods.
- * Add names here once the operator supplies them and they appear on the page.
+ * business actually serves; add names once the operator supplies them.
  */
 export const serviceAreas: {
-  borough: (typeof boroughs)[number];
+  area: (typeof regions)[number];
   note: string;
-  nearestAirports: string[];
+  airports: string[];
   neighbourhoods: string[];
 }[] = [
   {
-    borough: "Manhattan",
-    note: "From the Battery to Inwood. Every Manhattan address is inside the published-fare area, so an airport transfer is priced before you book.",
-    nearestAirports: ["LGA", "JFK", "EWR"],
+    area: "New York City",
+    note: "Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Airport transfers to and from Manhattan carry a published fare, shown before you book; from the other four boroughs a reservations agent prices the trip and agrees it with you first.",
+    airports: ["JFK", "LGA", "EWR"],
     neighbourhoods: [],
   },
   {
-    borough: "Brooklyn",
-    note: "The whole borough, from Williamsburg to Coney Island. JFK is the usual airport from here. Brooklyn transfers are priced by a reservations agent and agreed with you before you travel.",
-    nearestAirports: ["JFK", "LGA"],
+    area: "Long Island",
+    note: "Pickups and drop-offs across Nassau and Suffolk, to the city, the airports or anywhere in between. JFK and LaGuardia are the nearest airports. Trips are priced by a reservations agent and agreed with you before you travel.",
+    airports: ["JFK", "LGA"],
     neighbourhoods: [],
   },
   {
-    borough: "Queens",
-    note: "Home to both JFK and LaGuardia, so the run is usually a short one. Queens transfers are priced by a reservations agent and agreed with you before you travel.",
-    nearestAirports: ["LGA", "JFK"],
+    area: "Westchester",
+    note: "Pickups and drop-offs across Westchester County. Westchester County Airport is close by, and LaGuardia is a short run south. Trips are priced by a reservations agent and agreed with you before you travel.",
+    airports: ["HPN", "LGA"],
     neighbourhoods: [],
   },
   {
-    borough: "The Bronx",
-    note: "Across the Bronx, with LaGuardia over the bridge and Westchester County Airport to the north.",
-    nearestAirports: ["LGA", "HPN"],
+    area: "New Jersey",
+    note: "Pickups and drop-offs across New Jersey, home to both Newark Liberty and Teterboro. Trips are priced by a reservations agent and agreed with you before you travel, tolls included in the figure you agree.",
+    airports: ["EWR", "TEB"],
     neighbourhoods: [],
   },
   {
-    borough: "Staten Island",
-    note: "The whole island. Newark is across the Goethals Bridge, which often makes it the nearer airport. Staten Island transfers are quoted by a reservations agent, tolls included in the figure you agree.",
-    nearestAirports: ["EWR", "JFK"],
+    area: "Connecticut",
+    note: "Pickups and drop-offs in Connecticut, to the city or the airports. Westchester County Airport is usually the nearest. Trips are priced by a reservations agent and agreed with you before you travel.",
+    airports: ["HPN", "LGA"],
     neighbourhoods: [],
   },
 ];

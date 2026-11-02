@@ -6,6 +6,8 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import {
   GA_MEASUREMENT_ID,
+  GTM_ID,
+  setGtmActive,
   trackConversion,
   trackPageView,
 } from "@/lib/analytics";
@@ -16,7 +18,8 @@ import {
 } from "@/lib/cookie-consent";
 
 /**
- * Loads Google Analytics, but only after the visitor has said yes.
+ * Loads Google Analytics and Google Tag Manager, but only after the visitor
+ * has said yes.
  *
  * Mounted on every page; renders nothing until both switches are on. The
  * script tag itself is conditional rather than loaded-then-disabled, so a
@@ -34,11 +37,16 @@ export function Analytics() {
     getServerConsentSnapshot,
   );
 
-  const allowed = Boolean(GA_MEASUREMENT_ID) && consent?.analytics === true;
+  const consented = consent?.analytics === true;
+  const gaAllowed = Boolean(GA_MEASUREMENT_ID) && consented;
+  const gtmAllowed = Boolean(GTM_ID) && consented;
+  const allowed = gaAllowed || gtmAllowed;
 
   return (
     <>
-      {allowed ? (
+      {gtmAllowed ? <GoogleTagManager id={GTM_ID!} /> : null}
+
+      {gaAllowed ? (
         <>
           <Script
             id="ga-src"
@@ -58,6 +66,25 @@ gtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });`}
       {allowed ? <PageViews /> : null}
       {allowed ? <PhoneClicks /> : null}
     </>
+  );
+}
+
+/**
+ * The standard GTM container snippet, as Google issues it, run only once
+ * consent is given. Its `<noscript>` iframe half is left out on purpose: a
+ * visitor without JavaScript can never accept the banner, so loading GTM for
+ * them would be loading it without consent.
+ */
+function GoogleTagManager({ id }: { id: string }) {
+  useEffect(() => {
+    setGtmActive(true);
+    return () => setGtmActive(false);
+  }, []);
+
+  return (
+    <Script id="gtm-init" strategy="afterInteractive">
+      {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer",${JSON.stringify(id)});`}
+    </Script>
   );
 }
 

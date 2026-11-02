@@ -110,7 +110,7 @@ export const airportPages: AirportPageContent[] = [
       "Three terminals, not all in one place. Your flight number puts the car at the right one.",
     title: "LaGuardia, at the right terminal the first time",
     intro:
-      "The closest of the major airports to Midtown, on the north shore of Queens. Three terminals that are not all in the same place, and a fixed fare to or from anywhere in the city.",
+      "The closest of the major airports to Midtown, on the north shore of Queens. Three terminals that are not all in the same place, and a fixed fare to or from anywhere in Manhattan.",
     facts: [
       { label: "Where", value: "Northern Queens, on Flushing Bay" },
       { label: "Terminals", value: "A, B and C" },
