@@ -12,7 +12,7 @@
  * device, and nothing server-side needs to read it.
  */
 
-/** Exported for the GTM head script, which runs before this module loads. */
+/** The `localStorage` key the decision is kept under. */
 export const STORAGE_KEY = "rsskyler-cookie-consent";
 
 export type CookieConsent = {

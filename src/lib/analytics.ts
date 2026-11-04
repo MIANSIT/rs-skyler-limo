@@ -21,55 +21,37 @@ export const GA_MEASUREMENT_ID =
 
 /**
  * Google Tag Manager container. Hard-coded, at the client's request (Nov
- * 2026), and loaded in the `<head>` of every page by the root layout — see
- * `gtmHeadScript` below.
- *
- * Loading it is not the same as consent. It starts in Google Consent Mode with
- * everything denied, so Google tags set no cookies until the visitor accepts
- * analytics in the banner; `<Analytics>` then grants `analytics_storage` and
- * starts forwarding events. Advertising storage stays denied: the banner only
- * asks about analytics.
+ * 2026), and loaded in the `<head>` of every page by the root layout as two
+ * plain tags — the `gtm.js` script and the inline snippet below — so it is in
+ * the page source, and it is **not gated on the cookie banner**: the container
+ * loads, and page views and conversions reach the dataLayer, whether or not the
+ * visitor has answered. No Consent Mode default is set, so Google tags run
+ * normally from the first page. A visitor who declines in the banner is sent as
+ * `analytics_storage: 'denied'` (see `setAnalyticsConsent`), which Google tags
+ * honour from then on.
  *
  * If the container holds a GA4 tag for the same property, leave
  * `NEXT_PUBLIC_GA_MEASUREMENT_ID` unset, or every page view is counted twice.
  */
 export const GTM_ID = "GTM-PBFCRC7F";
 
+export const GTM_SRC = `https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`;
+
 export const analyticsConfigured = Boolean(GA_MEASUREMENT_ID || GTM_ID);
 
 /**
- * The container snippet as Google issues it, preceded by the Consent Mode
- * default. It inserts `gtm.js` itself, as Google's does, rather than sitting
- * beside an `async` script tag: React hoists such a tag above inline scripts,
- * which would load the container before the consent default exists. Runs before hydration, so it cannot import the consent store: it
- * reads the same `localStorage` key directly, so a returning visitor who
- * already accepted is granted from the first tag rather than after React
- * boots.
+ * The inline half of the snippet. `gtm.start` / `gtm.js` is the event GTM's
+ * "All Pages" trigger listens for; without it the container loads but nothing
+ * on a page-view trigger fires.
  */
-export function gtmHeadScript(storageKey: string): string {
-  return `window.dataLayer = window.dataLayer || [];
+export const gtmInlineScript = `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 window.gtag = gtag;
-var granted = false;
-try { var stored = JSON.parse(localStorage.getItem(${JSON.stringify(storageKey)}) || "null"); granted = !!stored && stored.analytics === true; } catch (e) {}
-gtag('consent', 'default', {
-  analytics_storage: granted ? 'granted' : 'denied',
-  ad_storage: 'denied',
-  ad_user_data: 'denied',
-  ad_personalization: 'denied'
-});
 gtag('js', new Date());
-dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-(function () {
-  var j = document.createElement('script');
-  j.async = true;
-  j.src = 'https://www.googletagmanager.com/gtm.js?id=${GTM_ID}';
-  var f = document.getElementsByTagName('script')[0];
-  f.parentNode.insertBefore(j, f);
-})();`;
-}
+dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });`;
 
-/** Set by `<Analytics>` from the banner's decision. */
+/** Set by `<Analytics>` from the banner's decision. Gates the standalone GA4
+ *  tag only — GTM is not gated on it. */
 let consentGranted = false;
 
 /** Tells Consent Mode, and this module, what the visitor chose. */
@@ -80,7 +62,7 @@ export function setAnalyticsConsent(granted: boolean): void {
 
 /** GTM listens on the dataLayer for objects with an `event` key. */
 function pushToGtm(event: string, detail: Record<string, unknown>): void {
-  if (!consentGranted || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
   window.dataLayer ??= [];
   window.dataLayer.push({ event, ...detail });
 }
@@ -110,8 +92,8 @@ function gtag(...args: GtagArgs): void {
 
 /** A page view, sent manually: the App Router does not reload between routes. */
 export function trackPageView(path: string): void {
-  if (!consentGranted || typeof window === "undefined") return;
-  if (GA_MEASUREMENT_ID) gtag("config", GA_MEASUREMENT_ID, { page_path: path });
+  if (typeof window === "undefined") return;
+  if (GA_MEASUREMENT_ID && consentGranted) gtag("config", GA_MEASUREMENT_ID, { page_path: path });
   // Pushed on the first page and on every route change, because the App
   // Router never reloads. In the container, trigger page tags on this
   // `page_view` event rather than on "All Pages" (`gtm.js`), which fires only
@@ -123,8 +105,8 @@ export function trackPageView(path: string): void {
  * The conversions the brief actually asks about: which marketing produces
  * customers. Phone clicks, bookings and quote requests — not scroll depth.
  *
- * Safe to call unconditionally. Before consent this is a no-op, so call sites
- * never need to ask whether analytics is on.
+ * Safe to call unconditionally. It always reaches GTM; the standalone GA4 tag
+ * only sees it after consent.
  */
 export type ConversionEvent =
   | "phone_click"
@@ -136,7 +118,7 @@ export function trackConversion(
   event: ConversionEvent,
   detail: Record<string, string | number> = {},
 ): void {
-  if (!consentGranted || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
   if (typeof window.gtag === "function") window.gtag("event", event, detail);
   pushToGtm(event, detail);
 }

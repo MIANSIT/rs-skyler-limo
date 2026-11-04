@@ -21,9 +21,11 @@ import {
  * have said yes.
  *
  * Google Tag Manager is not loaded here: it is in the `<head>` of every page
- * (root layout), in Consent Mode with analytics denied. This component turns
- * that into `granted` when the banner is accepted, and back when it is
- * withdrawn from Cookie Preferences.
+ * (root layout) and runs whether or not the banner has been answered. Page
+ * views and phone clicks go to its dataLayer regardless; this component only
+ * tells Consent Mode once the visitor actually decides, so an unanswered
+ * banner leaves Google's tags running and a decline turns analytics storage
+ * off.
  *
  * Consent is read through `useSyncExternalStore` rather than an effect, so a
  * visitor who accepts gets analytics on the same interaction instead of on
@@ -43,7 +45,7 @@ export function Analytics() {
     <>
       {/* Before `PageViews`: sibling effects run in order, so consent is
           applied before the first page view is sent. */}
-      <ConsentSync granted={consented} />
+      {consent ? <ConsentSync granted={consented} /> : null}
 
       {gaAllowed ? (
         <>
@@ -58,8 +60,8 @@ export function Analytics() {
         </>
       ) : null}
 
-      {consented ? <PageViews /> : null}
-      {consented ? <PhoneClicks /> : null}
+      <PageViews />
+      <PhoneClicks />
     </>
   );
 }

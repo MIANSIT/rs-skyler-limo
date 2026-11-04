@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Public_Sans } from "next/font/google";
 
-import { gtmHeadScript } from "@/lib/analytics";
-import { STORAGE_KEY } from "@/lib/cookie-consent";
+import { GTM_SRC, gtmInlineScript } from "@/lib/analytics";
 import { siteDescription, siteUrl } from "@/lib/site";
 
 import "./globals.css";
@@ -65,13 +64,13 @@ export default function RootLayout({
       {/* Google Tag Manager, on every page, in the server-rendered <head> —
           plain tags rather than next/script, whose `beforeInteractive` is
           queued in <body> and only moved here once the runtime boots, which
-          tag checkers reading the page source cannot see. One script, which
-          sets the consent default and then inserts the container. See `GTM_ID` in `src/lib/analytics.ts` for how consent works
-          with it. */}
+          tag checkers reading the page source cannot see. Not gated on the
+          cookie banner; see `GTM_ID` in `src/lib/analytics.ts`. */}
       <head>
+        <script async src={GTM_SRC} />
         <script
           id="gtm-init"
-          dangerouslySetInnerHTML={{ __html: gtmHeadScript(STORAGE_KEY) }}
+          dangerouslySetInnerHTML={{ __html: gtmInlineScript }}
         />
       </head>
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>
