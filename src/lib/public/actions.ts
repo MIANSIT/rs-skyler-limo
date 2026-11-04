@@ -91,6 +91,7 @@ export async function submitBooking(
       "flight",
       "airline",
       "serviceType",
+      "serviceTypeOther",
       "paymentMethod",
       "passengers",
       "bags",
@@ -134,6 +135,15 @@ export async function submitBooking(
 
   const flightNumber = text("flight");
   const tripType = text("tripType");
+
+  // "Other" asks the customer to say what for. There is no column for it, so
+  // it leads the notes — which the office reads on the booking and in email.
+  const serviceType = text("serviceType") || "personal";
+  const purpose = serviceType === "other" ? text("serviceTypeOther").slice(0, 120) : "";
+  const notes = [purpose && `Purpose: ${purpose}`, text("notes")]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 5000);
 
   // Set when the API opened a Stripe payment page for this booking. The
   // redirect happens after the try: `redirect` works by throwing, and the
@@ -183,7 +193,7 @@ export async function submitBooking(
         bags: Number(text("bags") || 0),
         childSeats: Number(text("childSeats") || 0),
         vehicleClass: text("vehicle"),
-        serviceType: text("serviceType") || "personal",
+        serviceType,
         paymentMethod: "card",
         airline: isAirport && text("airline") ? text("airline") : null,
         flightNumber: isAirport && flightNumber ? flightNumber : null,
@@ -196,7 +206,7 @@ export async function submitBooking(
         customerName: text("name"),
         customerEmail: text("email"),
         customerPhone: text("phone"),
-        notes: text("notes") || null,
+        notes: notes || null,
       },
     });
 
@@ -264,6 +274,7 @@ export async function submitQuote(
   const values = Object.fromEntries(
     [
       "serviceType",
+      "serviceTypeOther",
       "eventDate",
       "passengers",
       "company",
@@ -278,6 +289,14 @@ export async function submitQuote(
 
   const passengers = text("passengers");
 
+  // As on a booking: "Other" says what for, and it leads the details.
+  const serviceType = text("serviceType") || "other";
+  const purpose = serviceType === "other" ? text("serviceTypeOther").slice(0, 120) : "";
+  const details = [purpose && `Purpose: ${purpose}`, text("details")]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 5000);
+
   try {
     const result = await apiFetch<{ reference: string; status: string }>(
       "/api/quotes",
@@ -285,7 +304,7 @@ export async function submitQuote(
         method: "POST",
         forwardedFor: await callerIp(),
         body: {
-          serviceType: text("serviceType") || "other",
+          serviceType,
         ...guardFields(formData),
           // Empty strings would fail the API's date and integer parsing, so an
           // untouched optional field is sent as an absent one.
@@ -295,7 +314,7 @@ export async function submitQuote(
           customerName: text("name"),
           customerEmail: text("email"),
           customerPhone: text("phone"),
-          details: text("details"),
+          details,
         },
       },
     );

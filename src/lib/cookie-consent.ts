@@ -12,7 +12,8 @@
  * device, and nothing server-side needs to read it.
  */
 
-const STORAGE_KEY = "rsskyler-cookie-consent";
+/** Exported for the GTM head script, which runs before this module loads. */
+export const STORAGE_KEY = "rsskyler-cookie-consent";
 
 export type CookieConsent = {
   analytics: boolean;

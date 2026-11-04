@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
   title: "Contact",
   description:
-    "Email us the details of your trip. RSSkyler Limo serves all five boroughs of New York City.",
+    "Email us the details of your trip. RSSkyler Limo serves New York City, Long Island, Westchester, New Jersey and Connecticut.",
 };
 
 /**
@@ -30,7 +30,10 @@ export default function ContactPage() {
       <Section tone="light">
         <div className="grid gap-14 lg:grid-cols-12 lg:gap-20">
           <Reveal className="lg:col-span-5">
-            <SectionHeading eyebrow="Reach us" title="The direct lines" />
+            <SectionHeading
+              eyebrow="Reach us"
+              title="Contact our reservations team."
+            />
 
             <dl data-reveal className="mt-10 flex flex-col">
               <div className="border-t border-midnight/10 py-6">
@@ -45,8 +48,8 @@ export default function ContactPage() {
                     {contact.email}
                   </a>
                   <p className="mt-2 text-[15px] leading-[1.7] text-charcoal">
-                    For itineraries, invoices and anything that is easier to
-                    write down.
+                    For trip details, invoices, or questions, email{" "}
+                    {contact.email}.
                   </p>
                 </dd>
               </div>

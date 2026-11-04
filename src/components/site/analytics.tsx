@@ -6,7 +6,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import {
   GA_MEASUREMENT_ID,
-  GTM_ID,
+  setAnalyticsConsent,
   trackConversion,
   trackPageView,
 } from "@/lib/analytics";
@@ -17,12 +17,13 @@ import {
 } from "@/lib/cookie-consent";
 
 /**
- * Loads Google Analytics, but only after the visitor has said yes.
+ * Applies the visitor's analytics choice, and loads Google Analytics once they
+ * have said yes.
  *
- * Mounted on every page; renders nothing until both switches are on. The
- * script tag itself is conditional rather than loaded-then-disabled, so a
- * visitor who declines never makes a request to Google at all — "we run no
- * advertising trackers" on the privacy page stays literally true for them.
+ * Google Tag Manager is not loaded here: it is in the `<head>` of every page
+ * (root layout), in Consent Mode with analytics denied. This component turns
+ * that into `granted` when the banner is accepted, and back when it is
+ * withdrawn from Cookie Preferences.
  *
  * Consent is read through `useSyncExternalStore` rather than an effect, so a
  * visitor who accepts gets analytics on the same interaction instead of on
@@ -36,50 +37,39 @@ export function Analytics() {
   );
 
   const consented = consent?.analytics === true;
-  const gaAllowed = consented && Boolean(GA_MEASUREMENT_ID);
-  const gtmAllowed = consented && Boolean(GTM_ID);
-  const allowed = gaAllowed || gtmAllowed;
+  const gaAllowed = Boolean(GA_MEASUREMENT_ID) && consented;
 
   return (
     <>
-      {allowed ? (
-        <Script id="ga-init" strategy="afterInteractive">
-          {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-window.gtag = gtag;
-gtag('js', new Date());${
-            gaAllowed
-              ? `\ngtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });`
-              : ""
-          }${
-            gtmAllowed
-              ? `\ndataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });`
-              : ""
-          }`}
-        </Script>
-      ) : null}
+      {/* Before `PageViews`: sibling effects run in order, so consent is
+          applied before the first page view is sent. */}
+      <ConsentSync granted={consented} />
+
       {gaAllowed ? (
-        <Script
-          id="ga-src"
-          strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        />
-      ) : null}
-      {/* No `<noscript>` iframe: without JavaScript there is no consent to
-          read, so loading the container there would track people who never
-          said yes. */}
-      {gtmAllowed ? (
-        <Script
-          id="gtm-src"
-          strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}
-        />
+        <>
+          <Script
+            id="ga-src"
+            strategy="afterInteractive"
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          />
+          <Script id="ga-init" strategy="afterInteractive">
+            {`gtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });`}
+          </Script>
+        </>
       ) : null}
 
-      {allowed ? <PageViews /> : null}
-      {allowed ? <PhoneClicks /> : null}
+      {consented ? <PageViews /> : null}
+      {consented ? <PhoneClicks /> : null}
     </>
   );
+}
+
+function ConsentSync({ granted }: { granted: boolean }) {
+  useEffect(() => {
+    setAnalyticsConsent(granted);
+  }, [granted]);
+
+  return null;
 }
 
 /** The App Router never reloads, so each navigation is reported by hand. */

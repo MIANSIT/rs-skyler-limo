@@ -66,7 +66,7 @@ const included = [
   },
   {
     title: "A person for everything else",
-    body: "If your address is outside the five boroughs, the transfer is quoted by a person and agreed before you travel.",
+    body: "If your address is outside Manhattan, the transfer is quoted by a person and agreed before you travel.",
   },
 ];
 
@@ -82,7 +82,7 @@ export default async function AirportTransportationPage() {
         service="airport-transfers"
         eyebrow="Airport transportation"
         title="Every New York airport, at a fare you see first"
-        intro="JFK, LaGuardia, Newark, Teterboro and Westchester, to or from anywhere in the five boroughs. The fare is on the page before you book, and it is the fare you pay."
+        intro="JFK, LaGuardia, Newark, Teterboro and Westchester, to or from anywhere in Manhattan. The fare is on the page before you book, and it is the fare you pay. From anywhere else, a reservations agent prices the trip first."
       />
 
       <Section tone="light">
@@ -123,7 +123,7 @@ export default async function AirportTransportationPage() {
           <SectionHeading
             eyebrow="The rate card"
             title="Every airport, every vehicle"
-            intro="Between the airport and any address in the five boroughs, in either direction. These are the same figures the booking form prices from."
+            intro="Between the airport and any address in Manhattan, in either direction. These are the same figures the booking form prices from."
             data-reveal
           />
           <div data-reveal className="mt-10">

@@ -4,7 +4,7 @@ import { InstagramIcon, TikTokIcon } from "@/components/ui/icon";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { CookiePreferencesLink } from "@/components/site/cookie-consent";
 import { airportPages } from "@/lib/airport-pages";
-import { boroughs, contact, services, social } from "@/lib/content";
+import { contact, regions, services, social } from "@/lib/content";
 import { getFleetSafely } from "@/lib/public/fleet";
 
 /** Keyed by the name in `content.ts`, so adding a network there fails the
@@ -32,7 +32,7 @@ export async function SiteFooter() {
               Arrive in Style
             </p>
             <p className="mt-6 text-[15px] leading-[1.7] text-white/70">
-              Chauffeured travel across all five boroughs.
+              Chauffeured travel across New York City and beyond.
             </p>
 
             {/*
@@ -117,7 +117,7 @@ export async function SiteFooter() {
 
         <div className="mt-14 border-t border-white/15 pt-8">
           <p className="text-[13px] tracking-[0.08em] text-white/55 uppercase">
-            {boroughs.join(" · ")}
+            {regions.join(" · ")}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
             <p className="text-[13px] text-white/55">

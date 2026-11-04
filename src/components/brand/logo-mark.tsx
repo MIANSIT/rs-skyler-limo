@@ -21,7 +21,13 @@ export function LogoMark({
       src={mark}
       alt=""
       aria-hidden
-      priority={priority}
+      // `priority` is deprecated in Next 16; `preload` is its replacement.
+      preload={priority}
+      // Always eager: every instance requests the same small file at the same
+      // `sizes`, so after the header's copy the rest come from cache. Lazy, a
+      // watermark standing in for a missing photo could become the page's LCP
+      // and load late — which Next warns about.
+      loading="eager"
       sizes="(max-width: 768px) 160px, 240px"
       /* No `h-auto` here. `clsx` is a plain join, so it would sit beside the
          caller's `h-8` at equal specificity, win on stylesheet order, and render

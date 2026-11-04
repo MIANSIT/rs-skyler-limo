@@ -190,7 +190,7 @@ export function TripSummary({
             </p>
             <p className="mt-1 text-[15px] leading-[1.6] text-white/80">
               {trip === "airport"
-                ? "Airport trips within New York City show a fixed fare here once the airport, address and car are set. Anything else, a person prices."
+                ? "Airport trips to and from Manhattan show a fixed fare here once the airport, address and car are set. Anything else, a person prices."
                 : "Priced by a person and agreed before you travel, usually within the hour."}
             </p>
           </>

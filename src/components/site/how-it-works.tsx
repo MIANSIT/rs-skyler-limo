@@ -19,7 +19,7 @@ const steps = [
   },
   {
     title: "See the fare, or ask for one",
-    body: "Airport runs inside the five boroughs price themselves from the published rate card. Everything else, a person quotes.",
+    body: "Airport runs to and from Manhattan price themselves from the published rate card. Everything else, a person quotes.",
   },
   {
     title: "Confirmed by a person",

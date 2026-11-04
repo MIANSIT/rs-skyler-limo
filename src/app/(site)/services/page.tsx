@@ -149,7 +149,7 @@ export default function ServicesPage() {
               </h3>
               <p className="mt-3 text-[15px] leading-[1.7] text-charcoal">
                 An airport transfer between one of our airports and an address
-                in the five boroughs. The fare is on the rate card, shown before
+                in Manhattan. The fare is on the rate card, shown before
                 you book, with tolls and gratuity inside it.
               </p>
             </div>

@@ -27,7 +27,7 @@ const tripIcons: Record<TripType, typeof PlaneIcon> = {
  * `decideFare` will not honour.
  */
 const tripNotes: Record<TripType, string> = {
-  airport: "A fixed fare within New York City, shown before you book.",
+  airport: "A fixed fare to and from Manhattan, shown before you book.",
   "point-to-point": "Quoted by a person and agreed before you travel.",
   hourly: "Held by the hour, quoted and agreed before you travel.",
 };
@@ -131,9 +131,11 @@ export function HeroBookingCard({ fleet }: { fleet: FleetVehicle[] }) {
                   alt={itemIndex === index % count ? item.primaryPhoto.altText : ""}
                   fill
                   sizes="176px"
-                  // The first car is on screen at load and is often the page's
-                  // largest image (LCP) — load it straight away, not lazily.
-                  loading={itemIndex === 0 ? "eager" : "lazy"}
+                  // On screen at load, and the carousel rotates through the rest
+                  // within seconds, so whichever car is showing can be the LCP.
+                  // They are 176px thumbnails: load them all eagerly, and only
+                  // the first at high priority.
+                  loading="eager"
                   fetchPriority={itemIndex === 0 ? "high" : "auto"}
                   className={clsx(
                     "object-cover transition-opacity duration-700 ease-in-out",

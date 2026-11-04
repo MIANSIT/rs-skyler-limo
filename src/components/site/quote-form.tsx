@@ -45,7 +45,7 @@ const serviceLabels: Record<QuoteServiceType, string> = {
   wedding: "Wedding",
   event: "Event",
   hourly: "Hourly charter",
-  other: "Something else",
+  other: "Other",
 };
 
 const serviceOrder: QuoteServiceType[] = [
@@ -104,6 +104,9 @@ export function QuoteForm({
   // Controlled, so the reason a past date is refused is shown as soon as it is
   // chosen. The same message is set on the input so the form will not send.
   const [eventDate, setEventDate] = useState("");
+
+  // Held here so "Other" can open its "Please specify" box beside it.
+  const [serviceType, setServiceType] = useState<string>(defaultServiceType);
   const dateProblem = pickupProblems(eventDate, "", today, "").date;
 
   useEffect(() => {
@@ -195,11 +198,8 @@ export function QuoteForm({
             <Select
               id="quote-service"
               name="serviceType"
-              defaultValue={
-                state.status === "error"
-                  ? (state.values.serviceType ?? defaultServiceType)
-                  : defaultServiceType
-              }
+              value={serviceType}
+              onChange={(event) => setServiceType(event.target.value)}
             >
               {serviceOrder.map((value) => (
                 <option key={value} value={value}>
@@ -209,6 +209,28 @@ export function QuoteForm({
             </Select>
           </Field>
         )}
+
+        {/*
+          No column for it: the action folds it into the details, which the
+          office already reads on every quote and in every email.
+        */}
+        {!lockService && serviceType === "other" ? (
+          <Field
+            label="Please specify"
+            id="quote-service-other"
+            className="sm:col-span-2"
+            error={fieldError("serviceTypeOther")}
+          >
+            <Input
+              id="quote-service-other"
+              name="serviceTypeOther"
+              required
+              maxLength={120}
+              placeholder="e.g. Prom, funeral, city tour"
+              {...restore("serviceTypeOther")}
+            />
+          </Field>
+        ) : null}
 
         {showCompany ? (
           <Field label="Company" id="quote-company" hint="Optional.">

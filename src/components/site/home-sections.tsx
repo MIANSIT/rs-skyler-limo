@@ -10,9 +10,9 @@ import {
   about,
   aboutIsDemo,
   bookingAirports,
-  boroughs,
   demoReviews,
   faqs,
+  regions,
 } from "@/lib/content";
 import { airportPageHref } from "@/lib/airport-pages";
 import type { Airport, ReviewsResponse } from "@/lib/api/types";
@@ -48,7 +48,7 @@ export function AirportTransfers({
             tone={dark ? "dark" : "light"}
             eyebrow="Airport transfers"
             title="A fixed fare between the airport and Manhattan"
-            intro="Tell us the airport, the direction and the vehicle, and the fare appears before you book. Tolls and gratuity are included. We serve all five boroughs; trips beyond Manhattan are priced by a reservations agent first."
+            intro="Tell us the airport, the direction and the vehicle, and the fare appears before you book. Tolls and gratuity are included. We serve New York City, Long Island, Westchester, New Jersey and Connecticut; trips beyond Manhattan are priced by a reservations agent first."
             data-reveal
           />
           <div data-reveal className="mt-8 flex flex-wrap gap-4">
@@ -107,10 +107,10 @@ export function AirportTransfers({
 }
 
 /**
- * Deliberately only the boroughs. The brief says a service-areas section may
- * list only places actually served, and the one thing the business has
- * confirmed is the five boroughs. Neighbourhoods and nearby towns go here once
- * the operator supplies them.
+ * The area as the client states it (Nov 2026): the city and the region around
+ * it, one pin each from `regions`. The borough detail lives on /service-areas.
+ * Only Manhattan airport runs carry a published fare, so this promises
+ * service, never a price.
  */
 export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
   const dark = isDarkTone(tone);
@@ -121,17 +121,17 @@ export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
         <SectionHeading
           tone={dark ? "dark" : "light"}
           eyebrow="Where we drive"
-          title="All five boroughs, run to one standard"
-          intro="Pickups and drop-offs in Manhattan, Brooklyn, Queens, the Bronx and Staten Island. Somewhere further? Send us the trip and we will price it."
+          title="Serving New York City and Beyond"
+          intro="Pickup and drop-off service across New York City, Long Island, Westchester, New Jersey, and Connecticut."
           data-reveal
         />
         <ul
           data-reveal
           className="mt-10 grid grid-cols-2 gap-x-8 sm:grid-cols-3 lg:grid-cols-5"
         >
-          {boroughs.map((borough) => (
+          {regions.map((region) => (
             <li
-              key={borough}
+              key={region}
               className={clsx(
                 "flex items-center gap-2.5 border-t py-4",
                 dark ? "border-white/15" : "border-midnight/15",
@@ -144,7 +144,7 @@ export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
                   dark ? "text-white" : "text-midnight",
                 )}
               >
-                {borough}
+                {region}
               </span>
             </li>
           ))}
@@ -164,7 +164,7 @@ export function ServiceAreas({ tone = "grey" }: { tone?: SectionTone }) {
               dark ? "text-white" : "text-midnight",
             )}
           >
-            Where we drive, borough by borough
+            Every area we serve
           </Link>
         </div>
       </Reveal>
