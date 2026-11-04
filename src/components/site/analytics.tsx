@@ -6,6 +6,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import {
   GA_MEASUREMENT_ID,
+  GTM_ID,
   trackConversion,
   trackPageView,
 } from "@/lib/analytics";
@@ -34,25 +35,45 @@ export function Analytics() {
     getServerConsentSnapshot,
   );
 
-  const allowed = Boolean(GA_MEASUREMENT_ID) && consent?.analytics === true;
+  const consented = consent?.analytics === true;
+  const gaAllowed = consented && Boolean(GA_MEASUREMENT_ID);
+  const gtmAllowed = consented && Boolean(GTM_ID);
+  const allowed = gaAllowed || gtmAllowed;
 
   return (
     <>
       {allowed ? (
-        <>
-          <Script
-            id="ga-src"
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          />
-          <Script id="ga-init" strategy="afterInteractive">
-            {`window.dataLayer = window.dataLayer || [];
+        <Script id="ga-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 window.gtag = gtag;
-gtag('js', new Date());
-gtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });`}
-          </Script>
-        </>
+gtag('js', new Date());${
+            gaAllowed
+              ? `\ngtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });`
+              : ""
+          }${
+            gtmAllowed
+              ? `\ndataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });`
+              : ""
+          }`}
+        </Script>
+      ) : null}
+      {gaAllowed ? (
+        <Script
+          id="ga-src"
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        />
+      ) : null}
+      {/* No `<noscript>` iframe: without JavaScript there is no consent to
+          read, so loading the container there would track people who never
+          said yes. */}
+      {gtmAllowed ? (
+        <Script
+          id="gtm-src"
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}
+        />
       ) : null}
 
       {allowed ? <PageViews /> : null}

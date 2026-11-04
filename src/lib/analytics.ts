@@ -19,7 +19,17 @@
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || null;
 
-export const analyticsConfigured = Boolean(GA_MEASUREMENT_ID);
+/**
+ * Google Tag Manager container. Hard-coded rather than read from the
+ * environment, at the client's request, so it ships with every build. It still
+ * waits for consent like GA does: nothing loads until the visitor says yes.
+ *
+ * If the container also holds a GA4 tag for the same property, leave
+ * `NEXT_PUBLIC_GA_MEASUREMENT_ID` unset, or every page view is counted twice.
+ */
+export const GTM_ID = "GTM-PBFCRC7F";
+
+export const analyticsConfigured = Boolean(GA_MEASUREMENT_ID || GTM_ID);
 
 type GtagArgs =
   | ["js", Date]
