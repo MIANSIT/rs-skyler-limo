@@ -145,6 +145,14 @@ export async function createReview(input: {
   );
 }
 
+export async function bookingHasReview(bookingId: number): Promise<boolean> {
+  const row = await queryOne<RowDataPacket>(
+    `SELECT 1 FROM reviews WHERE booking_id = :id LIMIT 1`,
+    { id: bookingId },
+  );
+  return Boolean(row);
+}
+
 export async function listReviewsForAdmin(
   status?: ReviewStatus,
 ): Promise<AdminReview[]> {

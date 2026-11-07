@@ -37,12 +37,14 @@ import {
 import {
   NOTIFIED_BOOKING_STATUSES,
   NOTIFIED_QUOTE_STATUSES,
+  reviewUrlFor,
 } from "../emails/updates.js";
 import {
   sendBookingUpdateEmail,
   sendQuoteUpdateEmail,
   sendPaymentLinkEmail,
   sendQuotedEmail,
+  sendReviewRequestEmail,
 } from "../services/mail.js";
 import { createPaymentLink } from "../lib/payment-link.js";
 import { bookingDue, canPayQuoteOnline } from "../services/payments.js";
@@ -51,6 +53,7 @@ import { execute } from "../db.js";
 import { bookingsWorkbook } from "../services/export.js";
 import { getQuoteById, listQuotes, updateQuote } from "../services/quotes.js";
 import {
+  bookingHasReview,
   deleteReview,
   listReviewsForAdmin,
   setReviewStatus,
@@ -465,6 +468,48 @@ adminRouter.post("/quotes/:id/payment-link", async (req, res) => {
   }
 
   res.json({ url: link.url, expiresAt: link.expiresAt.toISOString(), sent: send });
+});
+
+/**
+ * The review link for a completed trip — to copy into a message, or with
+ * `send: true` emailed to the customer as well. Unlike the status emails this
+ * one is awaited: the operator pressed a button for it and should be told
+ * whether it went. `sendReviewRequestEmail` never throws.
+ */
+adminRouter.post("/bookings/:id/review-request", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { send } = adminPaymentLinkSchema.parse(req.body ?? {});
+
+  const booking = await getBookingById(id);
+  if (!booking) throw ApiError.notFound("That booking no longer exists.");
+
+  if (booking.status !== "completed") {
+    throw ApiError.conflict("A trip can be reviewed once it is marked completed.");
+  }
+  if (await bookingHasReview(id)) {
+    throw ApiError.conflict("This customer has already reviewed this trip.");
+  }
+
+  const url = reviewUrlFor(booking.reference);
+  const sent = send ? await sendReviewRequestEmail(booking) : false;
+
+  await execute(
+    `INSERT INTO activity_log
+       (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+     VALUES ('booking', :id, :adminUserId, :action, NULL, NULL, :note)`,
+    {
+      id,
+      adminUserId: req.admin!.id,
+      action: !send ? "review_link_created" : sent ? "review_link_sent" : "review_link_failed",
+      note: !send
+        ? "Review link copied."
+        : sent
+          ? `Review link emailed to ${booking.customerEmail}.`
+          : `Could not email the review link to ${booking.customerEmail}. Mail may be unconfigured or refused — see the API log.`,
+    },
+  );
+
+  res.json({ url, sent, requested: send });
 });
 
 adminRouter.post("/bookings/:id/quote", async (req, res) => {

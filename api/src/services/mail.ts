@@ -3,7 +3,11 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { buildBookingEmail } from "../emails/booking.js";
 import { CONTACT } from "../emails/render.js";
 import { buildQuoteRequestEmail, buildQuotedEmail } from "../emails/quote.js";
-import { buildBookingUpdateEmail, buildQuoteUpdateEmail } from "../emails/updates.js";
+import {
+  buildBookingUpdateEmail,
+  buildQuoteUpdateEmail,
+  buildReviewRequestEmail,
+} from "../emails/updates.js";
 import { buildPaymentLinkEmail } from "../emails/payment.js";
 import { buildReceiptEmail, type ReceiptInput } from "../emails/receipt.js";
 import {
@@ -334,6 +338,18 @@ export async function sendBookingUpdateEmail(booking: Booking): Promise<boolean>
   }
 
   const email = buildBookingUpdateEmail(booking, vehicleName);
+  return send({
+    to: booking.customerEmail,
+    replyTo: CONTACT.email,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+}
+
+/** Asks a customer whose trip is complete to review it. Operator-triggered. */
+export async function sendReviewRequestEmail(booking: Booking): Promise<boolean> {
+  const email = buildReviewRequestEmail(booking);
   return send({
     to: booking.customerEmail,
     replyTo: CONTACT.email,

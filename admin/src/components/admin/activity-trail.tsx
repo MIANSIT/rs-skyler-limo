@@ -17,6 +17,9 @@ const actionLabels: Record<string, string> = {
   customer_email_sent: "Customer emailed",
   customer_email_skipped: "Customer not emailed",
   customer_email_failed: "Customer email FAILED",
+  review_link_sent: "Review link emailed",
+  review_link_created: "Review link copied",
+  review_link_failed: "Review link email FAILED",
 };
 
 export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {

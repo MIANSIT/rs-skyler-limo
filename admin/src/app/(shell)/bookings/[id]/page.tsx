@@ -8,6 +8,7 @@ import { BookingActions } from "@/components/admin/booking-actions";
 import { ChangedTag } from "@/components/admin/changed-tag";
 import { MarkOpened } from "@/components/admin/mark-opened";
 import { OutsideAreaTag } from "@/components/admin/outside-area-tag";
+import { ReviewRequestBox } from "@/components/admin/review-request-box";
 import { isPreManhattanFixedFare } from "@/lib/admin/fixed-fare-area";
 import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
 import { ChargesPanel } from "@/components/admin/charges-panel";
@@ -283,6 +284,12 @@ export default async function BookingDetailPage({
           <PaymentPanel
             booking={booking}
             hasUnpaidCharges={charges.some((charge) => !charge.paidAt)}
+          />
+
+          <ReviewRequestBox
+            id={booking.id}
+            email={booking.customerEmail}
+            status={booking.status}
           />
 
           <ActivityTrail entries={activity} />

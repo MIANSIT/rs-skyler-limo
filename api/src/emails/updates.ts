@@ -42,6 +42,11 @@ function siteUrl(path: string): string {
   return `${env.SITE_BASE_URL.replace(/\/+$/, "")}${path}`;
 }
 
+/** The public review form with the booking's reference filled in. */
+export function reviewUrlFor(reference: string): string {
+  return siteUrl(`/review?reference=${encodeURIComponent(reference)}`);
+}
+
 function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] || "there";
 }
@@ -133,7 +138,7 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
     taxRate: booking.taxRate,
   };
   const trackUrl = siteUrl(`/track?reference=${encodeURIComponent(booking.reference)}`);
-  const reviewUrl = siteUrl(`/review?reference=${encodeURIComponent(booking.reference)}`);
+  const reviewUrl = reviewUrlFor(booking.reference);
 
   const tripRows = [
     detailRow("Pick-up", escapeHtml(booking.pickup)),
@@ -202,6 +207,54 @@ export function buildBookingUpdateEmail(booking: Booking, vehicleName: string): 
   ].join("\n");
 
   return { subject: copy.subject, html, text };
+}
+
+/**
+ * The operator's "send the review link again" email. Shorter than the
+ * completed-trip message — no fare table, no payment line — because the
+ * customer has already had that one and only needs the link.
+ */
+export function buildReviewRequestEmail(booking: Booking): BuiltEmail {
+  const name = firstName(booking.customerName);
+  const reviewUrl = reviewUrlFor(booking.reference);
+  const trackUrl = siteUrl(`/track?reference=${encodeURIComponent(booking.reference)}`);
+  const reference = formatReference(booking.reference);
+  const headline = "How was your trip?";
+  const intro = `${name}, thank you for riding with us on ${formatDate(booking.pickupAt)}. If you have a minute, tell us how it went.`;
+  const after = `You will need your reference (${reference}) and the phone number you gave us, so only real customers review. Every review is read before it is published.`;
+
+  const html = shell({
+    preheader: `${reference} · ${headline}`,
+    eyebrow: "Your booking",
+    headline,
+    intro,
+    headerFacts: [
+      { label: "Pick-up date", value: formatDate(booking.pickupAt) },
+      { label: "Reference", value: reference },
+    ],
+    body: [
+      paragraph(escapeHtml(after)),
+      button(reviewUrl, "Leave a review"),
+      paragraph(
+        `Your booking stays on the <a href="${escapeHtml(trackUrl)}" style="color:${BRAND.midnight};font-weight:600;">tracking page</a>.`,
+      ),
+    ].join(""),
+    footerNote: FOOTER,
+  });
+
+  const text = [
+    `RSSKYLER LIMO — ${headline.replace(/\?$/, "").toUpperCase()}`,
+    "",
+    intro,
+    "",
+    after,
+    "",
+    `Leave a review: ${reviewUrl}`,
+    `View your booking: ${trackUrl}`,
+    ...signOff(),
+  ].join("\n");
+
+  return { subject: `How was your trip? — ${reference}`, html, text };
 }
 
 /* -------------------------------------------------------------------------- */

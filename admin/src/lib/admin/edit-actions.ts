@@ -251,6 +251,42 @@ export async function createPaymentLink(
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/* Review links                                                               */
+/* -------------------------------------------------------------------------- */
+
+export type ReviewLinkState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "ready"; url: string; sent: boolean; requested: boolean };
+
+/**
+ * The review link for a completed booking: emailed when the operator pressed
+ * "Email it", and always returned so it can be pasted into a text or WhatsApp.
+ */
+export async function requestReview(
+  _previous: ReviewLinkState,
+  formData: FormData,
+): Promise<ReviewLinkState> {
+  const { token } = await verifySession();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id < 1) return { status: "error", message: "Unknown booking." };
+
+  const send = formData.get("intent") === "send";
+
+  try {
+    const result = await apiFetch<{ url: string; sent: boolean; requested: boolean }>(
+      `/api/admin/bookings/${id}/review-request`,
+      { method: "POST", token, body: { send } },
+    );
+    revalidatePath(`/bookings/${id}`);
+    return { status: "ready", ...result };
+  } catch (error) {
+    if (error instanceof ApiRequestError) return { status: "error", message: error.failure.message };
+    throw error;
+  }
+}
+
 /**
  * A quote request's payment buttons — Mark paid / unpaid and switch method —
  * one field per submit, as on a booking.
