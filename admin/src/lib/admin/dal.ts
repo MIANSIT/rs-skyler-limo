@@ -20,6 +20,7 @@ import type {
   PossibleClash,
   Quote,
   RateGrid,
+  RefundsPayload,
   Report,
   ReviewStatus,
   Settings,
@@ -117,6 +118,7 @@ export async function getBooking(
   charges: Charge[];
   activity: ActivityEntry[];
   clashes: PossibleClash[];
+  refunds: RefundsPayload;
 } | null> {
   const { token } = await verifySession();
 
@@ -126,6 +128,7 @@ export async function getBooking(
       charges: Charge[];
       activity: ActivityEntry[];
       clashes: PossibleClash[];
+      refunds: RefundsPayload;
     }>(
       `/api/admin/bookings/${id}`,
       { token },
@@ -150,11 +153,11 @@ export async function getQuotes(
 
 export async function getQuote(
   id: number,
-): Promise<{ quote: Quote; activity: ActivityEntry[] } | null> {
+): Promise<{ quote: Quote; activity: ActivityEntry[]; refunds: RefundsPayload } | null> {
   const { token } = await verifySession();
 
   try {
-    return await apiFetch<{ quote: Quote; activity: ActivityEntry[] }>(
+    return await apiFetch<{ quote: Quote; activity: ActivityEntry[]; refunds: RefundsPayload }>(
       `/api/admin/quotes/${id}`,
       { token },
     );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { CancelRecord } from "@/components/site/cancel-record";
 import { ChangeRecord } from "@/components/site/change-record";
 import { Button, ButtonOnDark } from "@/components/ui/button";
 import { Field, Input, glassCard } from "@/components/ui/field";
@@ -260,6 +261,16 @@ export function TrackForm({
             fleet={fleet}
             placesEnabled={placesEnabled}
           />
+
+          <CancelRecord
+            key={`cancel-${state.quote.reference}`}
+            kind="quote"
+            reference={state.quote.reference}
+            phone={state.phone}
+            status={state.quote.status}
+            paid={state.quote.paymentStatus === "paid"}
+            cancel={state.quote.cancel}
+          />
         </div>
       ) : null}
 
@@ -387,6 +398,16 @@ export function TrackForm({
             change={state.booking.change}
             fleet={fleet}
             placesEnabled={placesEnabled}
+          />
+
+          <CancelRecord
+            key={`cancel-${state.booking.reference}`}
+            kind="booking"
+            reference={state.booking.reference}
+            phone={state.phone}
+            status={state.booking.status}
+            paid={state.booking.paymentStatus === "paid"}
+            cancel={state.booking.cancel}
           />
         </div>
       ) : null}

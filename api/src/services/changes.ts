@@ -14,7 +14,7 @@ import { todayInNewYork } from "../lib/new-york.js";
 import { samePhone } from "../lib/phone.js";
 import { isQuoteReference, isReference, normalizeReference } from "../lib/reference.js";
 import { withTax } from "../lib/tax.js";
-import type { ChangeBookingInput, ChangeQuoteInput } from "../schemas.js";
+import type { CancelRecordInput, ChangeBookingInput, ChangeQuoteInput } from "../schemas.js";
 import { getBookingById, getBookingByReference, type Booking } from "./bookings.js";
 import { CHILD_SEAT_FEE_CENTS, decideFare, type FareDecision } from "./pricing.js";
 import { getQuoteById, getQuoteByReference, type Quote } from "./quotes.js";
@@ -47,6 +47,12 @@ export const CHANGE_RULES = {
   tokenMinutes: 30,
   /** No self-service changes this close to pickup: the car may already be out. */
   cutoffHours: 12,
+  /**
+   * The terms: free to cancel more than 6 hours before pickup, the full fare
+   * inside it. Online cancelling stops at the same line, so the site never
+   * lets a customer take an action whose cost the terms say is not free.
+   */
+  cancelCutoffHours: 6,
 } as const;
 
 const NO_MATCH = "No booking matches those details.";
@@ -129,6 +135,57 @@ function assertChangeable(subject: ChangeSubject): void {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Whether a cancellation is allowed at all                                   */
+/* -------------------------------------------------------------------------- */
+
+export function bookingCancellability(booking: Booking, now = Date.now()): Changeability {
+  if (booking.status === "completed") {
+    return refused("This trip is complete, so it can no longer be cancelled.");
+  }
+  if (booking.status === "cancelled") {
+    return refused("This booking is already cancelled.");
+  }
+  if (Date.parse(booking.pickupAt) - now < CHANGE_RULES.cancelCutoffHours * 3_600_000) {
+    return refused(
+      `Your pickup is less than ${CHANGE_RULES.cancelCutoffHours} hours away, so it can't be cancelled online. Under our terms the full fare applies inside ${CHANGE_RULES.cancelCutoffHours} hours. If you need help, email us at ${CONTACT.email}.`,
+    );
+  }
+  return allowed;
+}
+
+export function quoteCancellability(quote: Quote): Changeability {
+  if (quote.status === "won") {
+    return refused(`This request is going ahead. Email us at ${CONTACT.email} to cancel it.`);
+  }
+  if (quote.status === "lost") {
+    return refused("This request is already closed.");
+  }
+  if (quote.paymentStatus === "paid") {
+    return refused(`This request is paid. Email us at ${CONTACT.email} to cancel it.`);
+  }
+  return allowed;
+}
+
+export function cancellability(subject: ChangeSubject): Changeability {
+  return subject.kind === "booking"
+    ? bookingCancellability(subject.booking)
+    : quoteCancellability(subject.quote);
+}
+
+function assertCancellable(subject: ChangeSubject): void {
+  const check = cancellability(subject);
+  if (!check.allowed) throw ApiError.conflict(check.reason ?? "This can no longer be cancelled online.");
+}
+
+export type CodePurpose = "change" | "cancel";
+
+/** The rule that matches what the code is for. */
+function assertAllowed(subject: ChangeSubject, purpose: CodePurpose): void {
+  if (purpose === "cancel") assertCancellable(subject);
+  else assertChangeable(subject);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Codes and tokens                                                           */
 /* -------------------------------------------------------------------------- */
 
@@ -153,8 +210,11 @@ export type IssuedCode = {
   resendAfterSeconds: number;
 };
 
-export async function issueChangeCode(subject: ChangeSubject): Promise<IssuedCode> {
-  assertChangeable(subject);
+export async function issueChangeCode(
+  subject: ChangeSubject,
+  purpose: CodePurpose = "change",
+): Promise<IssuedCode> {
+  assertAllowed(subject, purpose);
   const { type, id } = subjectKey(subject);
 
   const recent = await queryOne<
@@ -217,8 +277,9 @@ export async function issueChangeCode(subject: ChangeSubject): Promise<IssuedCod
 export async function verifyChangeCode(
   subject: ChangeSubject,
   code: string,
+  purpose: CodePurpose = "change",
 ): Promise<{ token: string; expiresInMinutes: number }> {
-  assertChangeable(subject);
+  assertAllowed(subject, purpose);
   const { type, id } = subjectKey(subject);
 
   const row = await queryOne<
@@ -817,6 +878,101 @@ export async function changeQuote(quote: Quote, input: ChangeQuoteInput): Promis
   if (!saved) throw ApiError.notFound("That quote no longer exists.");
 
   return { outcome: "saved", quote: saved, changes, statusChanged: nextStatus !== quote.status };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cancelling                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cancels a booking for the customer. Money never moves here: a paid booking is
+ * cancelled and flagged, and an operator sends the refund from Stripe by hand.
+ * The row is tagged "changed by customer" and the history says whether a refund
+ * may be owed, so the office does not have to work that out.
+ */
+export async function cancelBooking(
+  booking: Booking,
+  input: CancelRecordInput,
+): Promise<{ booking: Booking; wasPaid: boolean }> {
+  assertCancellable({ kind: "booking", booking });
+  await assertLiveToken("booking", booking.id, input.token);
+
+  const wasPaid = booking.paymentStatus === "paid";
+  const note = wasPaid
+    ? `Cancelled by the customer from the tracking page. The booking was paid${
+        booking.quotedTotalCents !== null ? ` (${formatMoney(booking.quotedTotalCents)} fare)` : ""
+      }, so a refund may be due. Check the Payment panel and Stripe.`
+    : "Cancelled by the customer from the tracking page. Nothing was paid, so no refund is due.";
+
+  await transaction(async (connection) => {
+    await spendToken(connection, "booking", booking.id, input.token);
+
+    // The status guard makes a double submit, or a status that moved while the
+    // customer was deciding, a refusal rather than a second cancellation.
+    const result = await executeOn(
+      connection,
+      `UPDATE bookings
+          SET status = 'cancelled',
+              customer_change_pending = 1,
+              customer_changed_at = UTC_TIMESTAMP()
+        WHERE id = :id AND status NOT IN ('cancelled','completed')`,
+      { id: booking.id },
+    );
+    if (result.affectedRows === 0) {
+      throw ApiError.conflict("This booking can no longer be cancelled online.");
+    }
+
+    await executeOn(
+      connection,
+      `INSERT INTO activity_log
+         (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+       VALUES ('booking', :id, NULL, 'customer_cancelled', :fromStatus, 'cancelled', :note)`,
+      { id: booking.id, fromStatus: booking.status, note },
+    );
+  });
+
+  const saved = await getBookingById(booking.id);
+  if (!saved) throw ApiError.notFound("That booking no longer exists.");
+  return { booking: saved, wasPaid };
+}
+
+/** An unpaid quote request closes as `lost`, the status the dashboard already uses. */
+export async function cancelQuote(quote: Quote, input: CancelRecordInput): Promise<Quote> {
+  assertCancellable({ kind: "quote", quote });
+  await assertLiveToken("quote", quote.id, input.token);
+
+  await transaction(async (connection) => {
+    await spendToken(connection, "quote", quote.id, input.token);
+
+    const result = await executeOn(
+      connection,
+      `UPDATE quotes
+          SET status = 'lost',
+              customer_change_pending = 1,
+              customer_changed_at = UTC_TIMESTAMP()
+        WHERE id = :id AND status NOT IN ('won','lost')`,
+      { id: quote.id },
+    );
+    if (result.affectedRows === 0) {
+      throw ApiError.conflict("This request can no longer be cancelled online.");
+    }
+
+    await executeOn(
+      connection,
+      `INSERT INTO activity_log
+         (subject_type, subject_id, admin_user_id, action, from_status, to_status, note)
+       VALUES ('quote', :id, NULL, 'customer_cancelled', :fromStatus, 'lost', :note)`,
+      {
+        id: quote.id,
+        fromStatus: quote.status,
+        note: "Cancelled by the customer from the tracking page. Nothing was paid, so no refund is due.",
+      },
+    );
+  });
+
+  const saved = await getQuoteById(quote.id);
+  if (!saved) throw ApiError.notFound("That quote no longer exists.");
+  return saved;
 }
 
 /* -------------------------------------------------------------------------- */

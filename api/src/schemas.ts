@@ -340,20 +340,32 @@ export const trackSchema = z.object({
 /* Customer self-service changes                                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * What the emailed code is for. Changing and cancelling have different cut-offs
+ * (12 hours and 6), so the API needs to know which rule to check when it issues
+ * and verifies the code.
+ */
+const changePurpose = z.enum(["change", "cancel"]).default("change");
+
 /** "Email me a code": the same two factors as /track. */
-export const changeCodeSchema = trackSchema;
+export const changeCodeSchema = trackSchema.extend({ purpose: changePurpose });
 
 export const changeVerifySchema = trackSchema.extend({
   code: z
     .string()
     .trim()
     .regex(/^\d{6}$/, "Enter the 6-digit code from the email."),
+  purpose: changePurpose,
 });
 
 /** Every save carries the lookup factors and the token the code was traded for. */
 const changeSession = trackSchema.extend({
   token: z.string().trim().min(20).max(200),
 });
+
+/** Cancelling spends the same kind of token and needs nothing else. */
+export const cancelRecordSchema = changeSession;
+export type CancelRecordInput = z.infer<typeof cancelRecordSchema>;
 
 /**
  * What a customer may change on their own booking. Trip type, airport,
@@ -428,6 +440,18 @@ export const updateChargeSchema = z.object({ paid: z.boolean() });
 /** The dashboard's "payment link" action: make one, and optionally email it. */
 export const adminPaymentLinkSchema = z.object({
   send: z.boolean().default(false),
+});
+
+/**
+ * A refund the operator has already made in Stripe. Both amounts are cents, and
+ * the amount is what the customer got back with sales tax inside it; the tax
+ * part is the operator's call and may be zero. The service checks both against
+ * what was actually paid.
+ */
+export const recordRefundSchema = z.object({
+  amountCents: z.coerce.number().int().min(1, "Enter an amount above zero.").max(100_000_00),
+  taxCents: z.coerce.number().int().min(0).max(100_000_00).default(0),
+  note: z.string().trim().max(500).optional().nullable(),
 });
 
 /** The id Stripe puts in the success URL. Shape only; Stripe is asked the rest. */

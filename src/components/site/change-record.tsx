@@ -31,7 +31,7 @@ function money(cents: number | null): string {
   return cents === null ? "" : formatFare(cents);
 }
 
-function Submit({
+export function Submit({
   intent,
   children,
   pendingLabel,
@@ -49,7 +49,7 @@ function Submit({
 }
 
 /** A plain text button, for the steps that are not the main one. */
-function TextButton({ intent, children }: { intent: string; children: string }) {
+export function TextButton({ intent, children }: { intent: string; children: string }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -65,7 +65,7 @@ function TextButton({ intent, children }: { intent: string; children: string }) 
   );
 }
 
-function Alert({ children }: { children: string }) {
+export function Alert({ children }: { children: string }) {
   return (
     <p role="alert" className="border-l-2 border-red-300 bg-red-500/10 px-4 py-3 text-[14px] leading-[1.6] text-red-200">
       {children}
@@ -73,7 +73,7 @@ function Alert({ children }: { children: string }) {
   );
 }
 
-function Heading({ children }: { children: ReactNode }) {
+export function Heading({ children }: { children: ReactNode }) {
   return <h3 className="font-sans text-[17px] font-semibold text-white">{children}</h3>;
 }
 

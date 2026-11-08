@@ -483,6 +483,31 @@ CREATE TABLE IF NOT EXISTS booking_charges (
     FOREIGN KEY (created_by) REFERENCES admin_users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Money sent back to a customer. Recorded by an operator AFTER they have refunded
+-- it by hand in the Stripe Dashboard — nothing here moves money. One row per
+-- refund, so a booking can be refunded in parts; `amount_cents` is what the
+-- customer got back (sales tax included) and `tax_cents` is the share of that
+-- the operator treated as sales tax returned. The tax share is the operator's
+-- call and can be zero, so the sales-tax report subtracts exactly this column.
+-- Like `activity_log` it points at a booking or a quote request by type and id,
+-- with no foreign key: the order and its refunds are read together, never joined
+-- through one.
+CREATE TABLE IF NOT EXISTS refunds (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  subject_type   ENUM('booking','quote') NOT NULL,
+  subject_id     BIGINT UNSIGNED NOT NULL,
+  amount_cents   INT UNSIGNED NOT NULL,
+  tax_cents      INT UNSIGNED NOT NULL DEFAULT 0,
+  note           VARCHAR(500) NULL,
+  admin_user_id  BIGINT UNSIGNED NULL,
+  created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_refunds_subject (subject_type, subject_id),
+  KEY ix_refunds_created (created_at),
+  CONSTRAINT fk_refunds_admin_user
+    FOREIGN KEY (admin_user_id) REFERENCES admin_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- The photo on each service card (Airport Transfers, Weddings, Events, ...),
 -- uploaded from the dashboard's Service photos page. One row per service,
 -- keyed by the service's slug; a service with no row falls back to the photo

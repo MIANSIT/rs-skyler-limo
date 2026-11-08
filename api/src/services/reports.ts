@@ -39,8 +39,14 @@ export type Report = {
     /** Confirmed and completed bookings plus won quote requests. */
     committedCents: number;
     committedCount: number;
-    /** Marked paid — by Stripe or by an operator — whatever the status. */
+    /**
+     * Marked paid — by Stripe or by an operator — whatever the status, **less
+     * refunds** on those orders. Refunds are recorded per order, not per fare or
+     * per extra charge, so they come off this one figure.
+     */
     collectedCents: number;
+    /** Refunded to customers on orders placed in the period. */
+    refundedCents: number;
     /** Committed but not yet paid. */
     outstandingCents: number;
     /** Priced and waiting on the customer or an operator, not yet committed. */
@@ -57,9 +63,21 @@ export type Report = {
    * September's payments, whenever those trips were booked.
    */
   salesTax: {
-    /** Tax inside every payment received in the period — the figure to pay. */
+    /**
+     * Tax inside every payment received in the period, **less the tax part of
+     * every refund made in the period** — the figure to pay. Refunds are dated
+     * by when they were recorded, as payments are by when they were paid, so a
+     * refund of last month's payment lowers this month's return. It can be
+     * negative when a period refunds more tax than it collected: a credit.
+     */
     dueCents: number;
-    /** Those payments before tax: the taxable sales line on the return. */
+    /** Tax inside the period's payments, before refunds. */
+    collectedTaxCents: number;
+    /** The tax part of refunds recorded in the period. */
+    refundedTaxCents: number;
+    /** Everything refunded in the period, tax included. */
+    refundedCents: number;
+    /** Those payments before tax, less refunds before tax: the taxable sales line. */
     taxableSalesCents: number;
     /** Payments received in the period, bookings and quote requests. */
     paidOrders: number;
@@ -136,7 +154,20 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
   // Payments received in the window, for the sales tax owed on them.
   const paidInWindow = `payment_status = 'paid' AND paid_at >= :start AND paid_at < :end`;
 
-  const [bookingRows, quoteRows, tripRows, vehicleRows, bookingPlaced, quotePlaced, bookingPaid, quotePaid, chargesPaid] =
+  const [
+    bookingRows,
+    quoteRows,
+    tripRows,
+    vehicleRows,
+    bookingPlaced,
+    quotePlaced,
+    bookingPaid,
+    quotePaid,
+    chargesPaid,
+    bookingRefundsPlaced,
+    quoteRefundsPlaced,
+    refundsMade,
+  ] =
     await Promise.all([
       query<StatusRow>(
         `SELECT status, pricing_mode,
@@ -215,6 +246,32 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
            FROM booking_charges WHERE paid_at >= :start AND paid_at < :end`,
         window,
       ),
+      // Refunds against orders PLACED in the window, to net the "collected" card
+      // on the same date as the rest of that group.
+      queryOne<PaidRow>(
+        `SELECT COUNT(*) AS orders,
+                COALESCE(SUM(r.amount_cents), 0) AS total_cents,
+                COALESCE(SUM(r.tax_cents), 0)    AS tax_cents
+           FROM refunds r JOIN bookings b ON r.subject_type = 'booking' AND b.id = r.subject_id
+          WHERE b.created_at >= :start AND b.created_at < :end`,
+        window,
+      ),
+      queryOne<PaidRow>(
+        `SELECT COUNT(*) AS orders,
+                COALESCE(SUM(r.amount_cents), 0) AS total_cents,
+                COALESCE(SUM(r.tax_cents), 0)    AS tax_cents
+           FROM refunds r JOIN quotes q ON r.subject_type = 'quote' AND q.id = r.subject_id
+          WHERE q.created_at >= :start AND q.created_at < :end`,
+        window,
+      ),
+      // Refunds RECORDED in the window, for the tax owed: dated like payments are.
+      queryOne<PaidRow>(
+        `SELECT COUNT(*) AS orders,
+                COALESCE(SUM(amount_cents), 0) AS total_cents,
+                COALESCE(SUM(tax_cents), 0)    AS tax_cents
+           FROM refunds WHERE created_at >= :start AND created_at < :end`,
+        window,
+      ),
     ]);
 
   const paidTotal =
@@ -226,6 +283,11 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
     Number(quotePaid?.tax_cents ?? 0) +
     Number(chargesPaid?.tax_cents ?? 0);
 
+  const refundedPlacedCents =
+    Number(bookingRefundsPlaced?.total_cents ?? 0) + Number(quoteRefundsPlaced?.total_cents ?? 0);
+  const refundedMadeCents = Number(refundsMade?.total_cents ?? 0);
+  const refundedMadeTax = Number(refundsMade?.tax_cents ?? 0);
+
   const bookingsByStatus = zeroed(bookingStatuses);
   const quotesByStatus = zeroed(quoteStatuses);
 
@@ -233,6 +295,7 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
     committedCents: 0,
     committedCount: 0,
     collectedCents: 0,
+    refundedCents: refundedPlacedCents,
     outstandingCents: 0,
     pipelineCents: 0,
     unpricedCount: 0,
@@ -282,6 +345,9 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
   tally(bookingRows, bookingsByStatus, committedBooking, true);
   tally(quoteRows, quotesByStatus, committedQuote, false);
 
+  // The tally above counts what was marked paid; what went back is not collected.
+  value.collectedCents -= refundedPlacedCents;
+
   const bucket = daysBetween(from, to) + 1 > MAX_DAILY_BUCKETS ? "month" : "day";
   const keyOf = (date: string) => (bucket === "day" ? date : date.slice(0, 7));
 
@@ -318,8 +384,11 @@ export async function getReport(input: { from?: string; to?: string }): Promise<
           : null,
     },
     salesTax: {
-      dueCents: paidTax,
-      taxableSalesCents: paidTotal - paidTax,
+      dueCents: paidTax - refundedMadeTax,
+      collectedTaxCents: paidTax,
+      refundedTaxCents: refundedMadeTax,
+      refundedCents: refundedMadeCents,
+      taxableSalesCents: paidTotal - paidTax - (refundedMadeCents - refundedMadeTax),
       paidOrders: Number(bookingPaid?.orders ?? 0) + Number(quotePaid?.orders ?? 0),
       notYetCollectedCents,
     },

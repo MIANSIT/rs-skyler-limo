@@ -1,6 +1,11 @@
 import { formatMoney } from "@/lib/admin/format";
 import type { Report } from "@/lib/api/types";
 
+/** A credit (a period that refunded more tax than it collected) reads as one. */
+function signed(cents: number): string {
+  return cents < 0 ? `−${formatMoney(-cents)}` : formatMoney(cents);
+}
+
 /**
  * The one number the office needs at tax time: the sales tax to pay the state
  * for the chosen dates. Nothing to add up — it is the tax inside every payment
@@ -32,24 +37,44 @@ export function SalesTaxPanel({
             Sales tax to pay the government
           </h2>
           <p className="font-display mt-2 text-[44px] leading-none font-semibold text-midnight tabular-nums">
-            {formatMoney(tax.dueCents)}
+            {signed(tax.dueCents)}
           </p>
           <p className="mt-3 max-w-xl font-sans text-[14px] leading-[1.7] text-charcoal/80 tabular-nums">
-            {tax.paidOrders === 0
+            {tax.paidOrders === 0 && tax.refundedCents === 0
               ? `No payments received ${dates}, so no sales tax is due for these dates.`
               : `Collected from customers in ${tax.paidOrders} ${
                   tax.paidOrders === 1 ? "payment" : "payments"
-                } received ${dates}, card and cash. This is the amount to send to New York State for these dates.`}
+                } received ${dates}, card and cash${
+                  tax.refundedCents > 0 ? ", less the sales tax returned in refunds" : ""
+                }. ${
+                  tax.dueCents < 0
+                    ? "This is a credit: more tax was refunded than collected for these dates."
+                    : "This is the amount to send to New York State for these dates."
+                }`}
           </p>
         </div>
 
         <dl className="grid grid-cols-[auto_auto] gap-x-8 gap-y-2 font-sans text-[14px] tabular-nums">
           <dt className="text-charcoal/70">Taxable sales (before tax)</dt>
           <dd className="text-right font-semibold text-midnight">
-            {formatMoney(tax.taxableSalesCents)}
+            {signed(tax.taxableSalesCents)}
           </dd>
           <dt className="text-charcoal/70">Sales tax collected</dt>
-          <dd className="text-right font-semibold text-midnight">{formatMoney(tax.dueCents)}</dd>
+          <dd className="text-right font-semibold text-midnight">
+            {formatMoney(tax.collectedTaxCents)}
+          </dd>
+          {tax.refundedCents > 0 ? (
+            <>
+              <dt className="text-charcoal/70">Sales tax refunded</dt>
+              <dd className="text-right font-semibold text-midnight">
+                {tax.refundedTaxCents > 0 ? `−${formatMoney(tax.refundedTaxCents)}` : formatMoney(0)}
+              </dd>
+              <dt className="text-charcoal/70">Refunded to customers (all)</dt>
+              <dd className="text-right font-semibold text-midnight">
+                −{formatMoney(tax.refundedCents)}
+              </dd>
+            </>
+          ) : null}
           <dt className="text-charcoal/70">Total received</dt>
           <dd className="text-right font-semibold text-midnight">
             {formatMoney(tax.taxableSalesCents + tax.dueCents)}

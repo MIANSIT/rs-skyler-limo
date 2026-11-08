@@ -152,7 +152,11 @@ export default async function ReportsPage({
           <StatCard
             label="Collected"
             value={formatMoney(value.collectedCents)}
-            hint="Marked paid, card or cash"
+            hint={
+              value.refundedCents > 0
+                ? `Marked paid, less ${formatMoney(value.refundedCents)} refunded`
+                : "Marked paid, card or cash"
+            }
           />
           <StatCard
             label="Outstanding"

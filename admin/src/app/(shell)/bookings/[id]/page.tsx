@@ -14,6 +14,7 @@ import { CustomerChangePanel } from "@/components/admin/customer-change-panel";
 import { ChargesPanel } from "@/components/admin/charges-panel";
 import { PaymentPanel } from "@/components/admin/payment-panel";
 import { QuotePanel } from "@/components/admin/quote-panel";
+import { RefundPanel } from "@/components/admin/refund-panel";
 import { DetailRow } from "@/components/admin/detail-row";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getBooking } from "@/lib/admin/dal";
@@ -51,7 +52,7 @@ export default async function BookingDetailPage({
   const result = await getBooking(numericId);
   if (!result) notFound();
 
-  const { booking, charges, activity, clashes } = result;
+  const { booking, charges, activity, clashes, refunds } = result;
 
   return (
     <div className="flex flex-col gap-8">
@@ -285,6 +286,8 @@ export default async function BookingDetailPage({
             booking={booking}
             hasUnpaidCharges={charges.some((charge) => !charge.paidAt)}
           />
+
+          <RefundPanel kind="booking" id={booking.id} data={refunds} />
 
           <ReviewRequestBox
             id={booking.id}

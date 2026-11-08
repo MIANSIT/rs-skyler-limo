@@ -7,6 +7,7 @@ import { isQuoteReference, isReference, normalizeReference } from "../lib/refere
 import { issueFormToken, requireFormGuard } from "../lib/form-guard.js";
 import { rateLimit } from "../middleware.js";
 import {
+  cancelRecordSchema,
   changeBookingSchema,
   changeCodeSchema,
   changeQuoteSchema,
@@ -46,17 +47,22 @@ import { getDefaultTaxRate } from "../services/settings.js";
 import {
   sendBookingChangedEmails,
   sendBookingEmails,
+  sendCancelledByCustomerEmails,
   sendChangeCodeEmail,
   sendQuoteChangedEmails,
   sendQuoteRequestEmails,
 } from "../services/mail.js";
 import {
+  bookingCancellability,
   bookingChangeability,
   bookingEditable,
+  cancelBooking,
+  cancelQuote,
   changeBooking,
   changeQuote,
   findChangeSubject,
   issueChangeCode,
+  quoteCancellability,
   quoteChangeability,
   quoteEditable,
   verifyChangeCode,
@@ -388,6 +394,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       paymentStatus: quote.paymentStatus,
       createdAt: quote.createdAt,
       change: quoteChangeability(quote),
+      cancel: quoteCancellability(quote),
     });
     return;
   }
@@ -425,6 +432,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     paymentStatus: booking.paymentStatus,
     canPayOnline: canPayOnline(booking),
     change: bookingChangeability(booking),
+    cancel: bookingCancellability(booking),
   });
 });
 
@@ -438,9 +446,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
  * page already tells the customer how to reach the office.
  */
 publicRouter.post("/change/code", changeLimit, async (req, res) => {
-  const { reference, phone } = changeCodeSchema.parse(req.body);
+  const { reference, phone, purpose } = changeCodeSchema.parse(req.body);
   const subject = await findChangeSubject(reference, phone);
-  const issued = await issueChangeCode(subject);
+  const issued = await issueChangeCode(subject, purpose);
 
   const record = subject.kind === "booking" ? subject.booking : subject.quote;
   void sendChangeCodeEmail({
@@ -450,6 +458,7 @@ publicRouter.post("/change/code", changeLimit, async (req, res) => {
     customerName: record.customerName,
     code: issued.code,
     expiresInMinutes: issued.expiresInMinutes,
+    purpose,
   }).catch((error: unknown) => {
     console.error(
       `[mail] unexpected failure sending a change code for ${record.reference}:`,
@@ -466,9 +475,15 @@ publicRouter.post("/change/code", changeLimit, async (req, res) => {
 
 /** The code, traded for a change token and the record's editable fields. */
 publicRouter.post("/change/verify", changeLimit, async (req, res) => {
-  const { reference, phone, code } = changeVerifySchema.parse(req.body);
+  const { reference, phone, code, purpose } = changeVerifySchema.parse(req.body);
   const subject = await findChangeSubject(reference, phone);
-  const { token, expiresInMinutes } = await verifyChangeCode(subject, code);
+  const { token, expiresInMinutes } = await verifyChangeCode(subject, code, purpose);
+
+  // Cancelling needs no form to fill in, so no record's details leave the API.
+  if (purpose === "cancel") {
+    res.json({ token, expiresInMinutes });
+    return;
+  }
 
   res.json({
     token,
@@ -529,6 +544,37 @@ publicRouter.post("/change/quote", changeLimit, async (req, res) => {
   }
 
   res.json(result);
+});
+
+/**
+ * Cancels the customer's own booking or quote request, with the token a correct
+ * emailed code bought. A paid booking is cancelled and flagged for a refund the
+ * office sends from Stripe; nothing here moves money.
+ */
+publicRouter.post("/cancel", changeLimit, async (req, res) => {
+  const input = cancelRecordSchema.parse(req.body);
+  const subject = await findChangeSubject(input.reference, input.phone);
+
+  if (subject.kind === "booking") {
+    const { booking, wasPaid } = await cancelBooking(subject.booking, input);
+    void sendCancelledByCustomerEmails({ kind: "booking", booking, wasPaid }).catch((error: unknown) => {
+      console.error(
+        `[mail] unexpected failure for ${booking.reference}:`,
+        error instanceof Error ? error.message : error,
+      );
+    });
+    res.json({ outcome: "cancelled", kind: "booking", reference: booking.reference, wasPaid });
+    return;
+  }
+
+  const quote = await cancelQuote(subject.quote, input);
+  void sendCancelledByCustomerEmails({ kind: "quote", quote }).catch((error: unknown) => {
+    console.error(
+      `[mail] unexpected failure for ${quote.reference}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
+  res.json({ outcome: "cancelled", kind: "quote", reference: quote.reference, wasPaid: false });
 });
 
 /**
