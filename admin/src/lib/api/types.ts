@@ -145,6 +145,30 @@ export type Charge = {
   createdAt: string;
 };
 
+/** A refund an operator has recorded after sending it from Stripe. Mirrors `Refund` in `api/src/services/refunds.ts`. */
+export type Refund = {
+  id: number;
+  /** What the customer got back, sales tax included. */
+  amountCents: number;
+  /** The share of `amountCents` treated as sales tax returned. May be 0. */
+  taxCents: number;
+  note: string | null;
+  recordedBy: string | null;
+  createdAt: string;
+};
+
+export type RefundSummary = {
+  paidCents: number;
+  paidTaxCents: number;
+  refundedCents: number;
+  refundedTaxCents: number;
+  /** Still refundable: paid less refunded. */
+  remainingCents: number;
+  remainingTaxCents: number;
+};
+
+export type RefundsPayload = { refunds: Refund[]; summary: RefundSummary };
+
 export type ActivityEntry = {
   id: number;
   action: string;
@@ -189,8 +213,10 @@ export type Report = {
     /** Confirmed and completed bookings plus won quote requests. */
     committedCents: number;
     committedCount: number;
-    /** Marked paid, by Stripe or by an operator. */
+    /** Marked paid, by Stripe or by an operator, less refunds on those orders. */
     collectedCents: number;
+    /** Refunded to customers on orders placed in the period. */
+    refundedCents: number;
     /** Committed but not yet paid. */
     outstandingCents: number;
     /** Priced, not yet committed. */
@@ -204,9 +230,18 @@ export type Report = {
    * received in the period — not by the date orders were placed.
    */
   salesTax: {
-    /** The figure to pay: tax inside every payment received in the period. */
+    /**
+     * The figure to pay: tax inside every payment received in the period, less
+     * the tax part of refunds recorded in it. Negative means a credit.
+     */
     dueCents: number;
-    /** Those payments before tax. */
+    /** Tax inside the period's payments, before refunds. */
+    collectedTaxCents: number;
+    /** The tax part of refunds recorded in the period. */
+    refundedTaxCents: number;
+    /** Everything refunded in the period, tax included. */
+    refundedCents: number;
+    /** Those payments before tax, less refunds before tax. */
     taxableSalesCents: number;
     paidOrders: number;
     /** Tax on committed, unpaid orders placed in the period; owed once paid. */

@@ -8,6 +8,7 @@ import {
   listBookingsSchema,
   listQuotesSchema,
   listReviewsSchema,
+  recordRefundSchema,
   reportSchema,
   saveRatesSchema,
   saveZoneRatesSchema,
@@ -58,6 +59,7 @@ import {
   listReviewsForAdmin,
   setReviewStatus,
 } from "../services/reviews.js";
+import { getRefunds, recordRefund } from "../services/refunds.js";
 import { getRateGrid, saveRates, sendQuote } from "../services/pricing.js";
 import { getDashboardStats } from "../services/stats.js";
 import { getReport } from "../services/reports.js";
@@ -172,6 +174,29 @@ adminRouter.get("/bookings/:id", async (req, res) => {
     charges: await listCharges(id),
     activity: await getActivity("booking", id),
     clashes: await findClashes(booking),
+    refunds: await getRefunds("booking", id),
+  });
+});
+
+/**
+ * Records a refund the operator has already sent from Stripe. Nothing here
+ * moves money; see `services/refunds.ts`.
+ */
+adminRouter.post("/bookings/:id/refunds", async (req, res) => {
+  const id = parseId(req.params.id);
+  const input = recordRefundSchema.parse(req.body);
+  res.status(201).json({
+    refunds: await recordRefund("booking", id, input, req.admin!.id),
+    activity: await getActivity("booking", id),
+  });
+});
+
+adminRouter.post("/quotes/:id/refunds", async (req, res) => {
+  const id = parseId(req.params.id);
+  const input = recordRefundSchema.parse(req.body);
+  res.status(201).json({
+    refunds: await recordRefund("quote", id, input, req.admin!.id),
+    activity: await getActivity("quote", id),
   });
 });
 
@@ -250,7 +275,11 @@ adminRouter.get("/quotes/:id", async (req, res) => {
   const quote = await getQuoteById(id);
   if (!quote) throw ApiError.notFound("That quote no longer exists.");
 
-  res.json({ quote, activity: await getActivity("quote", id) });
+  res.json({
+    quote,
+    activity: await getActivity("quote", id),
+    refunds: await getRefunds("quote", id),
+  });
 });
 
 adminRouter.patch("/quotes/:id", async (req, res) => {

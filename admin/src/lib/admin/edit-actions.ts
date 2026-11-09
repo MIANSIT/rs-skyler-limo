@@ -252,6 +252,57 @@ export async function createPaymentLink(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Refunds                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type RefundFormState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "saved"; message: string };
+
+/**
+ * Records a refund the operator has already sent from the Stripe Dashboard.
+ * Nothing here — or in the API behind it — moves money. The amount and the
+ * sales-tax part are typed in dollars and sent in cents; the API checks both
+ * against what was actually paid and not yet refunded.
+ */
+export async function recordRefund(
+  _previous: RefundFormState,
+  formData: FormData,
+): Promise<RefundFormState> {
+  const { token } = await verifySession();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id < 1) return { status: "error", message: "Unknown order." };
+
+  const kind = formData.get("kind") === "quote" ? "quotes" : "bookings";
+
+  const amountCents = dollarsToCents(text(formData, "amount"));
+  if (amountCents === null || Number.isNaN(amountCents) || amountCents < 1) {
+    return { status: "error", message: "Enter the amount you refunded, like 25 or 25.50." };
+  }
+  // Blank means no sales tax returned, which is a legitimate answer.
+  const taxCents = dollarsToCents(text(formData, "tax")) ?? 0;
+  if (Number.isNaN(taxCents)) {
+    return { status: "error", message: "Enter the sales tax part like 2.22, or leave it empty for none." };
+  }
+
+  try {
+    await apiFetch(`/api/admin/${kind}/${id}/refunds`, {
+      method: "POST",
+      token,
+      body: { amountCents, taxCents, note: optional(formData, "note") },
+    });
+  } catch (error) {
+    if (error instanceof ApiRequestError) return { status: "error", message: error.failure.message };
+    throw error;
+  }
+
+  revalidatePath(`/${kind}/${id}`);
+  revalidatePath("/");
+  return { status: "saved", message: "Refund recorded." };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Review links                                                               */
 /* -------------------------------------------------------------------------- */
 

@@ -11,6 +11,7 @@ import { MarkOpened } from "@/components/admin/mark-opened";
 import { QuoteActions } from "@/components/admin/quote-actions";
 import { QuotePaymentPanel } from "@/components/admin/quote-payment-panel";
 import { QuotePricePanel } from "@/components/admin/quote-price-panel";
+import { RefundPanel } from "@/components/admin/refund-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { getQuote } from "@/lib/admin/dal";
 import { formatDay, formatEventDate, formatService } from "@/lib/admin/format";
@@ -39,7 +40,7 @@ export default async function QuoteDetailPage({
   const result = await getQuote(numericId);
   if (!result) notFound();
 
-  const { quote, activity } = result;
+  const { quote, activity, refunds } = result;
 
   return (
     <div className="flex flex-col gap-8">
@@ -139,6 +140,8 @@ export default async function QuoteDetailPage({
           <QuotePricePanel quote={quote} />
 
           {quote.agreedPriceCents !== null ? <QuotePaymentPanel quote={quote} /> : null}
+
+          <RefundPanel kind="quote" id={quote.id} data={refunds} />
 
           <ActivityTrail entries={activity} />
         </div>

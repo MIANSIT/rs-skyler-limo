@@ -101,6 +101,19 @@ Things that are easy to get wrong here:
   previews only. Reports' "Sales tax to pay" counts by `paid_at` (tax is owed
   on money received), while the rest of Reports counts by order date — keep it
   that way.
+- **Refunds are recorded, never made.** An operator refunds in the Stripe
+  Dashboard by hand, then records it in the `refunds` table
+  (`api/src/services/refunds.ts`, the Refunds panel on a booking or quote
+  request). Nothing in the app calls Stripe to refund, on purpose. A refund is an
+  amount (sales tax inside it) plus a **tax part the operator chooses**, from
+  zero up to the tax paid and not yet returned — keeping the tax on a partial
+  refund is allowed. What can be refunded is what was actually paid (the fare
+  once marked paid, plus every paid extra charge) less earlier refunds, checked
+  under a row lock. Reports subtracts them in two ways, deliberately: "Collected"
+  nets refunds by **order date** like the rest of that group, while "Sales tax to
+  pay" subtracts the tax part by **refund date**, as payments count by `paid_at`,
+  so it can go negative (a credit). A customer cancelling a paid booking online
+  only flags it; the refund is still the office's to send and record.
 - **`sharp` is pinned to 0.33.x by `overrides`, and both halves matter.** Next 16
   declares `sharp ^0.35.4`, whose prebuilt Linux x64 binaries require the
   x86-64-v2 microarchitecture. The VPS reports a `QEMU Virtual CPU version 2.5+`
@@ -191,6 +204,13 @@ Things that are easy to get wrong here:
   `customer_change_pending`, shown as "Changed by customer" in the admin until
   someone marks it reviewed; the before → after lives in `activity_log`
   (`customer_changed`, `admin_user_id` NULL). No changes within 12 hours of pickup.
+  **Cancelling uses the same code and token** (`purpose: "cancel"`, `POST
+  /api/cancel`, `cancelBooking`/`cancelQuote` in `changes.ts`) but its own
+  cut-off: more than **6 hours** before pickup, the line in the terms, not 12. A
+  booking becomes `cancelled`, an unpaid quote request `lost`; a paid quote
+  request cannot be cancelled online. Cancelling **never moves money**: a paid
+  booking is cancelled and flagged in `activity_log` (`customer_cancelled`) for
+  the office to refund by hand in Stripe.
 
 See the README for setup and `deploy/nginx.conf` for the two server blocks.
 

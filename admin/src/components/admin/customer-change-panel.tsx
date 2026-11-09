@@ -50,7 +50,7 @@ export function CustomerChangePanel({
   const unreviewed: ActivityEntry[] = [];
   for (const entry of activity) {
     if (entry.action === "change_reviewed") break;
-    if (entry.action === "customer_changed") unreviewed.push(entry);
+    if (entry.action === "customer_changed" || entry.action === "customer_cancelled") unreviewed.push(entry);
   }
 
   return (
@@ -59,8 +59,8 @@ export function CustomerChangePanel({
         Changed by the customer
       </h2>
       <p className="mt-2 max-w-2xl font-sans text-[15px] leading-[1.7] text-charcoal/80">
-        The customer changed this {kind === "quote" ? "quote request" : "booking"} themselves from the tracking page, after confirming the email on it with a
-        one-time code. Check the changes, then mark them reviewed.
+        The customer changed or cancelled this {kind === "quote" ? "quote request" : "booking"} themselves from the tracking page, after confirming the email on it with a
+        one-time code. Check what they did, then mark it reviewed.
       </p>
 
       {unreviewed.map((entry) => (
@@ -69,7 +69,13 @@ export function CustomerChangePanel({
             {formatRelative(entry.createdAt)}
             {entry.toStatus ? ` · status ${entry.fromStatus} → ${entry.toStatus}` : ""}
           </p>
-          <dl className="mt-2 divide-y divide-midnight/8 rounded-sm border border-midnight/10">
+          {/* A cancellation is a sentence, not a list of before → after rows. */}
+          {entry.action === "customer_cancelled" ? (
+            <p className="mt-2 border-l-2 border-gold bg-grey px-4 py-3 font-sans text-[14px] leading-[1.6] text-midnight">
+              {entry.note}
+            </p>
+          ) : null}
+          <dl className="mt-2 divide-y divide-midnight/8 rounded-sm border border-midnight/10 empty:hidden">
             {parse(entry.note).map((item) => (
               <div key={item.label} className="grid gap-1 px-4 py-2.5 sm:grid-cols-[10rem_minmax(0,1fr)]">
                 <dt className="font-sans text-[13px] font-medium tracking-[0.06em] text-charcoal/60 uppercase">

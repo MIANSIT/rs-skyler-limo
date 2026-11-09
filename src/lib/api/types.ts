@@ -104,6 +104,8 @@ export type TrackedBooking = {
   canPayOnline: boolean;
   /** Whether the customer may change it online now, and if not, why. */
   change: Changeability;
+  /** The same for cancelling, which has its own cut-off (6 hours, not 12). */
+  cancel: Changeability;
 };
 
 /** What /track returns for a quote request (`RQ-…`): status, nothing more. */
@@ -124,6 +126,7 @@ export type TrackedQuote = {
   paymentStatus: "unpaid" | "paid";
   createdAt: string;
   change: Changeability;
+  cancel: Changeability;
 };
 
 /* -------------------------------------------------------------------------- */

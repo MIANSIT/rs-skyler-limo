@@ -12,8 +12,10 @@ import { buildPaymentLinkEmail } from "../emails/payment.js";
 import { buildReceiptEmail, type ReceiptInput } from "../emails/receipt.js";
 import {
   buildBookingChangedEmail,
+  buildCancelledByCustomerEmail,
   buildChangeCodeEmail,
   buildQuoteChangedEmail,
+  type CancelledRecord,
 } from "../emails/changes.js";
 import type { FieldChange } from "./changes.js";
 import { createPaymentLink } from "../lib/payment-link.js";
@@ -392,6 +394,7 @@ export async function sendChangeCodeEmail(input: {
   customerName: string;
   code: string;
   expiresInMinutes: number;
+  purpose?: "change" | "cancel";
 }): Promise<void> {
   const email = buildChangeCodeEmail(input);
   await send({ to: input.to, subject: email.subject, html: email.html, text: email.text });
@@ -420,6 +423,30 @@ export async function sendBookingChangedEmails(booking: Booking, changes: FieldC
     send({
       ...opsEnvelope(),
       replyTo: booking.customerEmail,
+      subject: ops.subject,
+      html: ops.html,
+      text: ops.text,
+    }),
+  ]);
+}
+
+/** A customer cancelled: a confirmation to them, a heads-up to the office. */
+export async function sendCancelledByCustomerEmails(record: CancelledRecord): Promise<void> {
+  const source = record.kind === "booking" ? record.booking : record.quote;
+  const customer = buildCancelledByCustomerEmail(record, "customer");
+  const ops = buildCancelledByCustomerEmail(record, "ops");
+
+  await Promise.allSettled([
+    send({
+      to: source.customerEmail,
+      replyTo: CONTACT.email,
+      subject: customer.subject,
+      html: customer.html,
+      text: customer.text,
+    }),
+    send({
+      ...opsEnvelope(),
+      replyTo: source.customerEmail,
       subject: ops.subject,
       html: ops.html,
       text: ops.text,

@@ -13,6 +13,8 @@ const actionLabels: Record<string, string> = {
   payment_link_created: "Payment link created",
   price_set: "Agreed price",
   customer_changed: "Changed by customer",
+  customer_cancelled: "Cancelled by customer",
+  refund_recorded: "Refund recorded",
   change_reviewed: "Customer change reviewed",
   customer_email_sent: "Customer emailed",
   customer_email_skipped: "Customer not emailed",
@@ -52,7 +54,11 @@ export function ActivityTrail({ entries }: { entries: ActivityEntry[] }) {
                   ) : null}
                 </span>
                 <span className="font-sans text-[13px] text-charcoal/50">
-                  {entry.actor ?? (entry.action === "customer_changed" ? "Customer" : "System")} ·{" "}
+                  {entry.actor ??
+                    (entry.action === "customer_changed" || entry.action === "customer_cancelled"
+                      ? "Customer"
+                      : "System")}{" "}
+                  ·{" "}
                   {formatRelative(entry.createdAt)}
                 </span>
               </div>

@@ -84,15 +84,21 @@ export function buildChangeCodeEmail(input: {
   customerName: string;
   code: string;
   expiresInMinutes: number;
+  /** What the code is for. Defaults to changing the record. */
+  purpose?: "change" | "cancel";
 }): BuiltEmail {
   const noun = input.kind === "booking" ? "booking" : "request";
-  const subject = `Your code to change ${formatReference(input.reference)}: ${input.code}`;
-  const intro = `${firstName(input.customerName)}, here is the code to change your ${noun}. Enter it on the page you have open. It works for ${input.expiresInMinutes} minutes, once.`;
-  const warning = `If you did not ask for this, ignore this email. Nothing on your ${noun} changes without this code.`;
+  const verb = input.purpose === "cancel" ? "cancel" : "change";
+  const subject = `Your code to ${verb} ${formatReference(input.reference)}: ${input.code}`;
+  const intro = `${firstName(input.customerName)}, here is the code to ${verb} your ${noun}. Enter it on the page you have open. It works for ${input.expiresInMinutes} minutes, once.`;
+  const warning =
+    verb === "cancel"
+      ? `If you did not ask for this, ignore this email. Your ${noun} is not cancelled without this code.`
+      : `If you did not ask for this, ignore this email. Nothing on your ${noun} changes without this code.`;
 
   const html = shell({
     preheader: `Your code is ${input.code}. It works for ${input.expiresInMinutes} minutes.`,
-    eyebrow: input.kind === "booking" ? "Change your booking" : "Change your request",
+    eyebrow: `${verb === "cancel" ? "Cancel" : "Change"} your ${noun}`,
     headline: "Your code",
     intro,
     headerFacts: [{ label: "Reference", value: formatReference(input.reference) }],
@@ -120,6 +126,105 @@ export function buildChangeCodeEmail(input: {
     "",
     warning,
     "We will never ask you for this code by phone.",
+    ...signOff,
+  ].join("\n");
+
+  return { subject, html, text };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cancelled by the customer                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type CancelledRecord =
+  | { kind: "booking"; booking: Booking; wasPaid: boolean }
+  | { kind: "quote"; quote: Quote };
+
+/**
+ * The customer's confirmation, and the office's heads-up. The office copy leads
+ * with whether money is owed back, because that is the one thing a dispatcher
+ * has to act on; the customer's copy says what happens to what they paid.
+ */
+export function buildCancelledByCustomerEmail(
+  record: CancelledRecord,
+  audience: "customer" | "ops",
+): BuiltEmail {
+  const ops = audience === "ops";
+  const isBooking = record.kind === "booking";
+  const source = isBooking ? record.booking : record.quote;
+  const reference = formatReference(source.reference);
+  const noun = isBooking ? "booking" : "request";
+  const wasPaid = isBooking && record.wasPaid;
+
+  const subject = ops
+    ? `${isBooking ? "Booking" : "Quote request"} cancelled by customer${wasPaid ? " — PAID, refund may be due" : ""} — ${source.customerName} · ${reference}`
+    : `Your ${noun} is cancelled — ${reference}`;
+  const headline = ops
+    ? `A customer cancelled their ${noun}.`
+    : `Your ${noun} is ${isBooking ? "cancelled" : "closed"}.`;
+  const intro = ops
+    ? `${source.customerName} cancelled ${reference} from the tracking page, after confirming the email on it. It is tagged in the dashboard until someone marks it reviewed.`
+    : `${firstName(source.customerName)}, as you asked, we have ${isBooking ? "cancelled" : "closed"} ${reference}.`;
+  const after = ops
+    ? wasPaid
+      ? "This booking was PAID. A refund may be due: check the Payment panel, refund it from Stripe, then record the refund on the booking."
+      : "Nothing was paid, so no refund is due."
+    : wasPaid
+      ? "You paid for this booking, so we will refund it under our cancellation terms. A reservations agent will be in touch about the refund."
+      : "Nothing was charged, so there is nothing to refund.";
+
+  const rows = isBooking
+    ? [
+        detailRow("Pick-up", escapeHtml(record.booking.pickup)),
+        detailRow("Drop-off", escapeHtml(record.booking.destination)),
+        detailRow("Date", escapeHtml(formatDate(record.booking.pickupAt))),
+        detailRow("Time", escapeHtml(formatTime(record.booking.pickupAt))),
+      ]
+    : [detailRow("Reference", escapeHtml(reference))];
+  if (ops) {
+    rows.push(
+      detailRow("Customer", escapeHtml(source.customerName)),
+      detailRow("Phone", escapeHtml(source.customerPhone)),
+      detailRow("Email", escapeHtml(source.customerEmail)),
+    );
+  }
+
+  const html = shell({
+    preheader: `${reference} · ${headline}`,
+    eyebrow: ops ? "Cancelled by customer" : `Your ${noun}`,
+    headline,
+    intro,
+    headerFacts: [{ label: "Reference", value: reference }],
+    body: [
+      panel(ops ? "What was cancelled" : `Your ${noun}`, rows.join("")),
+      paragraph(escapeHtml(after)),
+      ops
+        ? ""
+        : paragraph(escapeHtml(`Did not cancel this? Email us straight away at ${CONTACT.email}.`)),
+    ].join(""),
+    footerNote: "Questions? Reply to this email. A person will always answer faster than a form.",
+  });
+
+  const text = [
+    `RSSKYLER LIMO — ${headline.replace(/\.$/, "").toUpperCase()}`,
+    "",
+    intro,
+    "",
+    `Reference:  ${reference}`,
+    ...(isBooking
+      ? [
+          `Date:       ${formatDate(record.booking.pickupAt)}`,
+          `Time:       ${formatTime(record.booking.pickupAt)} (New York)`,
+          `Pick-up:    ${record.booking.pickup}`,
+          `Drop-off:   ${record.booking.destination}`,
+        ]
+      : []),
+    ...(ops
+      ? [`Customer:   ${source.customerName}`, `Phone:      ${source.customerPhone}`, `Email:      ${source.customerEmail}`]
+      : []),
+    "",
+    after,
+    ...(ops ? [] : ["", `Did not cancel this? Email us at ${CONTACT.email}.`]),
     ...signOff,
   ].join("\n");
 
