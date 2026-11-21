@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-
+ 
 import { apiFetch } from "@/lib/api/client";
 import type { PlaceSuggestion } from "@/lib/api/types";
 
