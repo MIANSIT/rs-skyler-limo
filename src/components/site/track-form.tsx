@@ -1,45 +1,15 @@
 "use client";
-import { formatReference } from "@/lib/public/reference";
 
-import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
-import { CancelRecord } from "@/components/site/cancel-record";
-import { ChangeRecord } from "@/components/site/change-record";
-import { Button, ButtonOnDark } from "@/components/ui/button";
+import { Reveal } from "@/components/motion/reveal";
+import { TrackResult } from "@/components/site/track-result";
+import { Button } from "@/components/ui/button";
 import { Field, Input, glassCard } from "@/components/ui/field";
 import { clsx } from "@/lib/clsx";
 import type { FleetVehicle } from "@/lib/api/types";
-import { formatFare } from "@/lib/content";
-import { payBooking, trackBooking, type TrackState } from "@/lib/public/actions";
-import { formatRate } from "@/lib/public/tax";
-
-const statusCopy: Record<string, string> = {
-  new: "Received. A reservations agent is looking at it now.",
-  quoted: "Quoted. The fare below is yours — email us to confirm the booking.",
-  confirmed: "Confirmed. Your car is booked.",
-  completed: "Completed. Thank you for riding with us.",
-  cancelled: "Cancelled. Email us if that is not right.",
-  pending: "On hold while we confirm a detail with you.",
-};
-
-/** A quote request's status, in the same voice as a booking's. */
-const quoteStatusCopy: Record<string, string> = {
-  new: "Received. A reservations agent will price it and come back to you.",
-  quoted: "Priced. A reservations agent sends the price by email — reply to go ahead.",
-  won: "Going ahead. We will be in touch with the details.",
-  lost: "Closed. Email us if that is not right, or if your plans change.",
-  pending: "On hold while we confirm a detail with you.",
-};
-
-const quoteServiceLabels: Record<string, string> = {
-  corporate: "Corporate account",
-  wedding: "Wedding",
-  event: "Event",
-  hourly: "Hourly charter",
-  other: "Other",
-};
+import { trackBooking, type TrackState } from "@/lib/public/actions";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -51,77 +21,27 @@ function SubmitButton() {
   );
 }
 
-function PayButton({ amount }: { amount: string }) {
-  const { pending } = useFormStatus();
-
-  // Outlined, not gold: the lookup button above already holds the view's one
-  // gold action, and a midnight fill would vanish on the glass card.
-  return (
-    <ButtonOnDark type="submit" disabled={pending}>
-      {pending ? "Opening Stripe…" : `Pay ${amount} by card`}
-    </ButtonOnDark>
-  );
-}
-
 /**
- * What a total is made of: the price before tax and the sales tax. Nothing for
- * an order priced before tax existed, which carries no tax line.
+ * The lookup, and what it finds.
+ *
+ * Until something is found this is the two-field form beside a sample of what
+ * the answer looks like. Once a booking or request is found the form steps aside
+ * and the result takes the whole width: on a phone the answer is the first thing
+ * on screen instead of sitting below a form that is still there. "Look up
+ * another" brings the form back, and "Refresh" repeats the lookup with the same
+ * two details.
+ *
+ * The page's heading, note and sample arrive as props so the server page keeps
+ * owning its copy; they are only shown with the form.
  */
-function TaxLines({
-  totalCents,
-  taxCents,
-  taxRate,
-  label,
-}: {
-  totalCents: number;
-  taxCents: number;
-  taxRate: number;
-  label: string;
-}) {
-  if (taxCents === 0 && taxRate === 0) return null;
-  return (
-    <dl className="mt-3 grid max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-[14px] text-white/75 tabular-nums">
-      <dt>{label}</dt>
-      <dd className="text-right">{formatFare(totalCents - taxCents)}</dd>
-      <dt>Sales tax ({formatRate(taxRate)})</dt>
-      <dd className="text-right">{formatFare(taxCents)}</dd>
-    </dl>
-  );
-}
-
-/**
- * Sends the customer to Stripe for a priced, unpaid card booking. The API
- * re-checks the reference and phone, so these hidden fields grant nothing the
- * lookup did not.
- */
-function PayForm({ reference, phone, amountCents }: { reference: string; phone: string; amountCents: number }) {
-  const [error, action] = useActionState<string | null, FormData>(payBooking, null);
-
-  return (
-    <form action={action} className="mt-6 flex flex-col gap-3 border-t border-white/15 pt-6">
-      <input type="hidden" name="reference" value={reference} />
-      <input type="hidden" name="phone" value={phone} />
-      <p className="text-[15px] leading-[1.7] text-white/75">
-        You chose to pay by card. Payment is taken securely by Stripe; your
-        card details never reach us.
-      </p>
-      <div>
-        <PayButton amount={formatFare(amountCents)} />
-      </div>
-      {error ? (
-        <p role="alert" className="text-[14px] text-red-300">
-          {error}
-        </p>
-      ) : null}
-    </form>
-  );
-}
-
 export function TrackForm({
   vehicleNames,
   initialReference = "",
   fleet,
   placesEnabled,
+  heading,
+  note,
+  preview,
 }: {
   vehicleNames: Record<string, string>;
   /** From `?reference=` on a tracking link: pre-filled, phone focused. */
@@ -129,10 +49,16 @@ export function TrackForm({
   /** For the change form's vehicle list and address lookup. */
   fleet: FleetVehicle[];
   placesEnabled: boolean;
+  heading: ReactNode;
+  note: ReactNode;
+  preview: ReactNode;
 }) {
   const [state, formAction] = useActionState<TrackState, FormData>(trackBooking, {
     status: "idle",
   });
+  // The state the customer chose to put away with "Look up another". A fresh
+  // lookup, or a refresh, produces a new state object, so it shows again.
+  const [putAway, setPutAway] = useState<TrackState | null>(null);
 
   const prior = (field: "reference" | "phone") =>
     state.status === "error"
@@ -141,287 +67,86 @@ export function TrackForm({
         ? initialReference
         : "";
 
+  if ((state.status === "found" || state.status === "found-quote") && state !== putAway) {
+    return (
+      <div className="relative">
+        <TrackResult
+          found={
+            state.status === "found"
+              ? { kind: "booking", booking: state.booking, phone: state.phone }
+              : { kind: "quote", quote: state.quote, phone: state.phone }
+          }
+          vehicleNames={vehicleNames}
+          fleet={fleet}
+          placesEnabled={placesEnabled}
+          refreshAction={formAction}
+          onLookupAnother={() => setPutAway(state)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <>
-      <form
-        action={formAction}
-        className={clsx(glassCard, "mt-8 flex flex-col gap-5 p-6 md:p-8")}
-      >
-        <Field
-          tone="dark"
-          label="Booking reference"
-          id="reference"
-          hint="From your confirmation: the number from your confirmation, like #66465."
-        >
-          <Input
-            tone="dark"
-            id="reference"
-            name="reference"
-            required
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="#66465"
-            className="font-mono tracking-[0.08em] uppercase"
-            defaultValue={prior("reference")}
-            key={`reference:${prior("reference")}`}
-          />
-        </Field>
-
-        <Field
-          tone="dark"
-          label="Phone number"
-          id="phone"
-          hint="The number on the booking. We ask for both so a reference on its own cannot open your trip."
-          error={state.status === "error" ? state.message : undefined}
-        >
-          {/* The placeholder is a format hint for the customer's own number, so
-              it stays in the 555-01xx range reserved for fiction rather than
-              echoing the real support line back at them. */}
-          <Input
-            tone="dark"
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            autoComplete="tel"
-            // Arriving from a link, the reference is done; start on the phone.
-            autoFocus={Boolean(initialReference)}
-            placeholder="(212) 555-0123"
-            defaultValue={prior("phone")}
-            key={`phone:${prior("phone")}`}
-          />
-        </Field>
-
-        <SubmitButton />
-      </form>
-
-      {state.status === "found-quote" ? (
-        <div
-          role="status"
-          className={clsx(glassCard, "mt-8 p-6 md:p-8")}
-        >
-          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {formatReference(state.quote.reference)} · Quote request
-          </p>
-          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
-            {quoteStatusCopy[state.quote.status] ?? "We have your request."}
-          </p>
-          {state.quote.agreedPriceCents !== null ? (
-            <div className="mt-6 border-t border-white/15 pt-6">
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-                Your price
-              </p>
-              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
-                {formatFare(state.quote.agreedPriceCents)}
-              </p>
-              <TaxLines
-                totalCents={state.quote.agreedPriceCents}
-                taxCents={state.quote.taxCents}
-                taxRate={state.quote.taxRate}
-                label="Price"
+    <div className="relative grid gap-14 lg:grid-cols-2 lg:gap-20">
+      <Reveal>
+        {heading}
+        <div data-reveal>
+          <form
+            action={formAction}
+            className={clsx(glassCard, "mt-8 flex flex-col gap-5 p-6 md:p-8")}
+          >
+            <Field
+              tone="dark"
+              label="Booking reference"
+              id="reference"
+              hint="From your confirmation: the number from your confirmation, like #66465."
+            >
+              <Input
+                tone="dark"
+                id="reference"
+                name="reference"
+                required
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="#66465"
+                className="font-mono tracking-[0.08em] uppercase"
+                defaultValue={prior("reference")}
+                key={`reference:${prior("reference")}`}
               />
-              <p className="mt-3 font-sans text-[15px] text-white/75">
-                {state.quote.paymentStatus === "paid"
-                  ? "Paid. Thank you."
-                  : state.quote.paymentMethod === "cash"
-                    ? "Cash on delivery, to your chauffeur on the day."
-                    : state.quote.paymentMethod === "card"
-                      ? "Card — use the payment link we emailed you."
-                      : null}
-              </p>
-            </div>
-          ) : null}
-          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 sm:grid-cols-2">
-            <Row
-              label="Service"
-              value={quoteServiceLabels[state.quote.serviceType] ?? state.quote.serviceType}
-            />
-            <Row
-              label="Event date"
-              value={
-                state.quote.eventDate
-                  ? new Date(`${state.quote.eventDate}T12:00:00Z`).toLocaleDateString("en-US", {
-                      timeZone: "America/New_York",
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "Not given yet"
-              }
-            />
-          </dl>
+            </Field>
 
-          <ChangeRecord
-            key={state.quote.reference}
-            kind="quote"
-            reference={state.quote.reference}
-            phone={state.phone}
-            change={state.quote.change}
-            fleet={fleet}
-            placesEnabled={placesEnabled}
-          />
+            <Field
+              tone="dark"
+              label="Phone number"
+              id="phone"
+              hint="The number on the booking. We ask for both so a reference on its own cannot open your trip."
+              error={state.status === "error" ? state.message : undefined}
+            >
+              {/* The placeholder is a format hint for the customer's own number, so
+                  it stays in the 555-01xx range reserved for fiction rather than
+                  echoing the real support line back at them. */}
+              <Input
+                tone="dark"
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                autoComplete="tel"
+                // Arriving from a link, the reference is done; start on the phone.
+                autoFocus={Boolean(initialReference)}
+                placeholder="(212) 555-0123"
+                defaultValue={prior("phone")}
+                key={`phone:${prior("phone")}`}
+              />
+            </Field>
 
-          <CancelRecord
-            key={`cancel-${state.quote.reference}`}
-            kind="quote"
-            reference={state.quote.reference}
-            phone={state.phone}
-            status={state.quote.status}
-            paid={state.quote.paymentStatus === "paid"}
-            cancel={state.quote.cancel}
-          />
+            <SubmitButton />
+          </form>
         </div>
-      ) : null}
+        {note}
+      </Reveal>
 
-      {state.status === "found" ? (
-        <div
-          role="status"
-          className={clsx(glassCard, "mt-8 p-6 md:p-8")}
-        >
-          <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-            {formatReference(state.booking.reference)}
-          </p>
-          <p className="font-display mt-2 text-[22px] leading-snug font-semibold text-white">
-            {statusCopy[state.booking.status] ?? "We have your booking."}
-          </p>
-
-          {state.booking.quotedTotalCents !== null ? (
-            <div className="mt-6 border-t border-white/15 pt-6">
-              <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-                {state.booking.pricingMode === "fixed"
-                  ? "Fixed fare"
-                  : "Your quote"}
-              </p>
-              <p className="font-display mt-1 text-[30px] leading-none font-semibold text-white tabular-nums">
-                {formatFare(state.booking.quotedTotalCents)}
-              </p>
-              <TaxLines
-                totalCents={state.booking.quotedTotalCents}
-                taxCents={state.booking.taxCents}
-                taxRate={state.booking.taxRate}
-                label="Fare"
-              />
-              {state.booking.quoteNote ? (
-                <p className="mt-3 max-w-md text-[15px] leading-[1.7] text-white/75">
-                  {state.booking.quoteNote}
-                </p>
-              ) : null}
-              {state.booking.paymentStatus === "paid" ? (
-                <p className="mt-3 font-sans text-[15px] font-semibold text-white">
-                  Paid. Thank you.
-                </p>
-              ) : null}
-            </div>
-          ) : state.booking.pricingMode === "quote" ? (
-            <p className="mt-6 max-w-md border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
-              We are still pricing this trip. A reservations agent will come back
-              to you by email — the fare will appear here as soon as it
-              is set.
-            </p>
-          ) : null}
-
-          {state.booking.canPayOnline && state.booking.quotedTotalCents !== null ? (
-            <PayForm
-              reference={state.booking.reference}
-              phone={state.phone}
-              amountCents={state.booking.quotedTotalCents}
-            />
-          ) : null}
-
-          {state.booking.status === "completed" ? (
-            <p className="mt-6 border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
-              How was the trip?{" "}
-              <Link
-                href={`/review?reference=${encodeURIComponent(state.booking.reference)}`}
-                className="font-medium text-white underline underline-offset-4"
-              >
-                Leave a review
-              </Link>
-              .
-            </p>
-          ) : null}
-
-          <dl className="mt-6 grid gap-x-8 gap-y-4 border-t border-white/15 pt-6 sm:grid-cols-2">
-            <Row label="Pickup" value={state.booking.pickup} />
-            <Row label="Destination" value={state.booking.destination} />
-            <Row
-              label="Vehicle"
-              value={
-                vehicleNames[state.booking.vehicleClass] ??
-                state.booking.vehicleClass
-              }
-            />
-            <Row
-              label="Scheduled"
-              value={new Date(state.booking.pickupAt).toLocaleString("en-US", {
-                timeZone: "America/New_York",
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            />
-            <Row label="Passengers" value={String(state.booking.passengers)} />
-            <Row label="Bags" value={String(state.booking.bags)} />
-            <Row
-              label="Child seats"
-              value={state.booking.childSeats > 0 ? String(state.booking.childSeats) : "None"}
-            />
-            {state.booking.airline || state.booking.flightNumber ? (
-              <Row
-                label="Flight"
-                value={[state.booking.airline, state.booking.flightNumber].filter(Boolean).join(" ")}
-              />
-            ) : null}
-            <Row
-              label="Payment"
-              value={
-                state.booking.paymentMethod === "cash"
-                  ? "Cash on delivery"
-                  : "Card (Stripe)"
-              }
-            />
-            {state.booking.notes ? (
-              <div className="sm:col-span-2">
-                <Row label="Instructions" value={state.booking.notes} />
-              </div>
-            ) : null}
-          </dl>
-
-          <ChangeRecord
-            key={state.booking.reference}
-            kind="booking"
-            reference={state.booking.reference}
-            phone={state.phone}
-            change={state.booking.change}
-            fleet={fleet}
-            placesEnabled={placesEnabled}
-          />
-
-          <CancelRecord
-            key={`cancel-${state.booking.reference}`}
-            kind="booking"
-            reference={state.booking.reference}
-            phone={state.phone}
-            status={state.booking.status}
-            paid={state.booking.paymentStatus === "paid"}
-            cancel={state.booking.cancel}
-          />
-        </div>
-      ) : null}
-    </>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
-        {label}
-      </dt>
-      <dd className="mt-1 text-[15px] text-white tabular-nums">{value}</dd>
+      <Reveal y={30}>{preview}</Reveal>
     </div>
   );
 }

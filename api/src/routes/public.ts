@@ -44,6 +44,7 @@ import {
 } from "../services/pricing.js";
 import { autocomplete, placesAvailable, resolvePlace } from "../services/places.js";
 import { getDefaultTaxRate } from "../services/settings.js";
+import { getRefundSummary } from "../services/refunds.js";
 import {
   sendBookingChangedEmails,
   sendBookingEmails,
@@ -380,6 +381,7 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     if (!quote || !samePhone(quote.customerPhone, phone)) {
       throw ApiError.notFound("No booking matches those details.");
     }
+    const quoteMoney = await getRefundSummary("quote", quote.id);
     res.json({
       kind: "quote",
       reference: quote.reference,
@@ -392,6 +394,9 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
       taxCents: quote.taxCents,
       paymentMethod: quote.paymentMethod,
       paymentStatus: quote.paymentStatus,
+      /** What the customer has paid and what has gone back, so a cancelled request can say where the money is. */
+      paidCents: quoteMoney.paidCents,
+      refundedCents: quoteMoney.refundedCents,
       createdAt: quote.createdAt,
       change: quoteChangeability(quote),
       cancel: quoteCancellability(quote),
@@ -406,6 +411,11 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
   // One message for "no such reference" and for "wrong phone", so this cannot
   // be used to test whether a reference exists.
   if (!matches) throw ApiError.notFound("No booking matches those details.");
+
+  const money = await getRefundSummary("booking", booking.id);
+  // The same lines the Stripe checkout will charge: the fare while it is unpaid
+  // by card, plus every unpaid extra charge. The page shows these as they are.
+  const due = await bookingDue(booking);
 
   res.json({
     kind: "booking",
@@ -430,7 +440,20 @@ publicRouter.post("/track", lookupLimit, async (req, res) => {
     quotedAt: booking.quotedAt,
     paymentMethod: booking.paymentMethod,
     paymentStatus: booking.paymentStatus,
-    canPayOnline: canPayOnline(booking),
+    /** Fare plus paid extra charges, and what has gone back. Both zero until something is paid. */
+    paidCents: money.paidCents,
+    refundedCents: money.refundedCents,
+    /** Extra charges added after the booking (waiting time, a drop-off), each with whether it is paid. */
+    charges: due.charges.map((charge) => ({
+      title: charge.title,
+      amountCents: charge.amountCents,
+      taxCents: charge.taxCents,
+      paid: charge.paidAt !== null,
+    })),
+    /** What "pay by card" will take now: the unpaid fare plus unpaid charges. 0 when nothing can be paid online. */
+    payCents: due.canPay ? due.dueCents : 0,
+    /** True when there is anything to pay by card — an unpaid fare, an unpaid extra charge, or both. */
+    canPayOnline: due.canPay,
     change: bookingChangeability(booking),
     cancel: bookingCancellability(booking),
   });

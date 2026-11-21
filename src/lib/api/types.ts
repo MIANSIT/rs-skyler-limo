@@ -75,6 +75,15 @@ export type BookingOptions = {
   taxRate: number;
 };
 
+/** One extra charge on a booking, as the customer sees it. */
+export type TrackedCharge = {
+  title: string;
+  /** What the customer pays, sales tax included. */
+  amountCents: number;
+  taxCents: number;
+  paid: boolean;
+};
+
 /** What /track returns for a booking. Still no customer contact details. */
 export type TrackedBooking = {
   kind: "booking";
@@ -100,6 +109,14 @@ export type TrackedBooking = {
   quotedAt: string | null;
   paymentMethod: PaymentMethod;
   paymentStatus: "unpaid" | "paid";
+  /** Fare plus paid extra charges, sales tax included. 0 until something is paid. */
+  paidCents: number;
+  /** What has gone back to the customer. */
+  refundedCents: number;
+  /** Extra charges added after booking (waiting time, a drop-off), sales tax included. */
+  charges: TrackedCharge[];
+  /** What "pay by card" will take now: the unpaid fare plus unpaid charges. 0 when nothing is payable online. */
+  payCents: number;
   /** True when the customer can pay this booking by card on Stripe now. */
   canPayOnline: boolean;
   /** Whether the customer may change it online now, and if not, why. */
@@ -124,6 +141,8 @@ export type TrackedQuote = {
   /** Chosen with the agreed price; null until then. */
   paymentMethod: PaymentMethod | null;
   paymentStatus: "unpaid" | "paid";
+  paidCents: number;
+  refundedCents: number;
   createdAt: string;
   change: Changeability;
   cancel: Changeability;

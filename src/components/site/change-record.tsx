@@ -84,6 +84,7 @@ export function ChangeRecord({
   change,
   fleet,
   placesEnabled,
+  embedded = false,
 }: {
   kind: "booking" | "quote";
   reference: string;
@@ -92,20 +93,19 @@ export function ChangeRecord({
   change: Changeability;
   fleet: FleetVehicle[];
   placesEnabled: boolean;
+  /** Inside a collapsible section that already has its own frame: no rule or top margin of its own. */
+  embedded?: boolean;
 }) {
   const [state, action] = useActionState<ChangeState, FormData>(changeStep, { step: "start" });
   const noun = kind === "booking" ? "booking" : "request";
+  const frame = embedded ? "" : "mt-6 border-t border-white/15 pt-6";
 
   if (!change.allowed) {
-    return (
-      <p className="mt-6 border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
-        {change.reason}
-      </p>
-    );
+    return <p className={`${frame} text-[15px] leading-[1.7] text-white/75`}>{change.reason}</p>;
   }
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-5 border-t border-white/15 pt-6">
+    <form action={action} className={`${frame} flex flex-col gap-5`}>
       <input type="hidden" name="reference" value={reference} />
       <input type="hidden" name="phone" value={phone} />
 
@@ -225,7 +225,7 @@ export function ChangeRecord({
             {state.statusChanged
               ? `Because the ${noun} changed, a reservations agent will confirm it with you again. `
               : ""}
-            We have emailed you the details. Look it up again to see the {noun} as it is now.
+            We have emailed you the details. Press Refresh at the top to see the {noun} as it is now.
             {state.phoneChanged ? " Use your new phone number next time." : ""}
           </p>
         </div>

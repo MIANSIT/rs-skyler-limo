@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/site/page-header";
 import { BookingStatusPreview } from "@/components/site/booking-status-preview";
 import { TrackForm } from "@/components/site/track-form";
@@ -61,23 +60,24 @@ export default async function TrackPage({
           aria-hidden
           className="pointer-events-none absolute -bottom-1/3 -left-1/4 h-[80%] w-[60%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.05),transparent)]"
         />
-        <div className="relative grid gap-14 lg:grid-cols-2 lg:gap-20">
-          <Reveal>
+        {/*
+          The form, the note and the sample are passed in; `TrackForm` shows them
+          until something is found, then gives the whole width to the result.
+        */}
+        <TrackForm
+          vehicleNames={vehicleNames}
+          initialReference={initialReference}
+          fleet={fleet}
+          placesEnabled={options.placesEnabled}
+          heading={
             <SectionHeading
               tone="dark"
               eyebrow="Find a booking"
               title="Two details, nothing to install"
               data-reveal
             />
-            <div data-reveal>
-              <TrackForm
-                vehicleNames={vehicleNames}
-                initialReference={initialReference}
-                fleet={fleet}
-                placesEnabled={options.placesEnabled}
-              />
-            </div>
-
+          }
+          note={
             <p data-reveal className="mt-6 text-[15px] leading-[1.7] text-white/75">
               No reference to hand? Email dispatch at{" "}
               <a
@@ -88,9 +88,8 @@ export default async function TrackPage({
               </a>{" "}
               — someone will look it up for you.
             </p>
-          </Reveal>
-
-          <Reveal y={30}>
+          }
+          preview={
             <div data-reveal>
               <p className="font-sans text-[13px] font-medium tracking-[0.08em] text-white/60 uppercase">
                 What you will see
@@ -99,8 +98,8 @@ export default async function TrackPage({
                 <BookingStatusPreview ground="dark" />
               </div>
             </div>
-          </Reveal>
-        </div>
+          }
+        />
       </Section>
     </>
   );

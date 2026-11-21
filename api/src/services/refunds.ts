@@ -133,6 +133,11 @@ async function readSummary(
 
 const pooled: Run = (sql, params) => query(sql, params);
 
+/** Just the totals, for the customer's tracking page. */
+export async function getRefundSummary(type: RefundSubject, id: number): Promise<RefundSummary> {
+  return readSummary(pooled, type, id, false);
+}
+
 export async function getRefunds(
   type: RefundSubject,
   id: number,

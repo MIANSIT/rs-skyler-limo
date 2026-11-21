@@ -26,6 +26,7 @@ export function CancelRecord({
   status,
   paid,
   cancel,
+  embedded = false,
 }: {
   kind: "booking" | "quote";
   reference: string;
@@ -34,9 +35,12 @@ export function CancelRecord({
   status: string;
   paid: boolean;
   cancel: Changeability;
+  /** Inside a collapsible section that already has its own frame: no rule or top margin of its own. */
+  embedded?: boolean;
 }) {
   const [state, action] = useActionState<CancelState, FormData>(cancelStep, { step: "start" });
   const noun = kind === "booking" ? "booking" : "request";
+  const frame = embedded ? "" : "mt-6 border-t border-white/15 pt-6";
 
   // Already cancelled, finished or closed: the lookup above says so, and the
   // change section gives the way forward. Nothing more to offer here.
@@ -44,15 +48,11 @@ export function CancelRecord({
   if (finished && state.step !== "done") return null;
 
   if (!cancel.allowed && state.step !== "done") {
-    return (
-      <p className="mt-6 border-t border-white/15 pt-6 text-[15px] leading-[1.7] text-white/75">
-        {cancel.reason}
-      </p>
-    );
+    return <p className={`${frame} text-[15px] leading-[1.7] text-white/75`}>{cancel.reason}</p>;
   }
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-5 border-t border-white/15 pt-6">
+    <form action={action} className={`${frame} flex flex-col gap-5`}>
       <input type="hidden" name="reference" value={reference} />
       <input type="hidden" name="phone" value={phone} />
 
@@ -114,7 +114,7 @@ export function CancelRecord({
             {state.wasPaid
               ? "Because you had paid, a reservations agent will be in touch about your refund."
               : "Nothing was charged."}{" "}
-            Look it up again to see its status.
+            Press Refresh at the top to see its status.
           </p>
         </div>
       ) : null}
