@@ -205,8 +205,8 @@ export function buildQuoteRequestEmail(
  *
  * Customer only: the office entered the price and does not need a copy of it.
  * The fare sits on a midnight panel because gold text is only allowed on
- * midnight, and the one gold button is the tracking link, where the price is
- * also shown.
+ * midnight, and the one gold button follows it directly: the payment link for a
+ * card customer, otherwise the tracking page, where the price is also shown.
  */
 export function buildQuotedEmail(
   booking: Booking,
@@ -222,6 +222,13 @@ export function buildQuotedEmail(
     taxRate: booking.taxRate,
   };
 
+  // What to do about the price, said once and matching the button under it.
+  const nextStep = payUrl
+    ? "Nothing is charged until you pay. Use the button below when you are ready to go ahead."
+    : booking.paymentMethod === "card"
+      ? "Nothing is charged until you confirm. Reply to this email to go ahead and we will arrange card payment."
+      : "Nothing is charged until you confirm. Reply to this email to go ahead. Payment is cash on delivery: pay your chauffeur at the end of the trip.";
+
   const farePanel = `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;border-collapse:collapse;">
     <tr>
@@ -230,11 +237,7 @@ export function buildQuotedEmail(
         <div style="margin-top:8px;font-family:${DISPLAY_FONT};font-size:30px;line-height:1;font-weight:600;color:${BRAND.white};">${escapeHtml(fare)}</div>
         ${taxLinesOnDark(priced)}
         <div style="margin-top:10px;font-family:${SANS_FONT};font-size:13px;line-height:1.7;color:rgba(255,255,255,0.70);">
-          Nothing is charged until you confirm. Reply to this email to go ahead.${
-            booking.paymentMethod === "card"
-              ? " To pay by card, open your booking below and choose Pay by card — payment is taken securely by Stripe."
-              : " Payment is cash on delivery: pay your chauffeur at the end of the trip."
-          }
+          ${escapeHtml(nextStep)}
         </div>
       </td>
     </tr>
@@ -268,7 +271,7 @@ export function buildQuotedEmail(
       <td style="background:${BRAND.gold};">
         <a href="${escapeHtml(payUrl)}"
            style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
-          Pay ${escapeHtml(fare)} securely
+          PAY NOW
         </a>
       </td>
     </tr>
@@ -304,7 +307,9 @@ export function buildQuotedEmail(
       { label: "Pick-up time", value: formatTime(booking.pickupAt) },
       { label: "Reference", value: formatReference(booking.reference) },
     ],
-    body: [farePanel, noteBlock, panel("The trip", tripRows), trackButton].join(""),
+    // The button sits right under the price, as on the payment-link email: a
+    // customer should not have to scroll past the trip table to find it.
+    body: [farePanel, trackButton, noteBlock, panel("The trip", tripRows)].join(""),
     footerNote:
       "Questions about the price? Reply to this email. A person will always answer faster than a form.",
   });
@@ -322,13 +327,10 @@ export function buildQuotedEmail(
     `Payment:    ${PAYMENT_LABELS[booking.paymentMethod] ?? booking.paymentMethod}`,
     "",
     ...priceTextLines(priced, "Quote"),
-    "Nothing is charged until you confirm. Reply to this email to go ahead.",
-    booking.paymentMethod === "card"
-      ? "To pay by card, open your booking below and choose Pay by card (Stripe)."
-      : "Payment is cash on delivery: pay your chauffeur at the end of the trip.",
+    nextStep,
+    ...(payUrl ? ["", `PAY NOW: ${payUrl}`] : []),
     ...(note ? ["", "NOTE", `  ${note}`] : []),
     "",
-    ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),
     `View this booking: ${trackUrl(booking.reference)}`,
     "The link fills in your reference. You add the phone number you gave us, so a forwarded email cannot open your trip.",
     "",

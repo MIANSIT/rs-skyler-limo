@@ -355,7 +355,7 @@ export function buildQuoteUpdateEmail(
       // drops to a plain link. Otherwise the request page is the button.
       ...(payUrl
         ? [
-            button(payUrl, `Pay ${formatMoney(quote.agreedPriceCents) ?? ""} securely`),
+            button(payUrl, "PAY NOW"),
             paragraph(
               `Paid by card through Stripe. This link is for ${escapeHtml(formatReference(quote.reference))} only and works for 7 days. You can also <a href="${escapeHtml(trackUrl)}" style="color:${BRAND.midnight};font-weight:600;">view your request</a>.`,
             ),
@@ -376,7 +376,7 @@ export function buildQuoteUpdateEmail(
     ...priceTextLines(quotePriced, "Price"),
     ...(copy.after ? ["", copy.after] : []),
     "",
-    ...(payUrl ? [`Pay securely by card: ${payUrl}`] : []),
+    ...(payUrl ? [`PAY NOW: ${payUrl}`] : []),
     `View your request: ${trackUrl}`,
     TRACK_HINT,
     ...signOff(),

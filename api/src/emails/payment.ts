@@ -85,7 +85,7 @@ export function buildPaymentLinkEmail(
       <td style="background:${BRAND.gold};">
         <a href="${escapeHtml(payUrl)}"
            style="display:inline-block;padding:14px 28px;font-family:${SANS_FONT};font-size:15px;font-weight:700;color:${BRAND.midnight};text-decoration:none;">
-          Pay ${escapeHtml(fare)} securely
+          PAY NOW
         </a>
       </td>
     </tr>
@@ -125,7 +125,7 @@ export function buildPaymentLinkEmail(
     `Drop-off:   ${booking.destination}`,
     `Vehicle:    ${vehicleName}`,
     "",
-    `Pay securely by card: ${payUrl}`,
+    `PAY NOW: ${payUrl}`,
     `This link is for this booking only and works until ${expires}.`,
     "",
     "--",

@@ -16,7 +16,8 @@ import { bookingSheet, useBookingSheet } from "@/lib/public/booking-sheet";
  * all of them. Email is outlined on midnight, Book is white with midnight text.
  *
  * It renders only below `md`. On the booking page itself the bar is hidden:
- * the form is the action there.
+ * the form is the action there. So it is on a payment link: the customer is
+ * there to pay, and a white "Book" button beside the amount competes with it.
  *
  * Email opens a new message with the subject "Query", addressed to
  * `SUPPORT_EMAIL` from `.env.local` (passed down by the layout, so the
@@ -25,7 +26,7 @@ import { bookingSheet, useBookingSheet } from "@/lib/public/booking-sheet";
  * and goes to `/book` everywhere else.
  */
 
-const HIDDEN_ON = ["/book"];
+const HIDDEN_ON = ["/book", "/pay"];
 
 const buttonBase =
   "flex min-h-12 flex-1 items-center justify-center gap-2 rounded-sm px-3 font-sans text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";

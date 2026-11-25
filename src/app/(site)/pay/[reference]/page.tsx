@@ -2,9 +2,9 @@ import { formatReference } from "@/lib/public/reference";
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/site/page-header";
-import { PayLinkForm } from "@/components/site/pay-link-form";
+import { PayLinkBar, PayLinkForm } from "@/components/site/pay-link-form";
 import { ButtonLink } from "@/components/ui/button";
-import { Section } from "@/components/ui/section";
+import { Container, Section } from "@/components/ui/section";
 import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import { contact, formatFare } from "@/lib/content";
 import { formatRate } from "@/lib/public/tax";
@@ -139,93 +139,161 @@ export default async function PayLinkPage({
 
   const amount = booking.amountCents !== null ? formatFare(booking.amountCents) : null;
   const paid = booking.paymentStatus === "paid";
+  const quote = booking.kind === "quote";
+  const noun = quote ? "request" : "booking";
+  const payable = !paid && booking.canPay && amount !== null;
+
+  // The few facts that say "yes, this is my trip", shown beside the amount.
+  // Everything else waits below the fold.
+  const glance = quote
+    ? {
+        when: booking.eventDate ? day(booking.eventDate) : "Date to be confirmed",
+        what: booking.serviceLabel ?? "",
+      }
+    : {
+        when: `${when(booking.pickupAt ?? "")} · New York time`,
+        what: booking.vehicleName ?? "",
+      };
+
+  const details = quote
+    ? [
+        { label: "Service", value: booking.serviceLabel ?? "" },
+        { label: "Date", value: booking.eventDate ? day(booking.eventDate) : "To be confirmed" },
+        { label: "Reference", value: formatReference(booking.reference) },
+      ]
+    : [
+        { label: "Booked for", value: booking.customerName ?? "" },
+        {
+          label: "Trip",
+          value: [
+            TRIP[booking.tripType ?? ""] ?? booking.tripType,
+            SERVICE[booking.serviceType ?? ""],
+            booking.airportCode,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
+        {
+          label: "Passengers & luggage",
+          value: [
+            plural(booking.passengers ?? 1, "passenger"),
+            plural(booking.bags ?? 0, "bag"),
+            (booking.childSeats ?? 0) > 0 ? plural(booking.childSeats ?? 0, "child seat") : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
+        ...(booking.airline || booking.flightNumber
+          ? [{ label: "Flight", value: [booking.airline, booking.flightNumber].filter(Boolean).join(" ") }]
+          : []),
+        ...(booking.notes ? [{ label: "Instructions", value: booking.notes }] : []),
+        { label: "Reference", value: formatReference(booking.reference) },
+      ];
 
   return (
-    <>
-      <PageHeader
-        eyebrow={`Payment · ${formatReference(booking.reference)}`}
-        title={
-          paid
-            ? `This ${booking.kind === "quote" ? "request" : "booking"} is paid`
-            : `Pay for your ${booking.kind === "quote" ? "request" : "booking"}`
-        }
-        intro={
-          paid
-            ? "Thank you — the payment is in. There is nothing more to do before the trip."
-            : booking.canPay
-              ? `Check the ${booking.kind === "quote" ? "details" : "trip"} below, then pay by card on Stripe's secure page. Your card details go to Stripe, never to us.`
-              : `This booking cannot be paid online right now. Email ${contact.email} and we will sort it out.`
-        }
-      />
+    // One wrapper, so the phone's pinned Pay bar can stick within this page and
+    // stop before the footer.
+    <div>
+      {/*
+        Payment first. A customer arrives from "your price is ready" to pay, so
+        the amount and the button are on the first screen of a phone: no tall
+        page header, no scrolling past the trip to find them. A white card on
+        midnight is the strongest thing the brand's colours can do.
+      */}
+      <section className="bg-midnight">
+        <Container className="py-8 md:py-16">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-center lg:gap-16">
+            <div>
+              <p className="font-sans text-[13px] font-medium tracking-[0.16em] text-gold uppercase tabular-nums">
+                Payment · {formatReference(booking.reference)}
+              </p>
+              <h1 className="font-display mt-3 text-[30px] leading-[1.15] font-semibold text-white md:text-[44px]">
+                {paid ? `This ${noun} is paid` : `Pay for your ${noun}`}
+              </h1>
 
-      <Section tone="light">
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-20">
-          <dl className="flex flex-col lg:col-span-7">
-            {(booking.kind === "quote"
-              ? [
-                  { label: "Service", value: booking.serviceLabel ?? "" },
-                  { label: "Date", value: booking.eventDate ? day(booking.eventDate) : "To be confirmed" },
-                  { label: "Reference", value: formatReference(booking.reference) },
-                ]
-              : [
-                  { label: "Pick-up", value: `${when(booking.pickupAt ?? "")} (New York time)` },
-                  { label: "From", value: booking.pickup ?? "" },
-                  { label: "To", value: booking.destination ?? "" },
-                  { label: "Vehicle", value: booking.vehicleName ?? "" },
-                  { label: "Booked for", value: booking.customerName ?? "" },
-                  {
-                    label: "Trip",
-                    value: [
-                      TRIP[booking.tripType ?? ""] ?? booking.tripType,
-                      SERVICE[booking.serviceType ?? ""],
-                      booking.airportCode,
-                    ]
-                      .filter(Boolean)
-                      .join(" · "),
-                  },
-                  {
-                    label: "Passengers & luggage",
-                    value: [
-                      plural(booking.passengers ?? 1, "passenger"),
-                      plural(booking.bags ?? 0, "bag"),
-                      (booking.childSeats ?? 0) > 0
-                        ? plural(booking.childSeats ?? 0, "child seat")
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · "),
-                  },
-                  ...(booking.airline || booking.flightNumber
-                    ? [
-                        {
-                          label: "Flight",
-                          value: [booking.airline, booking.flightNumber].filter(Boolean).join(" "),
-                        },
-                      ]
-                    : []),
-                  ...(booking.notes ? [{ label: "Instructions", value: booking.notes }] : []),
-                  { label: "Reference", value: formatReference(booking.reference) },
-                ]
-            ).map((row) => (
-              <div key={row.label} className="border-t border-midnight/10 py-5 last:border-b">
-                <dt className="font-sans text-[13px] font-medium tracking-[0.12em] text-charcoal/70 uppercase">
-                  {row.label}
-                </dt>
-                <dd className="mt-1 font-sans text-[17px] text-midnight">{row.value}</dd>
-              </div>
-            ))}
-          </dl>
+              <p className="mt-4 text-[16px] font-semibold text-white tabular-nums md:text-[18px]">
+                {glance.when}
+              </p>
+              {quote ? null : (
+                <p className="mt-2 text-[15px] leading-[1.6] text-white/80">
+                  {booking.pickup}
+                  <span aria-hidden> → </span>
+                  <span className="sr-only"> to </span>
+                  {booking.destination}
+                </p>
+              )}
+              <p className="mt-1 text-[15px] text-white/70">{glance.what}</p>
+            </div>
 
-          <div className="lg:col-span-5">
-            <div className="bg-grey p-6 md:p-8">
+            <div className="rounded-sm border-t-4 border-gold bg-white p-6 md:p-8">
               <p className="font-sans text-[13px] font-medium tracking-[0.12em] text-charcoal/70 uppercase">
                 {paid ? "Paid" : "Amount due"}
               </p>
-              <p className="font-display mt-2 text-[40px] leading-none font-semibold text-midnight tabular-nums">
+              <p className="font-display mt-2 text-[56px] leading-none font-semibold text-midnight tabular-nums">
                 {amount ?? "—"}
               </p>
+              {booking.amountCents !== null && booking.taxCents > 0 && !booking.lines?.length ? (
+                <p className="mt-2 font-sans text-[14px] text-charcoal tabular-nums">
+                  Includes {formatFare(booking.taxCents)} sales tax ({formatRate(booking.taxRate)})
+                </p>
+              ) : null}
+
+              <div id="pay-now" className="mt-6">
+                {paid ? (
+                  <>
+                    <p className="mb-4 text-[15px] leading-[1.7] text-charcoal">
+                      Thank you. The payment is in, and there is nothing more to pay.
+                    </p>
+                    <ButtonLink
+                      href={`/track?reference=${encodeURIComponent(booking.reference)}`}
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                    >
+                      Track your {noun}
+                    </ButtonLink>
+                  </>
+                ) : payable ? (
+                  <PayLinkForm reference={booking.reference} token={token} />
+                ) : (
+                  <>
+                    <p className="mb-4 text-[15px] leading-[1.7] text-charcoal">
+                      This {noun} cannot be paid online right now. Email us and we will sort it out.
+                    </p>
+                    <ButtonLink
+                      href={`mailto:${contact.email}`}
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                    >
+                      Email us
+                    </ButtonLink>
+                  </>
+                )}
+              </div>
+
+              {payable ? (
+                <p className="mt-3 flex items-start justify-center gap-2 text-center text-[13px] leading-[1.6] text-charcoal">
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-midnight"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <rect x="4" y="9" width="12" height="8" rx="1" />
+                    <path d="M7 9V6.5a3 3 0 0 1 6 0V9" />
+                  </svg>
+                  Secure card payment by Stripe. Your card details never reach us.
+                </p>
+              ) : null}
+
+              {/* Under the button: what makes up the figure, for whoever wants it. */}
               {booking.lines && booking.lines.length > 0 ? (
-                <dl className="mt-4 flex flex-col gap-1.5 font-sans text-[14px] text-charcoal tabular-nums">
+                <dl className="mt-6 flex flex-col gap-1.5 border-t border-midnight/10 pt-5 font-sans text-[14px] text-charcoal tabular-nums">
                   {booking.lines.map((line, index) => (
                     <div key={`${line.label}-${index}`} className="flex justify-between gap-4">
                       <dt>
@@ -237,15 +305,11 @@ export default async function PayLinkPage({
                   ))}
                   <div className="flex justify-between gap-4">
                     <dt>Sales tax ({formatRate(booking.taxRate)})</dt>
-                    <dd>
-                      {formatFare(booking.lines.reduce((sum, line) => sum + line.taxCents, 0))}
-                    </dd>
+                    <dd>{formatFare(booking.lines.reduce((sum, line) => sum + line.taxCents, 0))}</dd>
                   </div>
                   <div className="flex justify-between gap-4 border-t border-midnight/15 pt-1.5 font-semibold text-midnight">
                     <dt>Total</dt>
-                    <dd>
-                      {formatFare(booking.lines.reduce((sum, line) => sum + line.amountCents, 0))}
-                    </dd>
+                    <dd>{formatFare(booking.lines.reduce((sum, line) => sum + line.amountCents, 0))}</dd>
                   </div>
                   {booking.lines.some((line) => line.paid) ? (
                     <div className="flex justify-between gap-4">
@@ -261,45 +325,45 @@ export default async function PayLinkPage({
                     </div>
                   ) : null}
                 </dl>
-              ) : booking.amountCents !== null && booking.taxCents > 0 ? (
-                <p className="mt-3 font-sans text-[14px] text-charcoal tabular-nums">
-                  {formatFare(booking.amountCents - booking.taxCents)}{" "}
-                  {booking.kind === "quote" ? "price" : "fare"} + {formatFare(booking.taxCents)} sales
-                  tax ({formatRate(booking.taxRate)})
-                </p>
               ) : null}
-              <div className="mt-8">
-                {paid ? (
-                  <ButtonLink
-                    href={`/track?reference=${encodeURIComponent(booking.reference)}`}
-                    variant="primary"
-                  >
-                    Track your booking
-                  </ButtonLink>
-                ) : booking.canPay && amount ? (
-                  <PayLinkForm reference={booking.reference} token={token} amount={amount} />
-                ) : (
-                  <ButtonLink href={`mailto:${contact.email}`} variant="primary">
-                    Email {contact.email}
-                  </ButtonLink>
-                )}
-              </div>
+
               {!paid ? (
-                <p className="mt-6 text-[14px] leading-[1.7] text-charcoal">
+                <p className="mt-5 text-center text-[14px] leading-[1.7] text-charcoal">
                   Would rather pay another way?{" "}
                   <a
                     href={`mailto:${contact.email}`}
-                    className="font-medium whitespace-nowrap text-midnight underline underline-offset-4 tabular-nums"
+                    className="font-medium whitespace-nowrap text-midnight underline underline-offset-4"
                   >
-                    Email {contact.email}
+                    Email us
                   </a>
-                  .
                 </p>
               ) : null}
             </div>
           </div>
-        </div>
-      </Section>
-    </>
+        </Container>
+      </section>
+
+      <section className="bg-white">
+        <Container className="py-10 md:py-16">
+          <h2 className="font-display text-[24px] font-semibold text-midnight">
+            {quote ? "Your request" : "Trip details"}
+          </h2>
+          <dl className="mt-5 grid gap-x-12 sm:grid-cols-2">
+            {details.map((row) => (
+              <div key={row.label} className="border-t border-midnight/10 py-4">
+                <dt className="font-sans text-[13px] font-medium tracking-[0.12em] text-charcoal/70 uppercase">
+                  {row.label}
+                </dt>
+                <dd className="mt-1 font-sans text-[16px] text-midnight">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </Container>
+      </section>
+
+      {payable ? (
+        <PayLinkBar reference={booking.reference} token={token} amount={amount} watchId="pay-now" />
+      ) : null}
+    </div>
   );
 }

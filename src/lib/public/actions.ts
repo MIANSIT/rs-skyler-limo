@@ -379,7 +379,7 @@ export async function trackBooking(
 }
 
 /**
- * "Pay by card" from the tracking page. Asks the API for a Stripe payment page
+ * "Pay now" from the tracking page. Asks the API for a Stripe payment page
  * with the same reference and phone the lookup used, then sends the customer
  * there. Returns only on failure.
  */
@@ -409,7 +409,7 @@ export async function payBooking(
 }
 
 /**
- * "Pay securely" on a payment-link page. The API re-checks the signed token
+ * "Pay now" on a payment-link page. The API re-checks the signed token
  * before opening a Stripe page for the booking's stored fare; the browser
  * sends nothing about the amount. Returns only on failure.
  */

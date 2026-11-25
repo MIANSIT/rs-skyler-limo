@@ -543,7 +543,7 @@ function PayForm({
             {amount}
           </p>
         </div>
-        <PayButton label="Pay by card" size="md" className="ml-auto" />
+        <PayButton label="PAY NOW" size="md" className="ml-auto" />
         {error ? (
           <p role="alert" className="w-full text-[13px] text-red-300">
             {error}
@@ -557,7 +557,7 @@ function PayForm({
     <form action={action} className="mt-6 flex flex-col gap-3">
       <input type="hidden" name="reference" value={reference} />
       <input type="hidden" name="phone" value={phone} />
-      <PayButton label={`Pay ${amount} by card`} className="w-full sm:w-auto sm:self-start" />
+      <PayButton label="PAY NOW" className="w-full sm:w-auto sm:self-start" />
       <p className="text-[14px] leading-[1.6] text-white/70">
         Payment is taken securely by Stripe. Your card details never reach us.
       </p>
