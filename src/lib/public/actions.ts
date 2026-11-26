@@ -86,6 +86,10 @@ export async function submitBooking(
     [
       "pickup",
       "destination",
+      // With the text, or a redisplayed form submits a chosen address as typed
+      // text and a fixed fare silently becomes a quote.
+      "pickupPlaceId",
+      "destinationPlaceId",
       "date",
       "time",
       "flight",
