@@ -24,12 +24,15 @@ export function AddressField({
   placeholder,
   required,
   defaultValue = "",
+  defaultPlaceId = null,
   enabled,
   sessionToken,
   tone = "light",
   onResolve,
   onTypingStart,
   onTextChange,
+  mustPick = false,
+  onNeedsPick,
   "aria-invalid": ariaInvalid,
 }: {
   id: string;
@@ -37,6 +40,8 @@ export function AddressField({
   placeholder?: string;
   required?: boolean;
   defaultValue?: string;
+  /** The place `defaultValue` was chosen from, so a redisplayed form keeps it. */
+  defaultPlaceId?: string | null;
   enabled: boolean;
   sessionToken: string;
   /** Only the text field itself — the suggestion list below stays a plain
@@ -49,6 +54,14 @@ export function AddressField({
   onTypingStart?: () => void;
   /** The text as it stands, typed or picked — for a live trip summary. */
   onTextChange?: (text: string) => void;
+  /**
+   * Refuse typed text while there are suggestions to choose from: the fare
+   * depends on knowing where the address is, and only a chosen place says so.
+   * With no suggestions (none match, or lookup is down) the text is accepted.
+   */
+  mustPick?: boolean;
+  /** Told when the box holds typed text that still needs choosing from the list. */
+  onNeedsPick?: (needsPick: boolean) => void;
   /** Flagged by the form when this address is missing, so the box itself
    *  turns red beside the message `Field` shows. */
   "aria-invalid"?: boolean;
@@ -57,7 +70,7 @@ export function AddressField({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const [placeId, setPlaceId] = useState<string | null>(null);
+  const [placeId, setPlaceId] = useState<string | null>(defaultPlaceId);
 
   const listId = useId();
   const dark = tone === "dark";
@@ -133,6 +146,14 @@ export function AddressField({
    */
   const visible = value.trim().length >= 3 ? suggestions : [];
 
+  // A custom validity, so the form's own Continue and submit checks catch it
+  // and show the message under the field like any other.
+  const needsPick = mustPick && !placeId && visible.length > 0;
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(needsPick ? "Choose your address from the list." : "");
+    onNeedsPick?.(needsPick);
+  }, [needsPick, onNeedsPick]);
+
   const listStyle = usePopoverStyle(inputRef, enabled && open && visible.length > 0, {
     width: "anchor",
   });
@@ -144,6 +165,8 @@ export function AddressField({
 
     setValue(text);
     onTextChange?.(text);
+    // Cleared now, not after the next render, so `onResolve` sees a valid field.
+    inputRef.current?.setCustomValidity("");
     setPlaceId(suggestion.placeId);
     onResolve?.(suggestion.placeId);
     setOpen(false);
@@ -167,6 +190,10 @@ export function AddressField({
         aria-expanded={enabled ? open : undefined}
         aria-controls={enabled ? listId : undefined}
         aria-autocomplete={enabled ? "list" : undefined}
+        // Coming back to an unchosen address brings its suggestions back.
+        onFocus={() => {
+          if (!placeId && visible.length > 0) setOpen(true);
+        }}
         onChange={(event) => {
           onTypingStart?.();
           setValue(event.target.value);

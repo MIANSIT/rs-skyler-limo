@@ -370,6 +370,17 @@ function BookingEdit({
   const editDestination = !isAirport || details.airportDirection !== "to-airport";
   const value = (key: string, fallback: string | number | null) => values?.[key] ?? String(fallback ?? "");
 
+  // On an airport run one address is editable, and the fare turns on where it
+  // is. A new one has to be chosen from the list, as on the booking form; the
+  // address already on the booking keeps the place stored with it.
+  const addressKey = editPickup ? "pickup" : "destination";
+  const original = editPickup ? details.pickup : details.destination;
+  const [addressText, setAddressText] = useState(values?.[addressKey] ?? original);
+  const [needsPick, setNeedsPick] = useState(false);
+  const [notListed, setNotListed] = useState(false);
+  const changedAddress = isAirport && addressText.trim() !== original.trim();
+  const mustPick = changedAddress && !notListed;
+
   return (
     <>
       <div>
@@ -411,6 +422,10 @@ function BookingEdit({
               sessionToken={sessionToken}
               onTypingStart={startPlacesSession}
               defaultValue={value("pickup", details.pickup)}
+              defaultPlaceId={values?.pickupPlaceId || null}
+              onTextChange={isAirport ? setAddressText : undefined}
+              mustPick={mustPick}
+              onNeedsPick={isAirport ? setNeedsPick : undefined}
             />
           </Field>
         ) : (
@@ -432,12 +447,32 @@ function BookingEdit({
               sessionToken={sessionToken}
               onTypingStart={startPlacesSession}
               defaultValue={value("destination", details.destination)}
+              defaultPlaceId={values?.destinationPlaceId || null}
+              onTextChange={isAirport ? setAddressText : undefined}
+              mustPick={mustPick}
+              onNeedsPick={isAirport ? setNeedsPick : undefined}
             />
           </Field>
         ) : (
           <input type="hidden" name="destination" value={details.destination} />
         )}
         <input type="hidden" name="placesSessionToken" value={sessionToken} />
+
+        {/* Said here as well as by the browser's own bubble, which iOS does not draw. */}
+        {needsPick || (notListed && changedAddress) ? (
+          <p role="status" className="-mt-2 text-[14px] leading-[1.6] text-white/75 sm:col-span-2">
+            {needsPick
+              ? "Pick your address from the list so we can work out your fare. "
+              : "We will confirm your fare by email for this address. "}
+            <button
+              type="button"
+              onClick={() => setNotListed(needsPick)}
+              className="font-medium text-white underline underline-offset-4"
+            >
+              {needsPick ? "My address is not listed" : "Pick from the list instead"}
+            </button>
+          </p>
+        ) : null}
 
         <Field tone="dark" label="Vehicle class" id="change-vehicle" className="sm:col-span-2">
           <Select tone="dark" id="change-vehicle" name="vehicle" required value={vehicle} onChange={(event) => setVehicle(event.target.value)}>

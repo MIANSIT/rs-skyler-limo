@@ -236,6 +236,10 @@ export function BookingForm({
   // The address text as typed, for the trip summary only — the fields
   // themselves still submit their own values.
   const [cityText, setCityText] = useState("");
+  // The city address is typed but not chosen from the list, and the customer
+  // saying it is not on the list (which accepts it, to be quoted by a person).
+  const [needsPick, setNeedsPick] = useState(false);
+  const [notListed, setNotListed] = useState(false);
   const [otherText, setOtherText] = useState("");
 
   const [step, setStep] = useState<Step>(1);
@@ -811,12 +815,49 @@ export function BookingForm({
               sessionToken={sessionToken}
               tone={tone}
               defaultValue={prior(cityField)}
-              onResolve={setCityPlaceId}
+              defaultPlaceId={prior(`${cityField}PlaceId`) || null}
+              onResolve={(placeId) => {
+                setCityPlaceId(placeId);
+                recheck();
+              }}
               onTypingStart={startPlacesSession}
               onTextChange={setCityText}
+              // Only where a fixed fare is at stake. A typed airport address
+              // cannot be placed in Manhattan, so it would silently be quoted.
+              mustPick={trip === "airport" && !quoteOnlyAirport && !notListed}
+              onNeedsPick={setNeedsPick}
               aria-invalid={invalid[cityField] ? true : undefined}
             />
           </Field>
+
+          {needsPick || (notListed && trip === "airport" && !cityPlaceId) ? (
+            <p
+              role="status"
+              className={clsx(
+                "-mt-2 text-[14px] leading-[1.6] sm:col-span-2",
+                dark ? "text-white/75" : "text-charcoal",
+              )}
+            >
+              {needsPick
+                ? "Pick your address from the list to see your fixed fare. "
+                : "We will confirm your fare by email for this address. "}
+              <button
+                type="button"
+                onClick={() => {
+                  setNotListed(needsPick);
+                  setInvalid((current) =>
+                    Object.fromEntries(Object.entries(current).filter(([key]) => key !== cityField)),
+                  );
+                }}
+                className={clsx(
+                  "font-medium underline underline-offset-4",
+                  dark ? "text-white" : "text-midnight",
+                )}
+              >
+                {needsPick ? "My address is not listed" : "Pick from the list instead"}
+              </button>
+            </p>
+          ) : null}
 
           {trip !== "airport" ? (
             <Field
@@ -835,6 +876,7 @@ export function BookingForm({
                 sessionToken={sessionToken}
                 tone={tone}
                 defaultValue={prior("destination")}
+                defaultPlaceId={prior("destinationPlaceId") || null}
                 onTypingStart={startPlacesSession}
                 onTextChange={setOtherText}
                 aria-invalid={invalid.destination ? true : undefined}
